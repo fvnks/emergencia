@@ -18,7 +18,7 @@ export interface EppAssignment {
   id_item_epp: number;
   fecha_asignacion: string;
   cantidad_asignada: number;
-  estado_asignacion: EppAssignmentStatus;
+  estado_asignacion: EppAssignmentStatus; // Restored as mandatory
   notas?: string | null;
   fecha_creacion: string;
   fecha_actualizacion: string;
@@ -111,7 +111,7 @@ export async function assignEppToUser(
     );
     
     let newAssignmentId: number;
-    const assignmentStatus: EppAssignmentStatus = 'Asignado';
+    const assignmentStatus: EppAssignmentStatus = 'Asignado'; // Restored
 
     if (existingAssignments.length > 0) {
         // Actualizar la asignación existente
@@ -119,9 +119,9 @@ export async function assignEppToUser(
         const nuevaCantidadTotalAsignada = existingAssignment.cantidad_asignada + cantidad_a_asignar_ahora;
         await connection.execute(
             `UPDATE EPP_Asignaciones_Actuales 
-             SET cantidad_asignada = ?, fecha_asignacion = ?, notas = ?, id_usuario_responsable = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
-             WHERE id_asignacion_epp = ?`,
-            [nuevaCantidadTotalAsignada, fecha_asignacion, notas || null, responsibleUserId, existingAssignment.id_asignacion_epp]
+             SET cantidad_asignada = ?, fecha_asignacion = ?, estado_asignacion = ?, notas = ?, id_usuario_responsable = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
+             WHERE id_asignacion_epp = ?`, // Added estado_asignacion
+            [nuevaCantidadTotalAsignada, fecha_asignacion, assignmentStatus, notas || null, responsibleUserId, existingAssignment.id_asignacion_epp]
         );
         newAssignmentId = existingAssignment.id_asignacion_epp;
     } else {
@@ -129,7 +129,7 @@ export async function assignEppToUser(
         const [assignmentResult] = await connection.execute(
           `INSERT INTO EPP_Asignaciones_Actuales
            (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)`, // Added estado_asignacion
           [id_usuario, id_item_epp, fecha_asignacion, cantidad_a_asignar_ahora, assignmentStatus, notas || null, responsibleUserId]
         ) as [ResultSetHeader, any];
         newAssignmentId = assignmentResult.insertId;
@@ -140,7 +140,7 @@ export async function assignEppToUser(
     const movementType: EppMovementType = 'ASIGNACION_EPP';
     await connection.execute(
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
+       (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, notas_movimiento)
        VALUES (?, ?, ?, ?, ?)`,
       [id_item_epp, movementType, -cantidad_a_asignar_ahora, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
@@ -173,7 +173,7 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
       ea.id_item_epp,
       ea.fecha_asignacion,
       ea.cantidad_asignada,
-      ea.estado_asignacion,
+      ea.estado_asignacion, -- Restored
       ea.notas,
       ea.fecha_creacion,
       ea.fecha_actualizacion,
@@ -184,7 +184,7 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     FROM EPP_Asignaciones_Actuales ea
     JOIN Inventario_Items ii ON ea.id_item_epp = ii.id_item
     JOIN Usuarios u ON ea.id_usuario = u.id_usuario
-    WHERE ea.id_usuario = ? AND ea.estado_asignacion = 'Asignado'
+    WHERE ea.id_usuario = ? AND ea.estado_asignacion = 'Asignado' -- Restored filter
     ORDER BY ea.fecha_asignacion DESC, ii.nombre_item ASC
   `;
   try {
@@ -195,4 +195,3 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     throw error;
   }
 }
-
