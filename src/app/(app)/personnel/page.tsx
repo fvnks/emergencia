@@ -2,14 +2,15 @@
 "use client";
 
 import type { User } from "@/services/userService"; 
-import type { EppAssignment } from "@/services/eppAssignmentService"; // Import EppAssignment
+import type { EppAssignment } from "@/services/eppAssignmentService";
 import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "@/services/userService";
-import { getEppAssignedToUser } from "@/services/eppAssignmentService"; // Import getEppAssignedToUser
+import { getEppAssignedToUser } from "@/services/eppAssignmentService";
+import { getActiveTasksForUser, type Task } from "@/services/taskService"; // Importar
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle, Package } from "lucide-react";
+import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
 import { DeletePersonnelDialog } from "@/components/personnel/delete-personnel-dialog";
@@ -20,8 +21,10 @@ import { Badge } from "@/components/ui/badge";
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
   const [assignedEpp, setAssignedEpp] = useState<Record<number, EppAssignment[]>>({});
+  const [assignedTasks, setAssignedTasks] = useState<Record<number, Task[]>>({}); // Nuevo estado para tareas
   const [loading, setLoading] = useState(true);
   const [eppLoading, setEppLoading] = useState<Record<number, boolean>>({});
+  const [tasksLoading, setTasksLoading] = useState<Record<number, boolean>>({}); // Nuevo estado para carga de tareas
   const [error, setError] = useState<string | null>(null);
   
   const [selectedPersonForDelete, setSelectedPersonForDelete] = useState<User | null>(null);
@@ -32,45 +35,60 @@ export default function PersonnelPage() {
 
   const { user: currentUser } = useAuth();
 
-  const fetchPersonnelAndEpp = useCallback(async () => {
+  const fetchPersonnelDetails = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      setAssignedEpp({}); // Clear previous EPP data
-      setEppLoading({}); // Clear previous EPP loading states
+      setAssignedEpp({}); 
+      setEppLoading({}); 
+      setAssignedTasks({}); 
+      setTasksLoading({}); 
 
       const users = await getAllUsers();
       setPersonnel(users);
-      setLoading(false); // Personnel list loaded
+      setLoading(false); 
 
       if (users.length > 0) {
-        const eppPromises = users.map(async (person) => {
+        const detailPromises = users.map(async (person) => {
+          // Cargar EPP
           setEppLoading(prev => ({ ...prev, [person.id_usuario]: true }));
           try {
             const eppItems = await getEppAssignedToUser(person.id_usuario);
             setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: eppItems }));
           } catch (eppError) {
             console.error(`Error fetching EPP for user ${person.id_usuario}:`, eppError);
-            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty array on error
+            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); 
           } finally {
             setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
           }
+
+          // Cargar Tareas Activas
+          setTasksLoading(prev => ({ ...prev, [person.id_usuario]: true }));
+          try {
+            const activeTasks = await getActiveTasksForUser(person.id_usuario);
+            setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: activeTasks }));
+          } catch (taskError) {
+            console.error(`Error fetching active tasks for user ${person.id_usuario}:`, taskError);
+            setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: [] })); 
+          } finally {
+            setTasksLoading(prev => ({ ...prev, [person.id_usuario]: false }));
+          }
         });
-        await Promise.all(eppPromises);
+        await Promise.all(detailPromises);
       }
     } catch (err) {
-      console.error("Error fetching personnel:", err);
-      setError(err instanceof Error ? err.message : "No se pudo cargar el personal.");
+      console.error("Error fetching personnel details:", err);
+      setError(err instanceof Error ? err.message : "No se pudo cargar el personal y sus detalles.");
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchPersonnelAndEpp();
-  }, [fetchPersonnelAndEpp]);
+    fetchPersonnelDetails();
+  }, [fetchPersonnelDetails]);
 
   const handlePersonnelAddedOrUpdatedOrDeleted = () => {
-    fetchPersonnelAndEpp(); 
+    fetchPersonnelDetails(); 
   };
 
   const openDeleteDialog = (person: User) => {
@@ -108,7 +126,7 @@ export default function PersonnelPage() {
         <AlertTitle>Error al Cargar Personal</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={fetchPersonnelAndEpp} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
+          <Button onClick={fetchPersonnelDetails} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
         </AlertDescription>
       </Alert>
     );
@@ -177,9 +195,20 @@ export default function PersonnelPage() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center">
-                <ClipboardList className="mr-2 h-4 w-4 text-muted-foreground" />
-                Tareas Activas: N/A (Próximamente)
+              <div className="flex items-start pt-1">
+                <ClipboardList className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-medium">Tareas Activas: </span>
+                  {tasksLoading[person.id_usuario] && <span className="text-xs text-muted-foreground">Cargando tareas...</span>}
+                  {!tasksLoading[person.id_usuario] && (!assignedTasks[person.id_usuario] || assignedTasks[person.id_usuario]?.length === 0) && (
+                    <span className="text-muted-foreground">Ninguna</span>
+                  )}
+                  {!tasksLoading[person.id_usuario] && assignedTasks[person.id_usuario] && assignedTasks[person.id_usuario]?.length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {assignedTasks[person.id_usuario]?.length} {assignedTasks[person.id_usuario]?.length === 1 ? 'tarea activa' : 'tareas activas'}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2 border-t pt-4">
@@ -217,3 +246,4 @@ export default function PersonnelPage() {
     </div>
   );
 }
+
