@@ -178,4 +178,3 @@ export async function deleteEraEquipment(id_era: number): Promise<boolean> {
 // export async function assignEraToUser(id_era: number, id_usuario: number): Promise<boolean> { ... }
 // export async function unassignEraFromUser(id_era: number): Promise<boolean> { ... }
 // export async function getEraAssignedToUser(userId: number): Promise<EraEquipment | null> { ... }
-
