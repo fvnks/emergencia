@@ -9,7 +9,7 @@ import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, UserCheck, Loader2, AlertTriangle, PackageSearch, ShieldQuestion } from "lucide-react";
+import { Edit, Trash2, UserCheck, Loader2, AlertTriangle, ShieldQuestion } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddEraDialog } from "@/components/equipment/add-era-dialog";
@@ -151,7 +151,7 @@ export default function EquipmentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-             {/* Botón eliminado de aquí */}
+            {/* El botón "Agregar Nuevo ERA" que estaba aquí ha sido eliminado. */}
           </CardContent>
         </Card>
       )}
@@ -249,4 +249,3 @@ export default function EquipmentPage() {
     </div>
   );
 }
-
