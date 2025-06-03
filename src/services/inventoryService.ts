@@ -2,7 +2,7 @@
 'use server';
 
 import { query } from '@/lib/db';
-import type { ResultSetHeader } from 'mysql2';
+import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { findOrCreateLocationByName, type InventoryLocation } from './inventoryLocationService';
 
 export interface InventoryItem {
@@ -29,13 +29,27 @@ export interface InventoryItemCreateInput {
   nombre_item: string;
   descripcion_item?: string;
   categoria_item: string;
-  ubicacion_nombre?: string; // Name of the location, will be resolved to id_ubicacion
-  sub_ubicacion?: string;    // Sub-location name
+  ubicacion_nombre?: string;
+  sub_ubicacion?: string;
   cantidad_actual: number;
   unidad_medida?: string;
   stock_minimo?: number;
   es_epp: boolean;
   fecha_vencimiento_item?: string; // YYYY-MM-DD
+}
+
+export interface InventoryItemUpdateInput {
+  codigo_item?: string;
+  nombre_item?: string;
+  descripcion_item?: string | null;
+  categoria_item?: string;
+  ubicacion_nombre?: string | null; // Pass null to clear location
+  sub_ubicacion?: string | null;    // Pass null to clear sub_location
+  cantidad_actual?: number;
+  unidad_medida?: string;
+  stock_minimo?: number | null;
+  es_epp?: boolean;
+  fecha_vencimiento_item?: string | null; // YYYY-MM-DD or null to clear
 }
 
 
@@ -52,7 +66,6 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
   `;
   try {
     const rows = await query(sql) as InventoryItem[];
-    // Ensure es_epp is boolean
     return rows.map(item => ({ ...item, es_epp: Boolean(item.es_epp) }));
   } catch (error) {
     console.error('Error fetching all inventory items:', error);
@@ -120,7 +133,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     id_ubicacion,
     cantidad_actual,
     unidad_medida,
-    stock_minimo || 0,
+    stock_minimo === undefined || stock_minimo === null ? null : stock_minimo,
     es_epp ? 1 : 0,
     fecha_vencimiento_item || null,
   ];
@@ -134,10 +147,100 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
   } catch (error) {
     console.error('Error creating inventory item:', error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
-      throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
+      if ((error as any).sqlMessage.includes('codigo_item')) {
+        throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
+      }
     }
     throw error;
   }
 }
 
-// TODO: Add updateInventoryItem and deleteInventoryItem functions
+export async function updateInventoryItem(id_item: number, data: InventoryItemUpdateInput): Promise<InventoryItem | null> {
+  const fieldsToUpdate: string[] = [];
+  const params: (string | number | boolean | null)[] = [];
+
+  let id_ubicacion_resolved: number | null | undefined = undefined; // undefined means no change to location
+
+  if (data.ubicacion_nombre !== undefined) {
+    if (data.ubicacion_nombre === null || data.ubicacion_nombre.trim() === "") {
+      id_ubicacion_resolved = null; // Clear location
+    } else {
+      const location = await findOrCreateLocationByName(data.ubicacion_nombre.trim(), data.sub_ubicacion?.trim() || null);
+      if (location) {
+        id_ubicacion_resolved = location.id_ubicacion;
+      } else {
+        // Should not happen if findOrCreateLocationByName works correctly, but as a fallback:
+        id_ubicacion_resolved = null; 
+      }
+    }
+    fieldsToUpdate.push('id_ubicacion = ?');
+    params.push(id_ubicacion_resolved);
+  }
+
+
+  if (data.codigo_item !== undefined) {
+    fieldsToUpdate.push('codigo_item = ?');
+    params.push(data.codigo_item);
+  }
+  if (data.nombre_item !== undefined) {
+    fieldsToUpdate.push('nombre_item = ?');
+    params.push(data.nombre_item);
+  }
+  if (data.descripcion_item !== undefined) {
+    fieldsToUpdate.push('descripcion_item = ?');
+    params.push(data.descripcion_item);
+  }
+  if (data.categoria_item !== undefined) {
+    fieldsToUpdate.push('categoria_item = ?');
+    params.push(data.categoria_item);
+  }
+  if (data.cantidad_actual !== undefined) {
+    fieldsToUpdate.push('cantidad_actual = ?');
+    params.push(data.cantidad_actual);
+  }
+  if (data.unidad_medida !== undefined) {
+    fieldsToUpdate.push('unidad_medida = ?');
+    params.push(data.unidad_medida);
+  }
+  if (data.stock_minimo !== undefined) {
+    fieldsToUpdate.push('stock_minimo = ?');
+    params.push(data.stock_minimo);
+  }
+  if (data.es_epp !== undefined) {
+    fieldsToUpdate.push('es_epp = ?');
+    params.push(data.es_epp ? 1 : 0);
+  }
+  if (data.fecha_vencimiento_item !== undefined) {
+    fieldsToUpdate.push('fecha_vencimiento_item = ?');
+    params.push(data.fecha_vencimiento_item);
+  }
+
+  if (fieldsToUpdate.length === 0) {
+    return getInventoryItemById(id_item); // No fields to update
+  }
+
+  fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
+  params.push(id_item);
+
+  const sql = `UPDATE Inventario_Items SET ${fieldsToUpdate.join(', ')} WHERE id_item = ?`;
+
+  try {
+    const result = await query(sql, params) as ResultSetHeader;
+    if (result.affectedRows > 0) {
+      return getInventoryItemById(id_item);
+    }
+    // If affectedRows is 0, it might mean the item wasn't found or data was same
+    const existingItem = await getInventoryItemById(id_item);
+    if (!existingItem) throw new Error (`Ítem con ID ${id_item} no encontrado para actualizar.`);
+    return existingItem; // Return existing if no change but found
+
+  } catch (error) {
+    console.error(`Error updating inventory item ${id_item}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
+       if ((error as any).sqlMessage.includes('codigo_item')) {
+        throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
+      }
+    }
+    throw error;
+  }
+}
