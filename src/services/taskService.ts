@@ -60,6 +60,7 @@ export async function getActiveTasksForUser(userId: number): Promise<Task[]> {
   `;
   try {
     const rows = await query(sql, [userId, ACTIVE_TASK_STATUSES_FOR_SUMMARY]) as Task[];
+    console.log(`[taskService.ts] getActiveTasksForUser for userId ${userId}: Found ${rows.length} tasks. Data:`, JSON.stringify(rows, null, 2));
     return rows;
   } catch (error) {
     console.error(`Error fetching active tasks for user ${userId}:`, error);
@@ -230,3 +231,4 @@ export async function deleteTask(taskId: number): Promise<boolean> {
     throw error;
   }
 }
+
