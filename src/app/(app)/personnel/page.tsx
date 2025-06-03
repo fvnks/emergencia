@@ -21,10 +21,10 @@ import { Badge } from "@/components/ui/badge";
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
   const [assignedEpp, setAssignedEpp] = useState<Record<number, EppAssignment[]>>({});
-  const [assignedTasks, setAssignedTasks] = useState<Record<number, Task[]>>({}); // Nuevo estado para tareas
-  const [loading, setLoading] = useState(true);
+  const [assignedTasks, setAssignedTasks] = useState<Record<number, Task[]>>({}); 
+  const [loading, setLoading] = useState(true); // Global loading for personnel list
   const [eppLoading, setEppLoading] = useState<Record<number, boolean>>({});
-  const [tasksLoading, setTasksLoading] = useState<Record<number, boolean>>({}); // Nuevo estado para carga de tareas
+  const [tasksLoading, setTasksLoading] = useState<Record<number, boolean>>({}); 
   const [error, setError] = useState<string | null>(null);
   
   const [selectedPersonForDelete, setSelectedPersonForDelete] = useState<User | null>(null);
@@ -36,22 +36,32 @@ export default function PersonnelPage() {
   const { user: currentUser } = useAuth();
 
   const fetchPersonnelDetails = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      setAssignedEpp({}); 
-      setEppLoading({}); 
-      setAssignedTasks({}); 
-      setTasksLoading({}); 
+    setLoading(true); // Start global loading
+    setError(null);
+    // Clear previous details to avoid stale data if user list changes
+    setAssignedEpp({}); 
+    setAssignedTasks({}); 
+    // eppLoading and tasksLoading will be re-initialized after users are fetched
 
+    try {
       const users = await getAllUsers();
       setPersonnel(users);
-      setLoading(false); 
+
+      // Initialize loading states for all fetched users
+      const initialEppLoadingState: Record<number, boolean> = {};
+      const initialTasksLoadingState: Record<number, boolean> = {};
+      users.forEach(u => {
+        initialEppLoadingState[u.id_usuario] = true;
+        initialTasksLoadingState[u.id_usuario] = true;
+      });
+      setEppLoading(initialEppLoadingState);
+      setTasksLoading(initialTasksLoadingState);
+      
+      setLoading(false); // Personnel list loaded, global loading false
 
       if (users.length > 0) {
         const detailPromises = users.map(async (person) => {
-          // Cargar EPP
-          setEppLoading(prev => ({ ...prev, [person.id_usuario]: true }));
+          // EPP Loading is already true from initialization above
           try {
             const eppItems = await getEppAssignedToUser(person.id_usuario);
             setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: eppItems }));
@@ -62,8 +72,7 @@ export default function PersonnelPage() {
             setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
           }
 
-          // Cargar Tareas Activas
-          setTasksLoading(prev => ({ ...prev, [person.id_usuario]: true }));
+          // Tasks Loading is already true from initialization above
           try {
             const activeTasks = await getActiveTasksForUser(person.id_usuario);
             setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: activeTasks }));
@@ -79,7 +88,9 @@ export default function PersonnelPage() {
     } catch (err) {
       console.error("Error fetching personnel details:", err);
       setError(err instanceof Error ? err.message : "No se pudo cargar el personal y sus detalles.");
-      setLoading(false);
+      setLoading(false); // Ensure global loading is false on error
+      setEppLoading({}); // Clear loading states on global error
+      setTasksLoading({});
     }
   }, []);
 
