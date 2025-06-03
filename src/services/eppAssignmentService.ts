@@ -140,11 +140,12 @@ export async function assignEppToUser(
 
     // 4. Crear registro en Inventario_Movimientos
     const movementType: EppMovementType = 'ASIGNACION_EPP';
+    const cantidadMovidaValor = -cantidad_a_asignar_ahora; // Cantidad negativa para salida de inventario
     await connection.execute(
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
-       VALUES (?, ?, ?, ?, ?)`,
-      [id_item_epp, movementType, -cantidad_a_asignar_ahora, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
+       (id_item, tipo_movimiento, cantidad_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id_item_epp, movementType, cantidadMovidaValor, cantidadMovidaValor, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
 
 
