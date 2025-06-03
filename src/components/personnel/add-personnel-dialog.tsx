@@ -43,7 +43,7 @@ const formSchema = z.object({
   confirmPassword: z.string().min(6, { message: "La confirmación debe tener al menos 6 caracteres." }),
   rol: z.enum(["admin", "usuario"], { required_error: "Debe seleccionar un rol." }),
   telefono: z.string().optional(),
-  avatar_seed: z.string().max(2, { message: "El seed para avatar debe tener máximo 2 caracteres."}).optional(),
+  // avatar_seed fue eliminado del schema
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden.",
   path: ["confirmPassword"],
@@ -69,7 +69,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
       confirmPassword: "",
       rol: "usuario",
       telefono: "",
-      avatar_seed: "",
+      // avatar_seed fue eliminado de los defaultValues
     },
   });
 
@@ -82,7 +82,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
         password_plaintext: values.password,
         rol: values.rol as UserRole,
         telefono: values.telefono || undefined,
-        avatar_seed: values.avatar_seed || undefined,
+        // avatar_seed ya no se envía aquí
       };
       await createUser(createData);
       toast({
@@ -182,28 +182,28 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
                 )}
                 />
             </div>
-            <FormField
-              control={form.control}
-              name="rol"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rol</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un rol" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="usuario">Usuario</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="rol"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Rol</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un rol" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectItem value="usuario">Usuario</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
                 <FormField
                 control={form.control}
                 name="telefono"
@@ -217,20 +217,8 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
                     </FormItem>
                 )}
                 />
-                <FormField
-                control={form.control}
-                name="avatar_seed"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Seed Avatar (Opcional, 2 letras)</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Ej: JP" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
             </div>
+            {/* El FormField para avatar_seed ha sido completamente eliminado del JSX */}
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
                 Cancelar
@@ -245,4 +233,3 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
     </Dialog>
   );
 }
-
