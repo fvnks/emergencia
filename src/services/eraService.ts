@@ -151,7 +151,7 @@ export async function updateEraEquipment(id_era: number, data: EraEquipmentUpdat
   } catch (error) {
     console.error(\`Error updating ERA equipment \${id_era}:\`, error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era')) {
-      throw new Error(\`El código de ERA '${data.codigo_era}' ya existe para otro equipo.\`);
+      throw new Error(\`El código de ERA '\${data.codigo_era}' ya existe para otro equipo.\`);
     }
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo actualizar el equipo.");
