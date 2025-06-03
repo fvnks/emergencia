@@ -93,7 +93,7 @@ export async function createEraEquipment(data: EraEquipmentCreateInput): Promise
   } catch (error) {
     console.error('Error creating ERA equipment:', error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era')) {
-      throw new Error(\`El código de ERA '${codigo_era}' ya existe.\`);
+      throw new Error("El código de ERA '" + codigo_era + "' ya existe.");
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo crear el equipo.");
@@ -108,7 +108,7 @@ export async function updateEraEquipment(id_era: number, data: EraEquipmentUpdat
 
   const addField = (field: keyof EraEquipmentUpdateInput, value?: string | number | null) => {
     if (value !== undefined) {
-      fieldsToUpdate.push(\`\${field} = ?\`);
+      fieldsToUpdate.push(`${field} = ?`);
       if (field.startsWith('fecha_')) {
         params.push(formatDateForDb(value as string | undefined | null));
       } else {
@@ -138,7 +138,7 @@ export async function updateEraEquipment(id_era: number, data: EraEquipmentUpdat
   fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
   params.push(id_era);
 
-  const sql = \`UPDATE ERA_Equipos SET \${fieldsToUpdate.join(', ')} WHERE id_era = ?\`;
+  const sql = `UPDATE ERA_Equipos SET ${fieldsToUpdate.join(', ')} WHERE id_era = ?`;
 
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -146,12 +146,12 @@ export async function updateEraEquipment(id_era: number, data: EraEquipmentUpdat
       return getEraEquipmentById(id_era);
     }
     const existingItem = await getEraEquipmentById(id_era);
-    if (!existingItem) throw new Error (\`Equipo ERA con ID \${id_era} no encontrado para actualizar.\`);
+    if (!existingItem) throw new Error (`Equipo ERA con ID ${id_era} no encontrado para actualizar.`);
     return existingItem; 
   } catch (error) {
-    console.error(\`Error updating ERA equipment \${id_era}:\`, error);
-    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era')) {
-      throw new Error(\`El código de ERA '\${data.codigo_era}' ya existe para otro equipo.\`);
+    console.error(`Error updating ERA equipment ${id_era}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era') && data.codigo_era) {
+      throw new Error("El código de ERA '" + data.codigo_era + "' ya existe para otro equipo.");
     }
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo actualizar el equipo.");
@@ -166,7 +166,7 @@ export async function deleteEraEquipment(id_era: number): Promise<boolean> {
     const result = await query(sql, [id_era]) as ResultSetHeader;
     return result.affectedRows > 0;
   } catch (error) {
-    console.error(\`Error deleting ERA equipment \${id_era}:\`, error);
+    console.error(`Error deleting ERA equipment ${id_era}:`, error);
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo eliminar el equipo.");
     }
