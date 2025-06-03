@@ -39,10 +39,11 @@ import { updateTask } from "@/services/taskService";
 import { Loader2, Edit } from "lucide-react";
 
 const taskStatuses: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"];
+const UNASSIGNED_VALUE = "UNASSIGNED";
 
 const editTaskFormSchema = z.object({
   descripcion_tarea: z.string().min(3, { message: "La descripción debe tener al menos 3 caracteres." }),
-  id_usuario_asignado: z.string().nullable().optional(), // Viene como string del select
+  id_usuario_asignado: z.string().nullable().optional(), 
   fecha_vencimiento: z.preprocess(
     (val) => (val === "" ? null : val),
      z.string().refine(val => val === null || /^\d{4}-\d{2}-\d{2}$/.test(val), {
@@ -72,7 +73,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
     resolver: zodResolver(editTaskFormSchema),
     defaultValues: {
       descripcion_tarea: "",
-      id_usuario_asignado: null,
+      id_usuario_asignado: null, 
       fecha_vencimiento: null,
       estado_tarea: "Pendiente",
     },
@@ -82,8 +83,8 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
     if (task && open) {
       form.reset({
         descripcion_tarea: task.descripcion_tarea,
-        id_usuario_asignado: task.id_usuario_asignado ? task.id_usuario_asignado.toString() : null,
-        fecha_vencimiento: task.fecha_vencimiento ? task.fecha_vencimiento.split('T')[0] : null, // Formato YYYY-MM-DD para input date
+        id_usuario_asignado: task.id_usuario_asignado ? task.id_usuario_asignado.toString() : UNASSIGNED_VALUE, 
+        fecha_vencimiento: task.fecha_vencimiento ? task.fecha_vencimiento.split('T')[0] : null, 
         estado_tarea: task.estado_tarea,
       });
     }
@@ -95,7 +96,9 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
     try {
       const updateData: TaskUpdateInput = {
         descripcion_tarea: values.descripcion_tarea,
-        id_usuario_asignado: values.id_usuario_asignado ? parseInt(values.id_usuario_asignado, 10) : null,
+        id_usuario_asignado: values.id_usuario_asignado === UNASSIGNED_VALUE
+            ? null
+            : (values.id_usuario_asignado ? parseInt(values.id_usuario_asignado, 10) : null),
         fecha_vencimiento: values.fecha_vencimiento || null,
         estado_tarea: values.estado_tarea as TaskStatus,
       };
@@ -152,14 +155,17 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asignar A (Opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || ""} // Map null/undefined to "" for placeholder
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar usuario" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin Asignar</SelectItem>
+                        <SelectItem value={UNASSIGNED_VALUE}>Sin Asignar</SelectItem>
                         {users.map((user) => (
                           <SelectItem key={user.id_usuario} value={user.id_usuario.toString()}>
                             {user.nombre_completo}

@@ -40,12 +40,13 @@ import { Loader2, PlusCircle } from "lucide-react";
 import { format } from "date-fns";
 
 const taskStatuses: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"];
+const UNASSIGNED_VALUE = "UNASSIGNED";
 
 const addTaskFormSchema = z.object({
   descripcion_tarea: z.string().min(3, { message: "La descripción debe tener al menos 3 caracteres." }),
-  id_usuario_asignado: z.string().nullable().optional(), // Viene como string del select
+  id_usuario_asignado: z.string().nullable().optional(), 
   fecha_vencimiento: z.preprocess(
-    (val) => (val === "" ? null : val), // Convertir string vacío a null
+    (val) => (val === "" ? null : val), 
     z.string().refine(val => val === null || /^\d{4}-\d{2}-\d{2}$/.test(val), {
       message: "Formato de fecha inválido. Use AAAA-MM-DD o déjelo vacío.",
     }).nullable().optional()
@@ -61,7 +62,7 @@ interface AddTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskAdded: () => void;
-  users: User[]; // Para el selector de "Asignar A"
+  users: User[]; 
 }
 
 export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTaskDialogProps) {
@@ -73,7 +74,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
     resolver: zodResolver(addTaskFormSchema),
     defaultValues: {
       descripcion_tarea: "",
-      id_usuario_asignado: null,
+      id_usuario_asignado: null, 
       fecha_vencimiento: null,
       estado_tarea: "Pendiente",
     },
@@ -84,7 +85,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
       form.reset({
         descripcion_tarea: "",
         id_usuario_asignado: null,
-        fecha_vencimiento: null, // o format(new Date(), "yyyy-MM-dd") si quieres fecha actual por defecto
+        fecha_vencimiento: null, 
         estado_tarea: "Pendiente",
       });
     }
@@ -99,7 +100,9 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
     try {
       const taskData: TaskCreateInput = {
         descripcion_tarea: values.descripcion_tarea,
-        id_usuario_asignado: values.id_usuario_asignado ? parseInt(values.id_usuario_asignado, 10) : null,
+        id_usuario_asignado: values.id_usuario_asignado === UNASSIGNED_VALUE 
+            ? null 
+            : (values.id_usuario_asignado ? parseInt(values.id_usuario_asignado, 10) : null),
         fecha_vencimiento: values.fecha_vencimiento || null,
         estado_tarea: values.estado_tarea as TaskStatus,
       };
@@ -154,14 +157,17 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Asignar A (Opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || ""} // Use value for controlled component, map null/undefined to "" for placeholder
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Seleccionar usuario" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin Asignar</SelectItem>
+                        <SelectItem value={UNASSIGNED_VALUE}>Sin Asignar</SelectItem>
                         {users.map((user) => (
                           <SelectItem key={user.id_usuario} value={user.id_usuario.toString()}>
                             {user.nombre_completo}
