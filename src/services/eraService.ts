@@ -93,7 +93,7 @@ export async function createEraEquipment(data: EraEquipmentCreateInput): Promise
   } catch (error) {
     console.error('Error creating ERA equipment:', error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era')) {
-      throw new Error(\`El código de ERA '\${codigo_era}' ya existe.\`);
+      throw new Error(\`El código de ERA '${codigo_era}' ya existe.\`);
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo crear el equipo.");
