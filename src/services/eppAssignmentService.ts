@@ -20,9 +20,9 @@ export interface EppAssignment {
   cantidad_asignada: number;
   estado_asignacion: EppAssignmentStatus;
   notas?: string | null;
-  fecha_creacion?: string;
-  fecha_actualizacion?: string;
-  id_usuario_responsable?: number | null;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+  id_usuario_responsable: number | null;
 
   // Campos unidos
   nombre_item_epp?: string;
@@ -103,7 +103,7 @@ export async function assignEppToUser(
       [newStockQuantity, id_item_epp]
     );
 
-    // 3. Verificar si ya existe una asignación activa para este usuario y EPP
+    // 3. Verificar si ya existe una asignación activa para este usuario y EPP, y crear o actualizar
     const [existingAssignments] = await connection.execute<ExistingAssignment[]>(
         `SELECT id_asignacion_epp, cantidad_asignada FROM EPP_Asignaciones_Actuales 
          WHERE id_usuario = ? AND id_item_epp = ? AND estado_asignacion = 'Asignado' FOR UPDATE`,
@@ -140,7 +140,7 @@ export async function assignEppToUser(
     const movementType: EppMovementType = 'ASIGNACION_EPP';
     await connection.execute(
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
+       (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, notas_movimiento)
        VALUES (?, ?, ?, ?, ?)`,
       [id_item_epp, movementType, -cantidad_a_asignar_ahora, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
