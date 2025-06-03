@@ -11,7 +11,8 @@ import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTr
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
-import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-item-dialog"; // Import Edit dialog
+import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-item-dialog";
+import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
 
 
 declare module "@/components/ui/button" {
@@ -24,11 +25,12 @@ export default function InventoryPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<InventoryItem | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const [selectedItemForDelete, setSelectedItemForDelete] = useState<InventoryItem | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchInventoryItems = useCallback(async () => {
     try {
@@ -48,13 +50,18 @@ export default function InventoryPage() {
     fetchInventoryItems();
   }, [fetchInventoryItems]);
 
-  const handleItemAddedOrUpdated = () => {
+  const handleItemAddedOrUpdatedOrDeleted = () => {
     fetchInventoryItems();
   };
 
   const openEditDialog = (item: InventoryItem) => {
     setSelectedItemForEdit(item);
     setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (item: InventoryItem) => {
+    setSelectedItemForDelete(item);
+    setIsDeleteDialogOpen(true);
   };
 
   const formatLocation = (item: InventoryItem) => {
@@ -91,7 +98,7 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-headline font-bold">Inventario General</h1>
-        <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdated} />
+        <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdatedOrDeleted} />
       </div>
 
       {inventoryItems.length === 0 && !loading && (
@@ -106,7 +113,7 @@ export default function InventoryPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdated} />
+             <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdatedOrDeleted} />
           </CardContent>
         </Card>
       )}
@@ -151,7 +158,7 @@ export default function InventoryPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" disabled> {/* TODO */}
+                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -165,9 +172,17 @@ export default function InventoryPage() {
       {selectedItemForEdit && (
         <EditInventoryItemDialog
           item={selectedItemForEdit}
-          onItemUpdated={handleItemAddedOrUpdated}
+          onItemUpdated={handleItemAddedOrUpdatedOrDeleted}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
+        />
+      )}
+      {selectedItemForDelete && (
+        <DeleteInventoryItemDialog
+          item={selectedItemForDelete}
+          onItemDeleted={handleItemAddedOrUpdatedOrDeleted}
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
         />
       )}
     </div>

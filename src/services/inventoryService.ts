@@ -169,7 +169,6 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
       if (location) {
         id_ubicacion_resolved = location.id_ubicacion;
       } else {
-        // Should not happen if findOrCreateLocationByName works correctly, but as a fallback:
         id_ubicacion_resolved = null; 
       }
     }
@@ -229,10 +228,9 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
     if (result.affectedRows > 0) {
       return getInventoryItemById(id_item);
     }
-    // If affectedRows is 0, it might mean the item wasn't found or data was same
     const existingItem = await getInventoryItemById(id_item);
     if (!existingItem) throw new Error (`Ítem con ID ${id_item} no encontrado para actualizar.`);
-    return existingItem; // Return existing if no change but found
+    return existingItem; 
 
   } catch (error) {
     console.error(`Error updating inventory item ${id_item}:`, error);
@@ -240,6 +238,28 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
        if ((error as any).sqlMessage.includes('codigo_item')) {
         throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
       }
+    }
+    throw error;
+  }
+}
+
+export async function deleteInventoryItem(id_item: number): Promise<boolean> {
+  // Considerar que Inventario_Movimientos y EPP_Asignaciones_Actuales podrían tener FK a id_item.
+  // Si las FKs son RESTRICT, esta operación fallará si existen registros relacionados.
+  // Si son CASCADE, los registros relacionados se eliminarán.
+  // Si son SET NULL, el id_item en las tablas referenciadoras se establecerá a NULL.
+  // La BD está configurada con ON DELETE RESTRICT para Inventario_Movimientos.id_item
+  // y ON DELETE CASCADE para EPP_Asignaciones_Actuales.id_item_epp.
+  // Esto significa que si hay movimientos, el borrado fallará.
+  // Si hay asignaciones de EPP, se borrarán las asignaciones.
+  const sql = 'DELETE FROM Inventario_Items WHERE id_item = ?';
+  try {
+    const result = await query(sql, [id_item]) as ResultSetHeader;
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error(`Error deleting inventory item ${id_item}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_ROW_IS_REFERENCED_2') {
+      throw new Error(`No se puede eliminar el ítem porque tiene movimientos de inventario registrados. Elimine o modifique los movimientos primero.`);
     }
     throw error;
   }
