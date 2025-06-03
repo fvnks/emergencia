@@ -40,13 +40,13 @@ import { assignEppToUser, type EppAssignmentCreateInput } from "@/services/eppAs
 import { getAllUsers } from "@/services/userService";
 import { useAuth } from "@/contexts/auth-context";
 import { Loader2, UserPlus } from "lucide-react";
-import { format } from 'date-fns';
+// import { format } from 'date-fns'; // No longer needed for default date
 
 
 const assignEppFormSchema = z.object({
   id_usuario: z.string().min(1, { message: "Debe seleccionar un usuario." }),
   cantidad_asignada: z.coerce.number().min(1, { message: "La cantidad debe ser al menos 1." }),
-  fecha_asignacion: z.string().min(1, { message: "La fecha de asignación es requerida." }),
+  // fecha_asignacion: z.string().min(1, { message: "La fecha de asignación es requerida." }), // Campo eliminado
   notas: z.string().optional(),
 });
 
@@ -70,7 +70,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
     defaultValues: {
       id_usuario: "",
       cantidad_asignada: 1,
-      fecha_asignacion: format(new Date(), 'yyyy-MM-dd'),
+      // fecha_asignacion: format(new Date(), 'yyyy-MM-dd'), // Campo eliminado
       notas: "",
     },
   });
@@ -94,7 +94,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
       form.reset({ // Reset form when dialog opens or item changes
         id_usuario: "",
         cantidad_asignada: 1,
-        fecha_asignacion: format(new Date(), 'yyyy-MM-dd'),
+        // fecha_asignacion: format(new Date(), 'yyyy-MM-dd'), // Campo eliminado
         notas: "",
       });
     }
@@ -124,7 +124,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
         id_usuario: parseInt(values.id_usuario, 10),
         id_item_epp: item.id_item,
         cantidad_asignada: values.cantidad_asignada,
-        fecha_asignacion: values.fecha_asignacion, // Ensure format is YYYY-MM-DD
+        // fecha_asignacion: values.fecha_asignacion, // Campo eliminado
         notas: values.notas || undefined,
       };
       
@@ -203,19 +203,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="fecha_asignacion"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fecha de Asignación</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* FormField para fecha_asignacion eliminado */}
 
             <FormField
               control={form.control}
@@ -246,3 +234,4 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
     </Dialog>
   );
 }
+

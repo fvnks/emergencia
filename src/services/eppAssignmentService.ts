@@ -16,7 +16,7 @@ export interface EppAssignment {
   id_asignacion_epp: number;
   id_usuario: number;
   id_item_epp: number;
-  fecha_asignacion: string; // DATE 'YYYY-MM-DD'
+  // fecha_asignacion: string; // Columna eliminada temporalmente
   cantidad_asignada: number;
   estado_asignacion: EppAssignmentStatus;
   notas?: string | null;
@@ -32,7 +32,7 @@ export interface EppAssignmentCreateInput {
   id_usuario: number; // ID del usuario al que se asigna
   id_item_epp: number; // ID del ítem de inventario (que es EPP)
   cantidad_asignada: number;
-  fecha_asignacion: string; // 'YYYY-MM-DD'
+  // fecha_asignacion: string; // Columna eliminada temporalmente
   notas?: string;
 }
 
@@ -41,7 +41,6 @@ async function executeTransaction<T>(
 ): Promise<T> {
   const pool = await getPool(); 
   if (!pool) {
-    // This case should ideally not be reached if getPool always returns a Pool or throws
     throw new Error('MySQL Pool is not available after awaiting getPool.');
   }
   const connection = await pool.getConnection();
@@ -65,7 +64,7 @@ export async function assignEppToUser(
   responsibleUserId: number // ID del usuario que realiza la acción (admin/logueado)
 ): Promise<EppAssignment | null> {
   return executeTransaction(async (connection) => {
-    const { id_usuario, id_item_epp, cantidad_asignada, fecha_asignacion, notas } = data;
+    const { id_usuario, id_item_epp, cantidad_asignada, notas } = data; // fecha_asignacion eliminada
 
     if (cantidad_asignada <= 0) {
       throw new Error("La cantidad asignada debe ser mayor que cero.");
@@ -100,9 +99,9 @@ export async function assignEppToUser(
     const assignmentStatus: EppAssignmentStatus = 'Asignado';
     const [assignmentResult] = await connection.execute(
       `INSERT INTO EPP_Asignaciones_Actuales 
-       (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, assignmentStatus, notas || null]
+       (id_usuario, id_item_epp, cantidad_asignada, estado_asignacion, notas) 
+       VALUES (?, ?, ?, ?, ?)`, // fecha_asignacion eliminada de la query y params
+      [id_usuario, id_item_epp, cantidad_asignada, assignmentStatus, notas || null]
     ) as [ResultSetHeader, any];
     const newAssignmentId = assignmentResult.insertId;
 
@@ -134,8 +133,8 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     FROM EPP_Asignaciones_Actuales ea
     JOIN Inventario_Items ii ON ea.id_item_epp = ii.id_item
     WHERE ea.id_usuario = ? AND ea.estado_asignacion = 'Asignado' 
-    ORDER BY ea.fecha_asignacion DESC, ii.nombre_item ASC
-  `;
+    ORDER BY ea.fecha_creacion DESC, ii.nombre_item ASC 
+  `; // Orden cambiado a fecha_creacion en lugar de fecha_asignacion
   try {
     const rows = await query(sql, [userId]) as EppAssignment[];
     return rows;
