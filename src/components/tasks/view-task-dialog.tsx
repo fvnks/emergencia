@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale'; // For Spanish date formatting
 
 interface ViewTaskDialogProps {
@@ -36,15 +36,48 @@ const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactN
 export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps) {
   if (!task) return null;
 
-  const formatDate = (dateString?: string | null) => {
-    if (!dateString) return null;
+  const formatDate = (dateInput?: string | null | Date): string | null => {
+    if (!dateInput) return null;
+
+    let dateToFormat: Date;
+
+    if (dateInput instanceof Date) {
+      if (!isValid(dateInput)) {
+        console.warn("Invalid Date object received in formatDate:", dateInput);
+        return "Fecha inválida (obj)";
+      }
+      dateToFormat = dateInput;
+    } else if (typeof dateInput === 'string') {
+      try {
+        // Standardize by replacing space with 'T' if it's a MySQL-like datetime string 'YYYY-MM-DD HH:MM:SS'
+        // or if it's just a date 'YYYY-MM-DD' append time for parseISO to work consistently for local time.
+        let isoCompliantString = dateInput;
+        if (dateInput.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) { // YYYY-MM-DD
+          isoCompliantString = `${dateInput}T00:00:00`;
+        } else if (dateInput.includes(' ') && !dateInput.includes('T')) { // YYYY-MM-DD HH:MM:SS
+           isoCompliantString = dateInput.replace(' ', 'T');
+        }
+        
+        dateToFormat = parseISO(isoCompliantString);
+        
+        if (!isValid(dateToFormat)) {
+            console.warn("parseISO resulted in an invalid date for string: ", dateInput, "parsed as", isoCompliantString);
+            return "Fecha inválida (str)";
+        }
+      } catch (e) {
+        console.warn("Error parsing date string in formatDate: ", dateInput, e);
+        return "Fecha inválida (parse err)"; 
+      }
+    } else {
+      console.warn("Unsupported date type for formatDate:", dateInput);
+      return "Tipo de fecha no soportado";
+    }
+
     try {
-      // Assuming dateString is YYYY-MM-DD from DB or a full ISO string
-      const date = parseISO(dateString.includes('T') ? dateString : `${dateString}T00:00:00`);
-      return format(date, "PPP", { locale: es }); // Example: "6 de diciembre de 2024"
+      return format(dateToFormat, "PPP", { locale: es }); // Example: "6 de diciembre de 2024"
     } catch (e) {
-      console.warn("Error parsing date for view: ", dateString, e);
-      return dateString; // Fallback to original string if parsing fails
+      console.warn("Error formatting date object in formatDate: ", dateToFormat, e);
+      return "Error al formatear fecha";
     }
   };
   
@@ -104,3 +137,4 @@ export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps
     </Dialog>
   );
 }
+
