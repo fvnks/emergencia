@@ -1,7 +1,7 @@
 
 'use server';
 
-import { query, getPool } from '@/lib/db'; // Import getPool directly
+import { query, getPool } from '@/lib/db'; 
 import type { ResultSetHeader, PoolConnection } from 'mysql2/promise';
 import type { InventoryItem } from './inventoryService';
 import type { User } from './userService';
@@ -39,9 +39,10 @@ export interface EppAssignmentCreateInput {
 async function executeTransaction<T>(
   callback: (connection: PoolConnection) => Promise<T>
 ): Promise<T> {
-  const pool = getPool(); // Use the directly imported getPool
+  const pool = await getPool(); 
   if (!pool) {
-    throw new Error('MySQL Pool is not available.');
+    // This case should ideally not be reached if getPool always returns a Pool or throws
+    throw new Error('MySQL Pool is not available after awaiting getPool.');
   }
   const connection = await pool.getConnection();
   try {
@@ -146,3 +147,4 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
 
 // TODO: Implementar returnEppFromUser, updateEppAssignment, getAssignmentsForItem
 // Estas funciones también requerirán manejo de transacciones.
+

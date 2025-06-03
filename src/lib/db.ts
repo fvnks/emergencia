@@ -2,7 +2,7 @@
 'use server';
 
 import mysql from 'mysql2/promise';
-import type { Pool } from 'mysql2/promise'; // Import Pool type
+import type { Pool, PoolConnection } from 'mysql2/promise'; // Import PoolConnection
 
 const poolConfig = {
   host: process.env.DB_HOST,
@@ -20,9 +20,9 @@ const poolConfig = {
   // }
 };
 
-let pool: Pool | null = null; // Use Pool type
+let pool: Pool | null = null;
 
-export function getPool(): Pool { // Return type Pool
+export async function getPool(): Promise<Pool> { // Return type Promise<Pool>
   if (!pool) {
     try {
       console.log('Creating MySQL Pool with config:', {
@@ -57,9 +57,9 @@ export function getPool(): Pool { // Return type Pool
 
 
 export async function query(sql: string, params?: any[]): Promise<any> {
-  const currentPool = getPool(); // This will throw if pool creation failed earlier
+  const currentPool = await getPool(); // Now we must await getPool()
   
-  let connection;
+  let connection: PoolConnection | undefined; // Ensure connection is typed and can be undefined
   try {
     connection = await currentPool.getConnection();
     const [rows, fields] = await connection.execute(sql, params);
@@ -89,3 +89,4 @@ export async function testConnection(): Promise<void> {
     throw new Error(`Database connection test failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
+
