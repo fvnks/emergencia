@@ -2,35 +2,41 @@
 "use client";
 
 import type { User } from "@/services/userService"; // Import User type
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PlusCircle, Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
+import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
 
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchPersonnel() {
-      try {
-        setLoading(true);
-        setError(null);
-        const users = await getAllUsers();
-        setPersonnel(users);
-      } catch (err) {
-        console.error("Error fetching personnel:", err);
-        setError(err instanceof Error ? err.message : "No se pudo cargar el personal.");
-      } finally {
-        setLoading(false);
-      }
+  const fetchPersonnel = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const users = await getAllUsers();
+      setPersonnel(users);
+    } catch (err) {
+      console.error("Error fetching personnel:", err);
+      setError(err instanceof Error ? err.message : "No se pudo cargar el personal.");
+    } finally {
+      setLoading(false);
     }
-    fetchPersonnel();
   }, []);
+
+  useEffect(() => {
+    fetchPersonnel();
+  }, [fetchPersonnel]);
+
+  const handlePersonnelAdded = () => {
+    fetchPersonnel(); // Re-fetch personnel list
+  };
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -41,7 +47,7 @@ export default function PersonnelPage() {
     return name.substring(0, 2).toUpperCase();
   }
 
-  if (loading) {
+  if (loading && personnel.length === 0) { // Show loader only on initial load or if list is empty
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -57,7 +63,7 @@ export default function PersonnelPage() {
         <AlertTitle>Error al Cargar Personal</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={() => window.location.reload()} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
+          <Button onClick={fetchPersonnel} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
         </AlertDescription>
       </Alert>
     );
@@ -67,9 +73,7 @@ export default function PersonnelPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-headline font-bold">Directorio de Personal</h1>
-        <Button disabled> {/* TODO: Implement Add Personnel functionality */}
-          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Personal
-        </Button>
+        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAdded} />
       </div>
 
       {personnel.length === 0 && !loading && (
@@ -131,3 +135,4 @@ export default function PersonnelPage() {
     </div>
   );
 }
+
