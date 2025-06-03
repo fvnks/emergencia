@@ -130,7 +130,7 @@ export async function assignEppToUser(
           `INSERT INTO EPP_Asignaciones_Actuales
            (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [id_usuario, id_item_epp, fecha_asignacion, cantidad_a_asignar_ahora, assignmentStatus, notas || null, responsibleUserId]
+          [id_usuario, id_item_epp, cantidad_a_asignar_ahora, assignmentStatus, assignmentStatus, notas || null, responsibleUserId]
         ) as [ResultSetHeader, any];
         newAssignmentId = assignmentResult.insertId;
     }
@@ -140,8 +140,8 @@ export async function assignEppToUser(
     const movementType: EppMovementType = 'ASIGNACION_EPP';
     await connection.execute(
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
-       VALUES (?, ?, ?, ?, ?)`, // Using cantidad_movida
+       (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, notas_movimiento)
+       VALUES (?, ?, ?, ?, ?)`,
       [id_item_epp, movementType, -cantidad_a_asignar_ahora, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
 
@@ -196,3 +196,20 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
   }
 }
 
+// TODO: Implementar funciones para devolver EPP, marcar como perdido/dañado, etc.
+// Estas funciones deberían también crear registros en Inventario_Movimientos
+// y actualizar el estado en EPP_Asignaciones_Actuales.
+
+// Ejemplo de cómo podría ser una función para devolver EPP:
+/*
+export async function returnEppFromUser(assignmentId: number, quantityReturned: number, responsibleUserId: number, returnDate: string, notes?: string): Promise<boolean> {
+  return executeTransaction(async (connection) => {
+    // 1. Obtener la asignación actual (LOCKING READ)
+    // 2. Validar que la cantidad devuelta no exceda la asignada
+    // 3. Actualizar la cantidad_asignada en EPP_Asignaciones_Actuales o cambiar estado_asignacion
+    // 4. Incrementar la cantidad_actual en Inventario_Items
+    // 5. Crear registro en Inventario_Movimientos (tipo 'DEVOLUCION_EPP', cantidad positiva)
+    return true;
+  });
+}
+*/
