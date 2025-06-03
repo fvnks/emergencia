@@ -2,22 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PlusCircle, Edit, Trash2, Package, ArrowRightLeft, UserPlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card"; // Import Card components
 
 const inventoryData = [
-  { id: "INV001", name: "Safety Helmet", category: "EPP", location: "Warehouse A / Shelf 1", quantity: 50, assignedTo: "General Pool" },
-  { id: "INV002", name: "Fire Hose (25m)", category: "Firefighting", location: "Vehicle V001 / Compartment 3", quantity: 4, assignedTo: "Vehicle V001" },
-  { id: "INV003", name: "First Aid Kit (Large)", category: "Medical", location: "Infirmary / Cabinet B", quantity: 5, assignedTo: "Infirmary Stock" },
-  { id: "INV004", name: "Gloves (Heavy Duty)", category: "EPP", location: "Warehouse A / Shelf 2", quantity: 100, assignedTo: "General Pool"},
-  { id: "INV005", name: "Oxygen Cylinder (D Type)", category: "Medical", location: "Ambulance V002 / Rack 1", quantity: 6, assignedTo: "Ambulance V002"},
+  { id: "INV001", name: "Casco Seguridad", category: "EPP", location: "Bodega A / Estante 1", quantity: 50, assignedTo: "Uso General" },
+  { id: "INV002", name: "Manguera Incendio (25m)", category: "Combate Incendios", location: "Vehículo V001 / Compartimiento 3", quantity: 4, assignedTo: "Vehículo V001" },
+  { id: "INV003", name: "Botiquín Primeros Auxilios (Grande)", category: "Médico", location: "Enfermería / Gabinete B", quantity: 5, assignedTo: "Stock Enfermería" },
+  { id: "INV004", name: "Guantes (Alta Resistencia)", category: "EPP", location: "Bodega A / Estante 2", quantity: 100, assignedTo: "Uso General"},
+  { id: "INV005", name: "Cilindro Oxígeno (Tipo D)", category: "Médico", location: "Ambulancia V002 / Rack 1", quantity: 6, assignedTo: "Ambulancia V002"},
 ];
 
 export default function InventoryPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-headline font-bold">General Inventory</h1>
+        <h1 className="text-3xl font-headline font-bold">Inventario General</h1>
         <Button>
-          <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
+          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Ítem
         </Button>
       </div>
 
@@ -27,11 +28,11 @@ export default function InventoryPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Item Name / Category</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Assigned To / EPP</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Nombre Ítem / Categoría</TableHead>
+                <TableHead>Ubicación</TableHead>
+                <TableHead>Cantidad</TableHead>
+                <TableHead>Asignado A / EPP</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -45,16 +46,16 @@ export default function InventoryPage() {
                   <TableCell>{item.location}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>
-                    {item.category === "EPP" && item.assignedTo === "General Pool" ? (
+                    {item.category === "EPP" && item.assignedTo === "Uso General" ? (
                         <Button variant="outline" size="xs" className="text-xs h-6">
-                            <UserPlus className="mr-1 h-3 w-3" /> Assign EPP
+                            <UserPlus className="mr-1 h-3 w-3" /> Asignar EPP
                         </Button>
                     ) : (
                         item.assignedTo
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="icon" className="h-8 w-8" title="Movement History"><ArrowRightLeft className="h-4 w-4" /></Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8" title="Historial Movimiento"><ArrowRightLeft className="h-4 w-4" /></Button>
                     <Button variant="outline" size="icon" className="h-8 w-8"><Edit className="h-4 w-4" /></Button>
                     <Button variant="destructive" size="icon" className="h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
                   </TableCell>
@@ -67,10 +68,6 @@ export default function InventoryPage() {
     </div>
   );
 }
-
-// Dummy Card component to avoid errors if not imported from ui.
-const Card = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;
-const CardContent = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;
 
 // Add a size "xs" to ButtonProps if it's not already there in ui/button.tsx for smaller buttons.
 // This is a conceptual note, actual modification to ui/button.tsx would be needed if "xs" is not supported.

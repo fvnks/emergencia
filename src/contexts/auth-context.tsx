@@ -38,7 +38,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = (email: string, role: UserRole) => {
     // Simulate login
-    const newUser: User = { id: Date.now().toString(), name: email.split('@')[0], email, role };
+    let name = email.split('@')[0];
+    // Simple name conversion for demo
+    if (email === "admin@ejemplo.cl") name = "Administrador";
+    else if (email === "usuario@ejemplo.cl") name = "Usuario Demo";
+    else name = name.charAt(0).toUpperCase() + name.slice(1); // Capitalize
+
+    const newUser: User = { id: Date.now().toString(), name, email, role };
     setUser(newUser);
     localStorage.setItem('brigadeUser', JSON.stringify(newUser));
     router.push('/dashboard');

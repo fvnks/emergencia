@@ -40,10 +40,10 @@ export function AppLayout({ children }: AppLayoutProps) {
            <SidebarMenuButton
               onClick={logout}
               className="justify-start w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              tooltip={{children: "Logout", className: "bg-popover text-popover-foreground border-border"}}
+              tooltip={{children: "Cerrar Sesión", className: "bg-popover text-popover-foreground border-border"}}
             >
               <LogOut className="h-5 w-5" />
-              <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+              <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesión</span>
             </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>

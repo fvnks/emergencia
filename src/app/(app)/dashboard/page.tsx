@@ -8,22 +8,22 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 
 
 const dailyOpsData = [
-  { name: 'Mon', ops: 4, maint: 2 },
-  { name: 'Tue', ops: 3, maint: 1 },
-  { name: 'Wed', ops: 5, maint: 3 },
-  { name: 'Thu', ops: 2, maint: 2 },
-  { name: 'Fri', ops: 6, maint: 1 },
-  { name: 'Sat', ops: 3, maint: 0 },
-  { name: 'Sun', ops: 1, maint: 1 },
+  { name: 'Lun', ops: 4, maint: 2 },
+  { name: 'Mar', ops: 3, maint: 1 },
+  { name: 'Mié', ops: 5, maint: 3 },
+  { name: 'Jue', ops: 2, maint: 2 },
+  { name: 'Vie', ops: 6, maint: 1 },
+  { name: 'Sáb', ops: 3, maint: 0 },
+  { name: 'Dom', ops: 1, maint: 1 },
 ];
 
 const chartConfig = {
   ops: {
-    label: "Operations",
+    label: "Operaciones",
     color: "hsl(var(--primary))",
   },
   maint: {
-    label: "Maintenances",
+    label: "Mantenciones",
     color: "hsl(var(--accent))",
   },
 } satisfies import("@/components/ui/chart").ChartConfig;
@@ -34,38 +34,38 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
-          title="Vehicles Operative"
+          title="Vehículos Operativos"
           value="8"
           icon={Truck}
-          description="Out of 10 total"
+          description="De 10 en total"
           iconClassName="text-green-500"
         />
         <StatCard
-          title="Active Tasks"
+          title="Tareas Activas"
           value="12"
           icon={Activity}
-          description="3 overdue"
+          description="3 atrasadas"
           iconClassName="text-blue-500"
         />
         <StatCard
-          title="Personnel Available"
+          title="Personal Disponible"
           value="9"
           icon={Users}
-          description="Out of 11 total"
+          description="De 11 en total"
           iconClassName="text-green-500"
         />
         <StatCard
-          title="Equipment Ready"
+          title="Equipos Listos"
           value="45"
           icon={ShieldCheck}
-          description="ERA & Extinguishers"
+          description="ERA y Extintores"
           iconClassName="text-teal-500"
         />
         <StatCard
-          title="Active Alerts"
+          title="Alertas Activas"
           value="2"
           icon={AlertTriangle}
-          description="Require immediate attention"
+          description="Requieren atención inmediata"
           iconClassName="text-red-500"
         />
       </div>
@@ -73,8 +73,8 @@ export default function DashboardPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="font-headline">Daily Operations & Maintenance</CardTitle>
-            <CardDescription>Summary for the current week.</CardDescription>
+            <CardTitle className="font-headline">Operaciones y Mantenciones Diarias</CardTitle>
+            <CardDescription>Resumen de la semana actual.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -97,26 +97,26 @@ export default function DashboardPage() {
 
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="font-headline">Recent Activity</CardTitle>
-            <CardDescription>Log of recent important events.</CardDescription>
+            <CardTitle className="font-headline">Actividad Reciente</CardTitle>
+            <CardDescription>Registro de eventos importantes recientes.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start">
                 <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" />
-                <span>Vehicle #3 (Patente AB-CD-12) returned from maintenance.</span>
+                <span>Vehículo #3 (Patente GHIJ-12) regresó de mantención.</span>
               </li>
               <li className="flex items-start">
                 <Activity className="h-4 w-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
-                <span>New task "Equipment Check Drill" assigned to Team Alpha.</span>
+                <span>Nueva tarea "Simulacro Revisión Equipos" asignada al Equipo Alfa.</span>
               </li>
               <li className="flex items-start">
                 <Wrench className="h-4 w-4 mr-2 mt-0.5 text-yellow-600 flex-shrink-0" />
-                <span>ERA Unit #E007 scheduled for inspection tomorrow.</span>
+                <span>Unidad ERA #E007 programada para inspección mañana.</span>
               </li>
               <li className="flex items-start">
                 <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 text-red-500 flex-shrink-0" />
-                <span>Low fuel warning for Vehicle #5.</span>
+                <span>Alerta de combustible bajo para Vehículo #5.</span>
               </li>
             </ul>
           </CardContent>

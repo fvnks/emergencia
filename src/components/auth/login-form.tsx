@@ -25,15 +25,15 @@ export function LoginForm() {
     setIsLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
-    if (email === "admin@example.com" && password === "password") {
+    if (email === "admin@ejemplo.cl" && password === "password") {
       login(email, 'admin');
-    } else if (email === "user@example.com" && password === "password") {
+    } else if (email === "usuario@ejemplo.cl" && password === "password") {
       login(email, 'user');
     } else if (password === "password") { // Allow any email with 'password' for demo
       login(email, role);
     }
     else {
-      setError('Invalid email or password. Use "password" as password for any email for demo.');
+      setError('Correo o contraseña inválidos. Usa "password" como contraseña para cualquier correo para demostración.');
     }
     setIsLoading(false);
   };
@@ -43,32 +43,32 @@ export function LoginForm() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 w-32 h-8">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="120" height="30" aria-label="Brigade Manager Logo" className="fill-primary">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="120" height="30" aria-label="Logo Gestor de Brigada" className="fill-primary">
                 <rect width="200" height="50" fill="transparent" />
                 <path d="M10 10 L10 40 L25 25 Z" />
                 <text x="35" y="32" fontFamily="'PT Sans', sans-serif" fontSize="24" fontWeight="bold" >
-                    Brigade Manager
+                    Gestor de Brigada
                 </text>
             </svg>
           </div>
-          <CardTitle className="text-3xl font-headline">Welcome Back</CardTitle>
-          <CardDescription>Enter your credentials to access your brigade dashboard.</CardDescription>
+          <CardTitle className="text-3xl font-headline">Bienvenido de Vuelta</CardTitle>
+          <CardDescription>Ingresa tus credenciales para acceder al panel de tu brigada.</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Login Failed</AlertTitle>
+              <AlertTitle>Error de Inicio de Sesión</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo Electrónico</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="user@example.com"
+                placeholder="usuario@ejemplo.cl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -76,7 +76,7 @@ export function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
@@ -88,20 +88,20 @@ export function LoginForm() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Role (for demo purposes)</Label>
+              <Label>Rol (para demostración)</Label>
               <RadioGroup defaultValue="user" value={role} onValueChange={(value: 'user' | 'admin') => setRole(value)} className="flex space-x-4">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="user" id="role-user" />
-                  <Label htmlFor="role-user">User</Label>
+                  <Label htmlFor="role-user">Usuario</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="admin" id="role-admin" />
-                  <Label htmlFor="role-admin">Admin</Label>
+                  <Label htmlFor="role-admin">Administrador</Label>
                 </div>
               </RadioGroup>
             </div>
             <Button type="submit" className="w-full font-semibold" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Sign In"}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Sesión"}
             </Button>
           </form>
         </CardContent>

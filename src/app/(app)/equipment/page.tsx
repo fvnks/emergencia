@@ -2,21 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2, UserCheck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card"; // Import Card components
+
 
 const equipmentData = [
-  { id: "ERA001", fabDate: "2020-01-15", maintDate: "2024-01-10", inspectDate: "2024-07-01", assignedTo: "John Doe", status: "Operational" },
-  { id: "ERA002", fabDate: "2019-06-20", maintDate: "2023-12-01", inspectDate: "2024-06-01", assignedTo: "Jane Smith", status: "Needs Inspection" },
-  { id: "ERA003", fabDate: "2021-03-10", maintDate: "2024-03-05", inspectDate: "2024-09-01", assignedTo: "Mike Brown", status: "In Maintenance" },
-  { id: "ERA004", fabDate: "2020-08-01", maintDate: "2024-02-15", inspectDate: "2024-08-01", assignedTo: "", status: "Available" },
+  { id: "ERA001", fabDate: "15-01-2020", maintDate: "10-01-2024", inspectDate: "01-07-2024", assignedTo: "Juan Pérez", status: "Operativo" },
+  { id: "ERA002", fabDate: "20-06-2019", maintDate: "01-12-2023", inspectDate: "01-06-2024", assignedTo: "Ana Silva", status: "Requiere Inspección" },
+  { id: "ERA003", fabDate: "10-03-2021", maintDate: "05-03-2024", inspectDate: "01-09-2024", assignedTo: "Carlos Rojas", status: "En Mantención" },
+  { id: "ERA004", fabDate: "01-08-2020", maintDate: "15-02-2024", inspectDate: "01-08-2024", assignedTo: "", status: "Disponible" },
 ];
 
 export default function EquipmentPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-headline font-bold">ERA Management</h1>
+        <h1 className="text-3xl font-headline font-bold">Gestión de ERA</h1>
         <Button>
-          <PlusCircle className="mr-2 h-5 w-5" /> Add New ERA
+          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo ERA
         </Button>
       </div>
 
@@ -26,12 +28,12 @@ export default function EquipmentPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Fabrication Date</TableHead>
-                <TableHead>Last Maintenance</TableHead>
-                <TableHead>Next Inspection</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Fecha Fabricación</TableHead>
+                <TableHead>Última Mantención</TableHead>
+                <TableHead>Próxima Inspección</TableHead>
+                <TableHead>Asignado A</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -44,14 +46,14 @@ export default function EquipmentPage() {
                   <TableCell>{item.assignedTo || "N/A"}</TableCell>
                   <TableCell>
                     <Badge variant={
-                      item.status === "Operational" ? "default" :
-                      item.status === "Needs Inspection" ? "secondary" :
-                      item.status === "In Maintenance" ? "destructive" : "outline"
+                      item.status === "Operativo" ? "default" :
+                      item.status === "Requiere Inspección" ? "secondary" :
+                      item.status === "En Mantención" ? "destructive" : "outline"
                     }
                     className={
-                      item.status === "Operational" ? "bg-green-500 hover:bg-green-600 text-white" :
-                      item.status === "Needs Inspection" ? "bg-yellow-500 hover:bg-yellow-600 text-black" :
-                      item.status === "In Maintenance" ? "bg-orange-500 hover:bg-orange-600 text-white" : ""
+                      item.status === "Operativo" ? "bg-green-500 hover:bg-green-600 text-white" :
+                      item.status === "Requiere Inspección" ? "bg-yellow-500 hover:bg-yellow-600 text-black" :
+                      item.status === "En Mantención" ? "bg-orange-500 hover:bg-orange-600 text-white" : ""
                     }
                     >
                       {item.status}
@@ -71,9 +73,3 @@ export default function EquipmentPage() {
     </div>
   );
 }
-
-// Dummy Card component to avoid errors if not imported from ui.
-// Replace with actual import if Card component is used.
-const Card = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;
-const CardContent = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;
-

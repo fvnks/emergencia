@@ -28,14 +28,14 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/vehicles", label: "Vehicles", icon: Truck },
-  { href: "/equipment", label: "Equipment (ERA)", icon: ShieldCheck },
-  { href: "/maintenance", label: "Maintenance", icon: Wrench },
-  { href: "/inventory", label: "Inventory", icon: Archive },
-  { href: "/tasks", label: "Tasks", icon: ClipboardList },
-  { href: "/personnel", label: "Personnel", icon: Users },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/dashboard", label: "Panel Principal", icon: Home },
+  { href: "/vehicles", label: "Vehículos", icon: Truck },
+  { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck },
+  { href: "/maintenance", label: "Mantención", icon: Wrench },
+  { href: "/inventory", label: "Inventario", icon: Archive },
+  { href: "/tasks", label: "Tareas", icon: ClipboardList },
+  { href: "/personnel", label: "Personal", icon: Users },
+  { href: "/settings", label: "Configuración", icon: SettingsIcon },
 ];
 
 export function SidebarNav() {

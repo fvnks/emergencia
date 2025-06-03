@@ -19,9 +19,22 @@ import { usePathname } from "next/navigation";
 // Helper to get page title from pathname
 const getPageTitle = (pathname: string) => {
   const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0 || segments[0] === 'dashboard') return "Dashboard";
-  const title = segments[0].charAt(0).toUpperCase() + segments[0].slice(1);
-  return title.replace(/-/g, ' '); // Replace hyphens with spaces if any
+  if (segments.length === 0) return "Panel Principal"; // Default for root of (app)
+
+  const mainSegment = segments[0];
+  switch (mainSegment) {
+    case 'dashboard': return "Panel Principal";
+    case 'vehicles': return "Vehículos";
+    case 'equipment': return "Equipos (ERA)";
+    case 'maintenance': return "Mantención";
+    case 'inventory': return "Inventario";
+    case 'tasks': return "Tareas";
+    case 'personnel': return "Personal";
+    case 'settings': return "Configuración";
+    default:
+      // Capitalize and replace hyphens for any other path
+      return mainSegment.charAt(0).toUpperCase() + mainSegment.slice(1).replace(/-/g, ' ');
+  }
 };
 
 
@@ -31,7 +44,7 @@ export function Header() {
   const pageTitle = getPageTitle(pathname);
 
   const getInitials = (name?: string) => {
-    if (!name) return 'BM';
+    if (!name) return 'GB'; // Gestor de Brigada
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }
 
@@ -47,7 +60,7 @@ export function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src={`https://placehold.co/100x100.png?text=${getInitials(user.name)}`} alt={user.name} data-ai-hint="avatar person" />
+                  <AvatarImage src={`https://placehold.co/100x100.png?text=${getInitials(user.name)}`} alt={user.name || "Usuario"} data-ai-hint="avatar persona" />
                   <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -60,7 +73,7 @@ export function Header() {
                     {user.email}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground capitalize pt-1">
-                    Role: {user.role}
+                    Rol: {user.role === 'admin' ? 'Administrador' : 'Usuario'}
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -68,13 +81,13 @@ export function Header() {
               <DropdownMenuItem asChild>
                 <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                  <span>Configuración</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                <span>Cerrar Sesión</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

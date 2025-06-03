@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { PlusCircle, Edit, Trash2, Eye, UserCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card"; // Import Card components
 import {
   Select,
   SelectContent,
@@ -11,31 +12,31 @@ import {
 } from "@/components/ui/select"
 
 const tasksData = [
-  { id: "T001", description: "Inspect Vehicle V001", assignedTo: "John Doe", dueDate: "2024-08-05", status: "Pending" },
-  { id: "T002", description: "Restock First Aid Kits", assignedTo: "Jane Smith", dueDate: "2024-08-02", status: "In Process" },
-  { id: "T003", description: "Conduct ERA Drill", assignedTo: "Team Alpha", dueDate: "2024-08-10", status: "Completed" },
-  { id: "T004", description: "Update Inventory Software", assignedTo: "Mike Brown", dueDate: "2024-08-15", status: "Pending" },
-  { id: "T005", description: "Monthly Station Cleaning", assignedTo: "All Personnel", dueDate: "2024-08-30", status: "Scheduled" },
+  { id: "T001", description: "Inspeccionar Vehículo V001", assignedTo: "Juan Pérez", dueDate: "05-08-2024", status: "Pendiente" },
+  { id: "T002", description: "Reponer Botiquines", assignedTo: "Ana Silva", dueDate: "02-08-2024", status: "En Proceso" },
+  { id: "T003", description: "Realizar Simulacro ERA", assignedTo: "Equipo Alfa", dueDate: "10-08-2024", status: "Completada" },
+  { id: "T004", description: "Actualizar Software Inventario", assignedTo: "Carlos Rojas", dueDate: "15-08-2024", status: "Pendiente" },
+  { id: "T005", description: "Limpieza Mensual Estación", assignedTo: "Todo el Personal", dueDate: "30-08-2024", status: "Programada" },
 ];
 
-const users = ["All Personnel", "John Doe", "Jane Smith", "Mike Brown", "Team Alpha", "Team Bravo"]; // Example users/teams
+const users = ["Todo el Personal", "Juan Pérez", "Ana Silva", "Carlos Rojas", "Equipo Alfa", "Equipo Bravo"];
 
 export default function TasksPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Task Management</h1>
+        <h1 className="text-3xl font-headline font-bold">Gestión de Tareas</h1>
         <div className="flex gap-2 items-center">
-          <Select defaultValue="All Personnel">
+          <Select defaultValue="Todo el Personal">
             <SelectTrigger className="w-[180px] bg-card">
-              <SelectValue placeholder="Filter by user" />
+              <SelectValue placeholder="Filtrar por usuario" />
             </SelectTrigger>
             <SelectContent>
               {users.map(user => <SelectItem key={user} value={user}>{user}</SelectItem>)}
             </SelectContent>
           </Select>
           <Button>
-            <PlusCircle className="mr-2 h-5 w-5" /> Create New Task
+            <PlusCircle className="mr-2 h-5 w-5" /> Crear Nueva Tarea
           </Button>
         </div>
       </div>
@@ -46,11 +47,11 @@ export default function TasksPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>ID</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead>Asignado A</TableHead>
+                <TableHead>Fecha Vencimiento</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -62,14 +63,14 @@ export default function TasksPage() {
                   <TableCell>{task.dueDate}</TableCell>
                   <TableCell>
                     <Badge variant={
-                      task.status === "Completed" ? "default" :
-                      task.status === "In Process" ? "secondary" :
-                      task.status === "Scheduled" ? "outline" : "destructive" // Pending
+                      task.status === "Completada" ? "default" :
+                      task.status === "En Proceso" ? "secondary" :
+                      task.status === "Programada" ? "outline" : "destructive" // Pendiente
                     }
                     className={
-                      task.status === "Completed" ? "bg-green-500 hover:bg-green-600 text-white" :
-                      task.status === "In Process" ? "bg-yellow-500 hover:bg-yellow-600 text-black" :
-                      task.status === "Scheduled" ? "bg-blue-500 hover:bg-blue-600 text-white" : ""
+                      task.status === "Completada" ? "bg-green-500 hover:bg-green-600 text-white" :
+                      task.status === "En Proceso" ? "bg-yellow-500 hover:bg-yellow-600 text-black" :
+                      task.status === "Programada" ? "bg-blue-500 hover:bg-blue-600 text-white" : ""
                     }
                     >
                       {task.status}
@@ -89,7 +90,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
-// Dummy Card component to avoid errors if not imported from ui.
-const Card = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;
-const CardContent = ({className, children}: {className?: string, children: React.ReactNode}) => <div className={className}>{children}</div>;

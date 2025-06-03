@@ -7,7 +7,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       viewBox="0 0 200 50"
       width="120"
       height="30"
-      aria-label="Brigade Manager Logo"
+      aria-label="Logo Gestor de Brigada"
       {...props}
     >
       <rect width="200" height="50" fill="transparent" />
@@ -20,7 +20,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         fontWeight="bold"
         fill="hsl(var(--sidebar-foreground))"
       >
-        Brigade Manager
+        Gestor de Brigada
       </text>
     </svg>
   );
