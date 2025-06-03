@@ -22,6 +22,7 @@ import {
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog";
+import { ViewTaskDialog } from "@/components/tasks/view-task-dialog"; // Import ViewTaskDialog
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,6 +37,8 @@ export default function TasksPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTaskForView, setSelectedTaskForView] = useState<Task | null>(null); // State for ViewTaskDialog
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for ViewTaskDialog
 
 
   const fetchPageData = useCallback(async () => {
@@ -72,6 +75,11 @@ export default function TasksPage() {
   const openDeleteDialog = (task: Task) => {
     setSelectedTaskForDelete(task);
     setIsDeleteDialogOpen(true);
+  };
+  
+  const openViewDialog = (task: Task) => { // Function to open ViewTaskDialog
+    setSelectedTaskForView(task);
+    setIsViewDialogOpen(true);
   };
 
   const filteredTasks = useMemo(() => {
@@ -206,7 +214,7 @@ export default function TasksPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => alert(`Próximamente: Ver Tarea ${task.id_tarea}`)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => openViewDialog(task)}>
                         <Eye className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Editar Tarea" onClick={() => openEditDialog(task)}>
@@ -243,6 +251,12 @@ export default function TasksPage() {
         onOpenChange={setIsDeleteDialogOpen} 
         onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
       />
+      <ViewTaskDialog 
+        task={selectedTaskForView}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
     </div>
   );
 }
+
