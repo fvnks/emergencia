@@ -70,13 +70,13 @@ export async function createEraEquipment(data: EraEquipmentCreateInput): Promise
     estado_era, id_usuario_asignado, notas
   } = data;
 
-  const sql = \`
+  const sql = `
     INSERT INTO ERA_Equipos (
       codigo_era, descripcion, marca, modelo, numero_serie,
       fecha_fabricacion, fecha_adquisicion, fecha_ultima_mantencion, fecha_proxima_inspeccion,
       estado_era, id_usuario_asignado, notas
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  \`;
+  `;
   const params = [
     codigo_era, descripcion || null, marca || null, modelo || null, numero_serie || null,
     formatDateForDb(fecha_fabricacion), formatDateForDb(fecha_adquisicion),
