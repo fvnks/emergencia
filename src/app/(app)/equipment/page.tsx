@@ -147,13 +147,11 @@ export default function EquipmentPage() {
             </div>
             <CardTitle className="mt-4">No hay Equipos ERA</CardTitle>
             <CardDescription>
-              No hay equipos ERA registrados en el sistema. Comienza agregando uno.
+              No hay equipos ERA registrados en el sistema. Comienza agregando uno desde el botón superior.
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <Button onClick={() => setIsAddDialogOpen(true)}>
-                <ShieldQuestion className="mr-2 h-5 w-5" /> Agregar Nuevo ERA
-             </Button>
+             {/* Botón eliminado de aquí */}
           </CardContent>
         </Card>
       )}
