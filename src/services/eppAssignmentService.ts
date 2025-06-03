@@ -18,10 +18,10 @@ export interface EppAssignment {
   id_item_epp: number;
   fecha_asignacion: string;
   cantidad_asignada: number;
-  estado_asignacion: EppAssignmentStatus; 
+  estado_asignacion: EppAssignmentStatus;
   notas?: string | null;
-  fecha_creacion?: string; 
-  fecha_actualizacion?: string; 
+  fecha_creacion?: string;
+  fecha_actualizacion?: string;
   id_usuario_responsable?: number | null;
 
   // Campos unidos
@@ -109,9 +109,9 @@ export async function assignEppToUser(
 
     // 4. Crear registro en Inventario_Movimientos
     const movementType: EppMovementType = 'ASIGNACION_EPP';
-    await connection.execute( 
+    await connection.execute( // Descomentado
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
+       (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, notas_movimiento)
        VALUES (?, ?, ?, ?, ?)`,
       [id_item_epp, movementType, -cantidad_asignada, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
@@ -164,4 +164,3 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     throw error;
   }
 }
-
