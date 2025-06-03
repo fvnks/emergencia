@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { User } from "@/services/userService"; // Import User type
+import type { User } from "@/services/userService"; 
 import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
+import { DeletePersonnelDialog } from "@/components/personnel/delete-personnel-dialog";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPersonForDelete, setSelectedPersonForDelete] = useState<User | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  // const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null);
+  // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const { user: currentUser } = useAuth();
 
   const fetchPersonnel = useCallback(async () => {
     try {
@@ -34,9 +41,19 @@ export default function PersonnelPage() {
     fetchPersonnel();
   }, [fetchPersonnel]);
 
-  const handlePersonnelAdded = () => {
-    fetchPersonnel(); // Re-fetch personnel list
+  const handlePersonnelAddedOrUpdated = () => {
+    fetchPersonnel(); 
   };
+
+  const openDeleteDialog = (person: User) => {
+    setSelectedPersonForDelete(person);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // const openEditDialog = (person: User) => {
+  //   setSelectedPersonForEdit(person);
+  //   setIsEditDialogOpen(true);
+  // };
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -47,7 +64,7 @@ export default function PersonnelPage() {
     return name.substring(0, 2).toUpperCase();
   }
 
-  if (loading && personnel.length === 0) { // Show loader only on initial load or if list is empty
+  if (loading && personnel.length === 0) { 
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -73,7 +90,7 @@ export default function PersonnelPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-headline font-bold">Directorio de Personal</h1>
-        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAdded} />
+        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdated} />
       </div>
 
       {personnel.length === 0 && !loading && (
@@ -81,7 +98,7 @@ export default function PersonnelPage() {
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">No hay personal registrado en el sistema.</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Intenta agregar nuevo personal o verifica si el script de seeding se ejecutó correctamente.
+              Intenta agregar nuevo personal.
             </p>
           </CardContent>
         </Card>
@@ -125,14 +142,37 @@ export default function PersonnelPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2 border-t pt-4">
-              {/* TODO: Implement Edit and Delete functionality */}
-              <Button variant="outline" size="sm" disabled><Edit className="mr-1 h-4 w-4" /> Editar</Button>
-              <Button variant="destructive" size="sm" disabled><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
+              <Button variant="outline" size="sm" disabled> {/* TODO: Implement Edit functionality: onClick={() => openEditDialog(person)} */}
+                <Edit className="mr-1 h-4 w-4" /> Editar
+              </Button>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={() => openDeleteDialog(person)}
+                disabled={currentUser?.id === person.id_usuario} // Deshabilita si es el usuario actual
+              >
+                <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+              </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+      {selectedPersonForDelete && (
+        <DeletePersonnelDialog
+          person={selectedPersonForDelete}
+          onPersonnelDeleted={handlePersonnelAddedOrUpdated}
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        />
+      )}
+      {/* {selectedPersonForEdit && (
+        <EditPersonnelDialog
+          person={selectedPersonForEdit}
+          onPersonnelUpdated={handlePersonnelAddedOrUpdated}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+        />
+      )} */}
     </div>
   );
 }
-
