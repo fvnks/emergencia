@@ -5,7 +5,7 @@ import type { EraEquipment } from "@/components/equipment/era-types";
 import type { User } from "@/services/userService";
 import { useEffect, useState, useCallback } from "react";
 import { getAllEraEquipments, getEraEquipmentById } from "@/services/eraService"; // getEraEquipmentById no se usa pero está ok
-import { getAllUsers } from "@/services/userService"; 
+import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddEraDialog } from "@/components/equipment/add-era-dialog";
 import { EditEraDialog } from "@/components/equipment/edit-era-dialog";
 import { DeleteEraDialog } from "@/components/equipment/delete-era-dialog";
-import { AssignEraDialog } from "@/components/equipment/assign-era-dialog"; 
+import { AssignEraDialog } from "@/components/equipment/assign-era-dialog";
 
 
 export default function EquipmentPage() {
@@ -24,7 +24,7 @@ export default function EquipmentPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false); // Para AddEraDialog
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedEraForEdit, setSelectedEraForEdit] = useState<EraEquipment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedEraForDelete, setSelectedEraForDelete] = useState<EraEquipment | null>(null);
@@ -75,11 +75,11 @@ export default function EquipmentPage() {
 
   const getStatusBadgeVariant = (status: EraEquipment["estado_era"]) => {
     switch (status) {
-      case "Operativo": return "default"; 
-      case "Disponible": return "secondary"; 
-      case "En Mantención": return "outline"; 
-      case "Requiere Inspección": return "destructive"; 
-      case "Fuera de Servicio": return "destructive"; 
+      case "Operativo": return "default";
+      case "Disponible": return "secondary";
+      case "En Mantención": return "outline";
+      case "Requiere Inspección": return "destructive";
+      case "Fuera de Servicio": return "destructive";
       default: return "outline";
     }
   };
@@ -101,7 +101,7 @@ export default function EquipmentPage() {
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
       return date.toLocaleDateString('es-CL');
     } catch (e) {
-      return dateString; 
+      return dateString;
     }
   };
 
@@ -121,7 +121,7 @@ export default function EquipmentPage() {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error al Cargar Equipos ERA</AlertTitle>
         <AlertDescription>
-          {error.includes("La tabla 'ERA_Equipos' no existe") 
+          {error.includes("La tabla 'ERA_Equipos' no existe")
             ? "La tabla 'ERA_Equipos' no existe en la base de datos. Por favor, ejecute el script SQL proporcionado para crearla."
             : error}
           <Button onClick={fetchPageData} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
@@ -181,7 +181,7 @@ export default function EquipmentPage() {
                     <TableCell>{formatDate(item.fecha_proxima_inspeccion)}</TableCell>
                     <TableCell>{item.nombre_usuario_asignado || "N/A"}</TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={getStatusBadgeVariant(item.estado_era)}
                         className={getStatusBadgeClassName(item.estado_era)}
                       >
@@ -189,11 +189,11 @@ export default function EquipmentPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        title={item.id_usuario_asignado ? "Desasignar ERA" : "Asignar ERA"} 
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        title={item.id_usuario_asignado ? "Desasignar ERA" : "Asignar ERA"}
                         onClick={() => openAssignDialog(item)}
                         disabled={!['Disponible', 'Operativo'].includes(item.estado_era) && !item.id_usuario_asignado}
                       >
@@ -213,8 +213,8 @@ export default function EquipmentPage() {
           </CardContent>
         </Card>
       )}
-      
-      <AddEraDialog 
+
+      <AddEraDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onItemAdded={handleEraAddedOrUpdatedOrDeletedOrAssigned}
