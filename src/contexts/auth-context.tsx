@@ -2,7 +2,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserByEmail, verifyPassword, User as DbUser, UserRole } from '@/services/userService';
 
@@ -17,7 +17,8 @@ export interface AuthUser {
 
 interface AuthContextType {
   user: AuthUser | null;
-  login: (email: string, password_plaintext: string) => Promise<void>; // Now takes password
+  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>; // To allow updating user from EditPersonnelDialog
+  login: (email: string, password_plaintext: string) => Promise<void>; 
   logout: () => void;
   loading: boolean;
   authError: string | null;
@@ -37,11 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (storedUser) {
       try {
         const parsedUser: AuthUser = JSON.parse(storedUser);
-        // Basic validation of stored user structure
         if (parsedUser && typeof parsedUser.id === 'number' && parsedUser.email && parsedUser.role) {
            setUser(parsedUser);
         } else {
-          localStorage.removeItem('brigadeUser'); // Clear invalid stored user
+          localStorage.removeItem('brigadeUser'); 
         }
       } catch (e) {
         console.error("Failed to parse stored user:", e);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password_plaintext: string) => {
+  const login = useCallback(async (email: string, password_plaintext: string) => {
     setLoading(true);
     setAuthError(null);
     try {
@@ -86,17 +86,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
     setAuthError(null);
     localStorage.removeItem('brigadeUser');
     router.push('/login');
-  };
+  }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, authError, setAuthError }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, loading, authError, setAuthError }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,16 +11,20 @@ import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTr
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
 import { DeletePersonnelDialog } from "@/components/personnel/delete-personnel-dialog";
+import { EditPersonnelDialog } from "@/components/personnel/edit-personnel-dialog"; // Import Edit dialog
 import { useAuth } from "@/contexts/auth-context";
 
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
   const [selectedPersonForDelete, setSelectedPersonForDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  // const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null);
-  // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null); // State for edit
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // State for edit dialog
+
   const { user: currentUser } = useAuth();
 
   const fetchPersonnel = useCallback(async () => {
@@ -50,10 +54,10 @@ export default function PersonnelPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  // const openEditDialog = (person: User) => {
-  //   setSelectedPersonForEdit(person);
-  //   setIsEditDialogOpen(true);
-  // };
+  const openEditDialog = (person: User) => { // Function to open edit dialog
+    setSelectedPersonForEdit(person);
+    setIsEditDialogOpen(true);
+  };
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -142,14 +146,14 @@ export default function PersonnelPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end gap-2 border-t pt-4">
-              <Button variant="outline" size="sm" disabled> {/* TODO: Implement Edit functionality: onClick={() => openEditDialog(person)} */}
+              <Button variant="outline" size="sm" onClick={() => openEditDialog(person)}> 
                 <Edit className="mr-1 h-4 w-4" /> Editar
               </Button>
               <Button 
                 variant="destructive" 
                 size="sm" 
                 onClick={() => openDeleteDialog(person)}
-                disabled={currentUser?.id === person.id_usuario} // Deshabilita si es el usuario actual
+                disabled={currentUser?.id === person.id_usuario} 
               >
                 <Trash2 className="mr-1 h-4 w-4" /> Eliminar
               </Button>
@@ -165,14 +169,14 @@ export default function PersonnelPage() {
           onOpenChange={setIsDeleteDialogOpen}
         />
       )}
-      {/* {selectedPersonForEdit && (
+       {selectedPersonForEdit && (
         <EditPersonnelDialog
           person={selectedPersonForEdit}
           onPersonnelUpdated={handlePersonnelAddedOrUpdated}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
         />
-      )} */}
+      )}
     </div>
   );
 }
