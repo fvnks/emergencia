@@ -49,6 +49,8 @@ async function executeTransaction<T>(
 ): Promise<T> {
   const pool = await getPool();
   if (!pool) {
+    // Esta verificación es más para el compilador de TypeScript,
+    // getPool ahora asegura que se lance un error si el pool no se puede crear.
     throw new Error('MySQL Pool is not available after awaiting getPool.');
   }
   const connection = await pool.getConnection();
@@ -105,12 +107,12 @@ export async function assignEppToUser(
 
     // 3. Verificar si ya existe una asignación activa para este usuario y EPP, y crear o actualizar
     const [existingAssignments] = await connection.execute<ExistingAssignment[]>(
-        `SELECT id_asignacion_epp, cantidad_asignada FROM EPP_Asignaciones_Actuales 
+        `SELECT id_asignacion_epp, cantidad_asignada FROM EPP_Asignaciones_Actuales
          WHERE id_usuario = ? AND id_item_epp = ? AND estado_asignacion = 'Asignado' FOR UPDATE`,
         [id_usuario, id_item_epp]
     );
-    
-    let newAssignmentId: number;
+
+    let assignmentIdToFetch: number;
     const assignmentStatus: EppAssignmentStatus = 'Asignado';
 
     if (existingAssignments.length > 0) {
@@ -118,21 +120,21 @@ export async function assignEppToUser(
         const existingAssignment = existingAssignments[0];
         const nuevaCantidadTotalAsignada = existingAssignment.cantidad_asignada + cantidad_a_asignar_ahora;
         await connection.execute(
-            `UPDATE EPP_Asignaciones_Actuales 
-             SET cantidad_asignada = ?, fecha_asignacion = ?, estado_asignacion = ?, notas = ?, id_usuario_responsable = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
+            `UPDATE EPP_Asignaciones_Actuales
+             SET cantidad_asignada = ?, fecha_asignacion = ?, estado_asignacion = ?, notas = ?, id_usuario_responsable = ?, fecha_actualizacion = CURRENT_TIMESTAMP
              WHERE id_asignacion_epp = ?`,
             [nuevaCantidadTotalAsignada, fecha_asignacion, assignmentStatus, notas || null, responsibleUserId, existingAssignment.id_asignacion_epp]
         );
-        newAssignmentId = existingAssignment.id_asignacion_epp;
+        assignmentIdToFetch = existingAssignment.id_asignacion_epp;
     } else {
         // Crear nueva asignación
         const [assignmentResult] = await connection.execute(
           `INSERT INTO EPP_Asignaciones_Actuales
            (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [id_usuario, id_item_epp, cantidad_a_asignar_ahora, assignmentStatus, assignmentStatus, notas || null, responsibleUserId]
+          [id_usuario, id_item_epp, fecha_asignacion, cantidad_a_asignar_ahora, assignmentStatus, notas || null, responsibleUserId]
         ) as [ResultSetHeader, any];
-        newAssignmentId = assignmentResult.insertId;
+        assignmentIdToFetch = assignmentResult.insertId;
     }
 
 
@@ -158,9 +160,9 @@ export async function assignEppToUser(
       JOIN Inventario_Items ii ON ea.id_item_epp = ii.id_item
       JOIN Usuarios u ON ea.id_usuario = u.id_usuario
       WHERE ea.id_asignacion_epp = ?`,
-      [newAssignmentId]
+      [assignmentIdToFetch]
     ) as [EppAssignment[], any];
-    
+
     return newAssignmentRows.length > 0 ? newAssignmentRows[0] : null;
   });
 }
@@ -213,3 +215,4 @@ export async function returnEppFromUser(assignmentId: number, quantityReturned: 
   });
 }
 */
+
