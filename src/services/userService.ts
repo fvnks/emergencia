@@ -25,7 +25,7 @@ export interface UserCreateInput {
   password_plaintext: string;
   rol: UserRole;
   telefono?: string;
-  avatar_seed?: string;
+  // avatar_seed ya no es parte del input directo, se genera si no se provee
 }
 
 export interface UserUpdateInput {
@@ -38,8 +38,18 @@ export interface UserUpdateInput {
 
 const SALT_ROUNDS = 10;
 
+// Helper para generar avatar_seed a partir de iniciales si no se provee
+function generateAvatarSeed(name: string): string {
+    if (!name) return 'NA';
+    const nameParts = name.trim().split(/\s+/);
+    if (nameParts.length > 1) {
+      return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+}
+
 export async function createUser(userData: UserCreateInput): Promise<User | null> {
-  const { nombre_completo, email, password_plaintext, rol, telefono, avatar_seed } = userData;
+  const { nombre_completo, email, password_plaintext, rol, telefono } = userData;
   
   const existingUser = await getUserByEmail(email);
   if (existingUser) {
@@ -47,12 +57,13 @@ export async function createUser(userData: UserCreateInput): Promise<User | null
   }
 
   const password_hash = await bcrypt.hash(password_plaintext, SALT_ROUNDS);
+  const avatar_seed = generateAvatarSeed(nombre_completo); // Generar avatar_seed
 
   const sql = `
     INSERT INTO Usuarios (nombre_completo, email, password_hash, rol, telefono, avatar_seed)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
-  const params = [nombre_completo, email, password_hash, rol, telefono || null, avatar_seed || null];
+  const params = [nombre_completo, email, password_hash, rol, telefono || null, avatar_seed];
   
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -62,7 +73,10 @@ export async function createUser(userData: UserCreateInput): Promise<User | null
     return null;
   } catch (error) {
     console.error('Error al crear usuario:', error);
-    throw error; // O manejar de forma más específica
+    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
+         throw new Error('El correo electrónico ya está registrado.');
+    }
+    throw error;
   }
 }
 
@@ -79,7 +93,6 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 
 export async function getUserById(id_usuario: number): Promise<User | null> {
   const sql = 'SELECT id_usuario, nombre_completo, email, rol, telefono, avatar_seed, fecha_creacion, fecha_actualizacion FROM Usuarios WHERE id_usuario = ?';
-  // Notar que no devolvemos password_hash por defecto al obtener por ID por seguridad, a menos que sea necesario explícitamente.
   try {
     const rows = await query(sql, [id_usuario]) as User[];
     return rows.length > 0 ? rows[0] : null;
@@ -101,18 +114,21 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 export async function updateUserProfile(id_usuario: number, data: UserUpdateInput): Promise<User | null> {
-  const { nombre_completo, email, rol, telefono, avatar_seed } = data;
+  const { nombre_completo, email, rol, telefono } = data;
+  let { avatar_seed } = data;
 
-  // Construir la consulta dinámicamente para solo actualizar campos provistos
+
   const fieldsToUpdate: string[] = [];
   const params: (string | number | null)[] = [];
 
   if (nombre_completo !== undefined) {
     fieldsToUpdate.push('nombre_completo = ?');
     params.push(nombre_completo);
+    if (avatar_seed === undefined) { // Si avatar_seed no se está actualizando explícitamente, regenerarlo si el nombre cambia
+        avatar_seed = generateAvatarSeed(nombre_completo);
+    }
   }
   if (email !== undefined) {
-    // Verificar si el nuevo email ya existe para otro usuario
     const existingUser = await query('SELECT id_usuario FROM Usuarios WHERE email = ? AND id_usuario != ?', [email, id_usuario]) as RowDataPacket[];
     if (existingUser.length > 0) {
         throw new Error('El nuevo correo electrónico ya está en uso por otro usuario.');
@@ -126,15 +142,16 @@ export async function updateUserProfile(id_usuario: number, data: UserUpdateInpu
   }
   if (telefono !== undefined) {
     fieldsToUpdate.push('telefono = ?');
-    params.push(telefono);
+    params.push(telefono); // Puede ser null
   }
-   if (avatar_seed !== undefined) {
+   if (avatar_seed !== undefined) { // Si se proporcionó explícitamente
     fieldsToUpdate.push('avatar_seed = ?');
     params.push(avatar_seed);
-  }
+   }
+
 
   if (fieldsToUpdate.length === 0) {
-    return getUserById(id_usuario); // No hay nada que actualizar
+    return getUserById(id_usuario); 
   }
 
   params.push(id_usuario);
@@ -145,9 +162,14 @@ export async function updateUserProfile(id_usuario: number, data: UserUpdateInpu
     if (result.affectedRows > 0) {
       return getUserById(id_usuario);
     }
-    return null; // O el usuario no existe o no hubo cambios
+    const existingUser = await getUserById(id_usuario);
+    if (!existingUser) throw new Error(`Usuario con ID ${id_usuario} no encontrado para actualizar.`);
+    return existingUser;
   } catch (error) {
     console.error(`Error al actualizar perfil del usuario ${id_usuario}:`, error);
+     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage.includes('email')) {
+        throw new Error('El nuevo correo electrónico ya está en uso por otro usuario.');
+    }
     throw error;
   }
 }
@@ -165,41 +187,23 @@ export async function updateUserPassword(id_usuario: number, password_plaintext:
 }
 
 export async function deleteUser(id_usuario: number): Promise<boolean> {
-  // Considerar si esto debe ser un borrado lógico (marcar como inactivo)
-  // Por ahora, implementamos borrado físico.
-  // También, manejar las FK: ¿qué pasa con las tareas, EPP asignados, etc.?
-  // La BD tiene ON DELETE SET NULL o RESTRICT para varias relaciones.
-  // Si un usuario se borra, las tareas que creó (id_creador_tarea) podrían causar un error si la FK es RESTRICT y no hay CASCADE o SET NULL.
-  // Para la tabla `Usuarios` específicamente, las FK de otras tablas apuntan a ella con SET NULL o CASCADE en algunos casos.
-  // Ej: Equipos_ERA.id_usuario_asignado -> SET NULL
-  // Ej: EPP_Asignaciones_Actuales.id_usuario -> CASCADE (se borra la asignación)
-  // Ej: Tareas_Operativas.id_usuario_asignado -> SET NULL
-  // Ej: Tareas_Operativas.id_creador_tarea -> RESTRICT (esto podría fallar si el usuario creó tareas)
-  // Por seguridad, antes de borrar un usuario, se deberían reasignar o eliminar sus tareas creadas.
-  // O modificar la FK de Tareas_Operativas.id_creador_tarea a ON DELETE SET NULL o ON DELETE CASCADE.
-  // Por simplicidad, aquí solo intentamos el borrado.
-
-  // Verificación preliminar (opcional, pero buena práctica para feedback):
-  // const tasksCreated = await query('SELECT 1 FROM Tareas_Operativas WHERE id_creador_tarea = ? LIMIT 1', [id_usuario]) as RowDataPacket[];
-  // if (tasksCreated.length > 0) {
-  //   throw new Error('No se puede eliminar el usuario porque ha creado tareas. Reasigne o elimine esas tareas primero.');
-  // }
-
   const sql = 'DELETE FROM Usuarios WHERE id_usuario = ?';
   try {
     const result = await query(sql, [id_usuario]) as ResultSetHeader;
     return result.affectedRows > 0;
-  } catch (error) {
+  } catch (error)
+{
     console.error(`Error al eliminar usuario ${id_usuario}:`, error);
-    // Aquí se podría verificar si el error es por una restricción de FK
-    // if (error.code === 'ER_ROW_IS_REFERENCED_2') { // Código de error específico de MySQL
-    //   throw new Error('No se puede eliminar el usuario porque está referenciado en otras tablas (ej. creó tareas).');
-    // }
+    if (error instanceof Error && (error as any).code === 'ER_ROW_IS_REFERENCED_2') {
+      throw new Error(`No se puede eliminar el usuario porque está referenciado en otros registros (ej. creó tareas o movimientos de inventario). Reasigne o elimine esos registros primero.`);
+    }
     throw error;
   }
 }
 
-// Función de utilidad para comparar contraseñas (usada en el login)
 export async function verifyPassword(password_plaintext: string, password_hash: string): Promise<boolean> {
   return bcrypt.compare(password_plaintext, password_hash);
 }
+
+// La re-exportación de getPool se elimina de aquí.
+// Los módulos que necesiten getPool deben importarlo directamente de '@/lib/db'.

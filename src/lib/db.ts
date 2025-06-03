@@ -1,6 +1,8 @@
+
 'use server';
 
 import mysql from 'mysql2/promise';
+import type { Pool } from 'mysql2/promise'; // Import Pool type
 
 const poolConfig = {
   host: process.env.DB_HOST,
@@ -10,7 +12,7 @@ const poolConfig = {
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10, 
-  queueLimit: 0, 
+  queueLimit: 0,
   // Aiven y otros proveedores de DBaaS a menudo requieren SSL/TLS.
   // ssl: {
   //   rejectUnauthorized: true 
@@ -18,19 +20,17 @@ const poolConfig = {
   // }
 };
 
-let pool: mysql.Pool | null = null;
+let pool: Pool | null = null; // Use Pool type
 
-function getPool() {
+export function getPool(): Pool { // Return type Pool
   if (!pool) {
     try {
-      // Log the configuration being used, excluding sensitive information like password
       console.log('Creating MySQL Pool with config:', {
         host: poolConfig.host,
         port: poolConfig.port,
         user: poolConfig.user,
         database: poolConfig.database,
         connectionLimit: poolConfig.connectionLimit,
-        // DO NOT LOG poolConfig.password
       });
       
       if (!poolConfig.host || !poolConfig.port || !poolConfig.user || !poolConfig.database) {
@@ -49,7 +49,7 @@ function getPool() {
 
     } catch (error) {
       console.error('Failed to create MySQL Pool:', error);
-      throw error;
+      throw error; // Rethrow to indicate failure
     }
   }
   return pool;
@@ -57,11 +57,8 @@ function getPool() {
 
 
 export async function query(sql: string, params?: any[]): Promise<any> {
-  const currentPool = getPool();
-  if (!currentPool) {
-    throw new Error('MySQL Pool is not available. It might have failed to initialize or an error occurred.');
-  }
-
+  const currentPool = getPool(); // This will throw if pool creation failed earlier
+  
   let connection;
   try {
     connection = await currentPool.getConnection();

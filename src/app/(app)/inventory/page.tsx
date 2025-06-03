@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
 import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-item-dialog";
 import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
+import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog"; // Import AssignEppDialog
 
 
 declare module "@/components/ui/button" {
@@ -31,6 +32,10 @@ export default function InventoryPage() {
 
   const [selectedItemForDelete, setSelectedItemForDelete] = useState<InventoryItem | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const [selectedItemForEppAssign, setSelectedItemForEppAssign] = useState<InventoryItem | null>(null);
+  const [isAssignEppDialogOpen, setIsAssignEppDialogOpen] = useState(false);
+
 
   const fetchInventoryItems = useCallback(async () => {
     try {
@@ -53,6 +58,10 @@ export default function InventoryPage() {
   const handleItemAddedOrUpdatedOrDeleted = () => {
     fetchInventoryItems();
   };
+  
+  const handleEppAssigned = () => {
+    fetchInventoryItems(); // Refresh inventory list after EPP assignment (e.g., stock might change)
+  };
 
   const openEditDialog = (item: InventoryItem) => {
     setSelectedItemForEdit(item);
@@ -63,6 +72,17 @@ export default function InventoryPage() {
     setSelectedItemForDelete(item);
     setIsDeleteDialogOpen(true);
   };
+  
+  const openAssignEppDialog = (item: InventoryItem) => {
+    if (!item.es_epp) {
+        // This should ideally not happen if button is disabled, but as a safeguard
+        alert("Este ítem no es un EPP y no puede ser asignado.");
+        return;
+    }
+    setSelectedItemForEppAssign(item);
+    setIsAssignEppDialogOpen(true);
+  };
+
 
   const formatLocation = (item: InventoryItem) => {
     let locationString = item.ubicacion_nombre || "N/A";
@@ -144,7 +164,14 @@ export default function InventoryPage() {
                     <TableCell>{item.cantidad_actual} {item.unidad_medida}</TableCell>
                     <TableCell>
                       {item.es_epp ? (
-                          <Button variant="outline" size="xs" className="text-xs h-6" disabled> {/* Asignar EPP aún no implementado */}
+                          <Button 
+                            variant="outline" 
+                            size="xs" 
+                            className="text-xs h-6"
+                            onClick={() => openAssignEppDialog(item)}
+                            disabled={item.cantidad_actual <= 0}
+                            title={item.cantidad_actual <= 0 ? "Sin stock para asignar" : "Asignar EPP"}
+                          >
                               <UserPlus className="mr-1 h-3 w-3" /> Asignar EPP
                           </Button>
                       ) : (
@@ -185,7 +212,14 @@ export default function InventoryPage() {
           onOpenChange={setIsDeleteDialogOpen}
         />
       )}
+      {selectedItemForEppAssign && (
+        <AssignEppDialog
+            item={selectedItemForEppAssign}
+            onEppAssigned={handleEppAssigned}
+            open={isAssignEppDialogOpen}
+            onOpenChange={setIsAssignEppDialogOpen}
+        />
+      )}
     </div>
   );
 }
-
