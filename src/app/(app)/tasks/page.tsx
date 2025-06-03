@@ -9,7 +9,7 @@ import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, Eye, Loader2, AlertTriangle, PackageSearch } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Eye, Loader2, AlertTriangle, PackageSearch, CheckCircle2, ListChecks, Filter, SquarePlus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -22,7 +22,7 @@ import {
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog";
-import { ViewTaskDialog } from "@/components/tasks/view-task-dialog"; // Import ViewTaskDialog
+import { ViewTaskDialog } from "@/components/tasks/view-task-dialog";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -37,8 +37,8 @@ export default function TasksPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTaskForView, setSelectedTaskForView] = useState<Task | null>(null); // State for ViewTaskDialog
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for ViewTaskDialog
+  const [selectedTaskForView, setSelectedTaskForView] = useState<Task | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
 
   const fetchPageData = useCallback(async () => {
@@ -77,7 +77,7 @@ export default function TasksPage() {
     setIsDeleteDialogOpen(true);
   };
   
-  const openViewDialog = (task: Task) => { // Function to open ViewTaskDialog
+  const openViewDialog = (task: Task) => {
     setSelectedTaskForView(task);
     setIsViewDialogOpen(true);
   };
@@ -161,6 +161,32 @@ export default function TasksPage() {
           </Button>
         </div>
       </div>
+
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle className="text-lg font-headline flex items-center">
+            <ListChecks className="mr-2 h-5 w-5 text-primary" />
+            Funcionalidades Implementadas
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ul className="space-y-2">
+            {[
+              { text: "Listado de tareas.", icon: ListChecks },
+              { text: "Creación de tareas (con diálogo).", icon: SquarePlus },
+              { text: "Edición de tareas (con diálogo).", icon: Edit },
+              { text: "Eliminación de tareas (con diálogo).", icon: Trash2 },
+              { text: "Visualización de detalles de tareas (con diálogo).", icon: Eye },
+              { text: "Filtrado básico por usuario asignado.", icon: Filter },
+            ].map((item, index) => (
+              <li key={index} className="flex items-start">
+                <CheckCircle2 className="mr-2 h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                <span>{item.text}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
 
       {filteredTasks.length === 0 && !loading && (
          <Card className="shadow-lg text-center">
@@ -259,4 +285,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
