@@ -6,7 +6,7 @@ import type { EppAssignment } from "@/services/eppAssignmentService";
 import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "@/services/userService";
 import { getEppAssignedToUser } from "@/services/eppAssignmentService";
-import { getActiveTasksForUser, type Task } from "@/services/taskService"; // Importar
+import { getActiveTasksForUser, type Task } from "@/services/taskService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,63 +36,81 @@ export default function PersonnelPage() {
   const { user: currentUser } = useAuth();
 
   const fetchPersonnelDetails = useCallback(async () => {
-    setLoading(true); // Start global loading
+    setLoading(true);
     setError(null);
-    // Clear previous details to avoid stale data if user list changes
-    setAssignedEpp({}); 
-    setAssignedTasks({}); 
-    // eppLoading and tasksLoading will be re-initialized after users are fetched
+    setPersonnel([]); // Clear personnel list to ensure fresh load
+    setAssignedEpp({});
+    setAssignedTasks({});
+    setEppLoading({});
+    setTasksLoading({});
 
     try {
       const users = await getAllUsers();
       setPersonnel(users);
 
-      // Initialize loading states for all fetched users
-      const initialEppLoadingState: Record<number, boolean> = {};
-      const initialTasksLoadingState: Record<number, boolean> = {};
-      users.forEach(u => {
-        initialEppLoadingState[u.id_usuario] = true;
-        initialTasksLoadingState[u.id_usuario] = true;
-      });
-      setEppLoading(initialEppLoadingState);
-      setTasksLoading(initialTasksLoadingState);
-      
-      setLoading(false); // Personnel list loaded, global loading false
-
       if (users.length > 0) {
-        const detailPromises = users.map(async (person) => {
-          // EPP Loading is already true from initialization above
-          try {
-            const eppItems = await getEppAssignedToUser(person.id_usuario);
-            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: eppItems }));
-          } catch (eppError) {
-            console.error(`Error fetching EPP for user ${person.id_usuario}:`, eppError);
-            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); 
-          } finally {
-            setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
-          }
-
-          // Tasks Loading is already true from initialization above
-          try {
-            const activeTasks = await getActiveTasksForUser(person.id_usuario);
-            setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: activeTasks }));
-          } catch (taskError) {
-            console.error(`Error fetching active tasks for user ${person.id_usuario}:`, taskError);
-            setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: [] })); 
-          } finally {
-            setTasksLoading(prev => ({ ...prev, [person.id_usuario]: false }));
-          }
+        const initialEppLoadingState: Record<number, boolean> = {};
+        const initialTasksLoadingState: Record<number, boolean> = {};
+        users.forEach(u => {
+          initialEppLoadingState[u.id_usuario] = true;
+          initialTasksLoadingState[u.id_usuario] = true;
         });
-        await Promise.all(detailPromises);
+        setEppLoading(initialEppLoadingState);
+        setTasksLoading(initialTasksLoadingState);
+
+        const detailPromises = users.map(async (person) => {
+          const eppPromise = getEppAssignedToUser(person.id_usuario)
+            .then(eppItems => ({ status: 'fulfilled' as const, value: eppItems, userId: person.id_usuario, type: 'epp' as const }))
+            .catch(eppError => ({ status: 'rejected' as const, reason: eppError, userId: person.id_usuario, type: 'epp' as const }));
+
+          const tasksPromise = getActiveTasksForUser(person.id_usuario)
+            .then(activeTasks => ({ status: 'fulfilled' as const, value: activeTasks, userId: person.id_usuario, type: 'tasks' as const }))
+            .catch(taskError => ({ status: 'rejected' as const, reason: taskError, userId: person.id_usuario, type: 'tasks' as const }));
+          
+          return Promise.allSettled([eppPromise, tasksPromise]);
+        });
+        
+        const allResults = await Promise.all(detailPromises);
+
+        allResults.forEach(userResults => {
+          userResults.forEach(promiseResult => {
+            if (promiseResult.status === 'fulfilled') {
+              const result = promiseResult.value;
+              if (result.type === 'epp') {
+                setAssignedEpp(prev => ({ ...prev, [result.userId]: result.value }));
+              } else if (result.type === 'tasks') {
+                setAssignedTasks(prev => ({ ...prev, [result.userId]: result.value }));
+              }
+            } else { // rejected
+              const result = promiseResult.reason; // This is the actual error from the service call itself wrapped in our structure
+               if (result.type === 'epp') {
+                console.error(`Error fetching EPP for user ${result.userId}:`, result.reason);
+                setAssignedEpp(prev => ({ ...prev, [result.userId]: [] }));
+              } else if (result.type === 'tasks') {
+                console.error(`Error fetching tasks for user ${result.userId}:`, result.reason);
+                setAssignedTasks(prev => ({ ...prev, [result.userId]: [] }));
+              }
+            }
+            // Finalize loading state for this specific user and type
+            if (promiseResult.status === 'fulfilled' || promiseResult.status === 'rejected') {
+                 const result = promiseResult.status === 'fulfilled' ? promiseResult.value : promiseResult.reason;
+                 if (result.type === 'epp') {
+                    setEppLoading(prev => ({ ...prev, [result.userId]: false }));
+                 } else if (result.type === 'tasks') {
+                    setTasksLoading(prev => ({ ...prev, [result.userId]: false }));
+                 }
+            }
+          });
+        });
       }
     } catch (err) {
-      console.error("Error fetching personnel details:", err);
-      setError(err instanceof Error ? err.message : "No se pudo cargar el personal y sus detalles.");
-      setLoading(false); // Ensure global loading is false on error
-      setEppLoading({}); // Clear loading states on global error
-      setTasksLoading({});
+      console.error("Error fetching personnel list:", err);
+      setError(err instanceof Error ? err.message : "No se pudo cargar la lista de personal.");
+    } finally {
+      setLoading(false); // Global loading finished after personnel list is fetched or fails
     }
   }, []);
+
 
   useEffect(() => {
     fetchPersonnelDetails();
@@ -130,7 +148,7 @@ export default function PersonnelPage() {
     );
   }
 
-  if (error) {
+  if (error && personnel.length === 0) { // Show global error only if no personnel could be loaded
     return (
       <Alert variant="destructive" className="max-w-2xl mx-auto">
         <AlertTriangle className="h-4 w-4" />
@@ -142,7 +160,7 @@ export default function PersonnelPage() {
       </Alert>
     );
   }
-
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -230,7 +248,7 @@ export default function PersonnelPage() {
                 variant="destructive" 
                 size="sm" 
                 onClick={() => openDeleteDialog(person)}
-                disabled={currentUser?.id === person.id_usuario} 
+                disabled={currentUser?.id_usuario === person.id_usuario} // Corrected: currentUser.id to currentUser.id_usuario
               >
                 <Trash2 className="mr-1 h-4 w-4" /> Eliminar
               </Button>
@@ -258,3 +276,4 @@ export default function PersonnelPage() {
   );
 }
 
+    
