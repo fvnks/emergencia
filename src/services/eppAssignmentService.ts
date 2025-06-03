@@ -2,7 +2,7 @@
 'use server';
 
 import { query, getPool } from '@/lib/db';
-import type { ResultSetHeader, PoolConnection } from 'mysql2/promise';
+import type { ResultSetHeader, PoolConnection, RowDataPacket } from 'mysql2/promise';
 import type { InventoryItem } from './inventoryService';
 import type { User } from './userService';
 
@@ -38,6 +38,12 @@ export interface EppAssignmentCreateInput {
   notas?: string;
 }
 
+interface ExistingAssignment extends RowDataPacket {
+  id_asignacion_epp: number;
+  cantidad_asignada: number;
+}
+
+
 async function executeTransaction<T>(
   callback: (connection: PoolConnection) => Promise<T>
 ): Promise<T> {
@@ -66,9 +72,9 @@ export async function assignEppToUser(
   responsibleUserId: number // ID del usuario que realiza la acción (admin/logueado)
 ): Promise<EppAssignment | null> {
   return executeTransaction(async (connection) => {
-    const { id_usuario, id_item_epp, cantidad_asignada, fecha_asignacion, notas } = data;
+    const { id_usuario, id_item_epp, cantidad_asignada: cantidad_a_asignar_ahora, fecha_asignacion, notas } = data;
 
-    if (cantidad_asignada <= 0) {
+    if (cantidad_a_asignar_ahora <= 0) {
       throw new Error("La cantidad asignada debe ser mayor que cero.");
     }
 
@@ -86,46 +92,71 @@ export async function assignEppToUser(
     if (!item.es_epp) {
       throw new Error(`El ítem "${item.nombre_item}" no está marcado como EPP.`);
     }
-    if (item.cantidad_actual < cantidad_asignada) {
-      throw new Error(`Stock insuficiente para "${item.nombre_item}". Disponible: ${item.cantidad_actual}, Solicitado: ${cantidad_asignada}.`);
+    if (item.cantidad_actual < cantidad_a_asignar_ahora) {
+      throw new Error(`Stock insuficiente para "${item.nombre_item}". Disponible: ${item.cantidad_actual}, Solicitado: ${cantidad_a_asignar_ahora}.`);
     }
 
     // 2. Reducir la cantidad_actual en Inventario_Items
-    const newQuantity = item.cantidad_actual - cantidad_asignada;
+    const newStockQuantity = item.cantidad_actual - cantidad_a_asignar_ahora;
     await connection.execute(
       'UPDATE Inventario_Items SET cantidad_actual = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id_item = ?',
-      [newQuantity, id_item_epp]
+      [newStockQuantity, id_item_epp]
     );
 
-    // 3. Crear registro en EPP_Asignaciones_Actuales
+    // 3. Verificar si ya existe una asignación activa para este usuario y EPP
+    const [existingAssignments] = await connection.execute<ExistingAssignment[]>(
+        `SELECT id_asignacion_epp, cantidad_asignada FROM EPP_Asignaciones_Actuales 
+         WHERE id_usuario = ? AND id_item_epp = ? AND estado_asignacion = 'Asignado' FOR UPDATE`,
+        [id_usuario, id_item_epp]
+    );
+    
+    let newAssignmentId: number;
     const assignmentStatus: EppAssignmentStatus = 'Asignado';
-    const [assignmentResult] = await connection.execute(
-      `INSERT INTO EPP_Asignaciones_Actuales
-       (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, assignmentStatus, notas || null, responsibleUserId]
-    ) as [ResultSetHeader, any];
-    const newAssignmentId = assignmentResult.insertId;
+
+    if (existingAssignments.length > 0) {
+        // Actualizar la asignación existente
+        const existingAssignment = existingAssignments[0];
+        const nuevaCantidadTotalAsignada = existingAssignment.cantidad_asignada + cantidad_a_asignar_ahora;
+        await connection.execute(
+            `UPDATE EPP_Asignaciones_Actuales 
+             SET cantidad_asignada = ?, fecha_asignacion = ?, notas = ?, id_usuario_responsable = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
+             WHERE id_asignacion_epp = ?`,
+            [nuevaCantidadTotalAsignada, fecha_asignacion, notas || null, responsibleUserId, existingAssignment.id_asignacion_epp]
+        );
+        newAssignmentId = existingAssignment.id_asignacion_epp;
+    } else {
+        // Crear nueva asignación
+        const [assignmentResult] = await connection.execute(
+          `INSERT INTO EPP_Asignaciones_Actuales
+           (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [id_usuario, id_item_epp, fecha_asignacion, cantidad_a_asignar_ahora, assignmentStatus, notas || null, responsibleUserId]
+        ) as [ResultSetHeader, any];
+        newAssignmentId = assignmentResult.insertId;
+    }
+
 
     // 4. Crear registro en Inventario_Movimientos
     const movementType: EppMovementType = 'ASIGNACION_EPP';
-    await connection.execute( // Descomentado
+    await connection.execute(
       `INSERT INTO Inventario_Movimientos
        (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, notas_movimiento)
        VALUES (?, ?, ?, ?, ?)`,
-      [id_item_epp, movementType, -cantidad_asignada, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
+      [id_item_epp, movementType, -cantidad_a_asignar_ahora, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
 
 
-    // 5. Obtener y devolver la nueva asignación
+    // 5. Obtener y devolver la asignación (nueva o actualizada)
     const [newAssignmentRows] = await connection.execute(
       `SELECT
         ea.id_asignacion_epp, ea.id_usuario, ea.id_item_epp, ea.fecha_asignacion,
         ea.cantidad_asignada, ea.estado_asignacion, ea.notas,
         ea.fecha_creacion, ea.fecha_actualizacion, ea.id_usuario_responsable,
-        ii.nombre_item AS nombre_item_epp, ii.codigo_item AS codigo_item_epp
+        ii.nombre_item AS nombre_item_epp, ii.codigo_item AS codigo_item_epp,
+        u.nombre_completo AS nombre_usuario
       FROM EPP_Asignaciones_Actuales ea
       JOIN Inventario_Items ii ON ea.id_item_epp = ii.id_item
+      JOIN Usuarios u ON ea.id_usuario = u.id_usuario
       WHERE ea.id_asignacion_epp = ?`,
       [newAssignmentId]
     ) as [EppAssignment[], any];
