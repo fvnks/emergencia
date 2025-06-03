@@ -2,51 +2,75 @@
 "use client";
 
 import type { User } from "@/services/userService"; 
+import type { EppAssignment } from "@/services/eppAssignmentService"; // Import EppAssignment
 import { useEffect, useState, useCallback } from "react";
 import { getAllUsers } from "@/services/userService";
+import { getEppAssignedToUser } from "@/services/eppAssignmentService"; // Import getEppAssignedToUser
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
+import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle, Package } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
 import { DeletePersonnelDialog } from "@/components/personnel/delete-personnel-dialog";
-import { EditPersonnelDialog } from "@/components/personnel/edit-personnel-dialog"; // Import Edit dialog
+import { EditPersonnelDialog } from "@/components/personnel/edit-personnel-dialog";
 import { useAuth } from "@/contexts/auth-context";
+import { Badge } from "@/components/ui/badge";
 
 export default function PersonnelPage() {
   const [personnel, setPersonnel] = useState<User[]>([]);
+  const [assignedEpp, setAssignedEpp] = useState<Record<number, EppAssignment[]>>({});
   const [loading, setLoading] = useState(true);
+  const [eppLoading, setEppLoading] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   
   const [selectedPersonForDelete, setSelectedPersonForDelete] = useState<User | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null); // State for edit
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // State for edit dialog
+  const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { user: currentUser } = useAuth();
 
-  const fetchPersonnel = useCallback(async () => {
+  const fetchPersonnelAndEpp = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setAssignedEpp({}); // Clear previous EPP data
+      setEppLoading({}); // Clear previous EPP loading states
+
       const users = await getAllUsers();
       setPersonnel(users);
+      setLoading(false); // Personnel list loaded
+
+      if (users.length > 0) {
+        const eppPromises = users.map(async (person) => {
+          setEppLoading(prev => ({ ...prev, [person.id_usuario]: true }));
+          try {
+            const eppItems = await getEppAssignedToUser(person.id_usuario);
+            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: eppItems }));
+          } catch (eppError) {
+            console.error(`Error fetching EPP for user ${person.id_usuario}:`, eppError);
+            setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty array on error
+          } finally {
+            setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
+          }
+        });
+        await Promise.all(eppPromises);
+      }
     } catch (err) {
       console.error("Error fetching personnel:", err);
       setError(err instanceof Error ? err.message : "No se pudo cargar el personal.");
-    } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchPersonnel();
-  }, [fetchPersonnel]);
+    fetchPersonnelAndEpp();
+  }, [fetchPersonnelAndEpp]);
 
-  const handlePersonnelAddedOrUpdated = () => {
-    fetchPersonnel(); 
+  const handlePersonnelAddedOrUpdatedOrDeleted = () => {
+    fetchPersonnelAndEpp(); 
   };
 
   const openDeleteDialog = (person: User) => {
@@ -54,7 +78,7 @@ export default function PersonnelPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const openEditDialog = (person: User) => { // Function to open edit dialog
+  const openEditDialog = (person: User) => {
     setSelectedPersonForEdit(person);
     setIsEditDialogOpen(true);
   };
@@ -84,7 +108,7 @@ export default function PersonnelPage() {
         <AlertTitle>Error al Cargar Personal</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={fetchPersonnel} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
+          <Button onClick={fetchPersonnelAndEpp} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
         </AlertDescription>
       </Alert>
     );
@@ -94,7 +118,7 @@ export default function PersonnelPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-headline font-bold">Directorio de Personal</h1>
-        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdated} />
+        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdatedOrDeleted} />
       </div>
 
       {personnel.length === 0 && !loading && (
@@ -137,7 +161,20 @@ export default function PersonnelPage() {
               <div className="flex items-start pt-1">
                 <ShieldCheck className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-medium">EPP: </span>N/A (Próximamente)
+                  <span className="font-medium">EPP Asignado: </span>
+                  {eppLoading[person.id_usuario] && <span className="text-xs text-muted-foreground">Cargando EPP...</span>}
+                  {!eppLoading[person.id_usuario] && (!assignedEpp[person.id_usuario] || assignedEpp[person.id_usuario]?.length === 0) && (
+                    <span className="text-muted-foreground">Ninguno</span>
+                  )}
+                  {!eppLoading[person.id_usuario] && assignedEpp[person.id_usuario] && assignedEpp[person.id_usuario]?.length > 0 && (
+                    <ul className="list-disc list-inside ml-0 space-y-0.5">
+                      {assignedEpp[person.id_usuario]?.map(epp => (
+                        <li key={epp.id_asignacion_epp} className="text-xs">
+                           {epp.cantidad_asignada}x {epp.nombre_item_epp} ({epp.codigo_item_epp})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               </div>
               <div className="flex items-center">
@@ -164,7 +201,7 @@ export default function PersonnelPage() {
       {selectedPersonForDelete && (
         <DeletePersonnelDialog
           person={selectedPersonForDelete}
-          onPersonnelDeleted={handlePersonnelAddedOrUpdated}
+          onPersonnelDeleted={handlePersonnelAddedOrUpdatedOrDeleted}
           open={isDeleteDialogOpen}
           onOpenChange={setIsDeleteDialogOpen}
         />
@@ -172,7 +209,7 @@ export default function PersonnelPage() {
        {selectedPersonForEdit && (
         <EditPersonnelDialog
           person={selectedPersonForEdit}
-          onPersonnelUpdated={handlePersonnelAddedOrUpdated}
+          onPersonnelUpdated={handlePersonnelAddedOrUpdatedOrDeleted}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
         />
