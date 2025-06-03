@@ -174,7 +174,68 @@ export async function deleteEraEquipment(id_era: number): Promise<boolean> {
   }
 }
 
-// Funciones de asignación se añadirán después
-// export async function assignEraToUser(id_era: number, id_usuario: number): Promise<boolean> { ... }
-// export async function unassignEraFromUser(id_era: number): Promise<boolean> { ... }
-// export async function getEraAssignedToUser(userId: number): Promise<EraEquipment | null> { ... }
+export async function assignEra(id_era: number, id_usuario: number | null): Promise<EraEquipment | null> {
+  const era = await getEraEquipmentById(id_era);
+  if (!era) {
+    throw new Error(`Equipo ERA con ID ${id_era} no encontrado.`);
+  }
+
+  let nuevoEstado: EraEquipmentStatus = era.estado_era;
+
+  if (id_usuario !== null) { // Asignando
+    if (!['Disponible', 'Operativo'].includes(era.estado_era)) {
+      throw new Error(`No se puede asignar el ERA. Estado actual: ${era.estado_era}. Debe estar 'Disponible' u 'Operativo'.`);
+    }
+    // Opcional: Verificar si el usuario ya tiene otro ERA asignado
+    // const existingAssignment = await query('SELECT id_era FROM ERA_Equipos WHERE id_usuario_asignado = ? AND id_era != ?', [id_usuario, id_era]);
+    // if (existingAssignment.length > 0) {
+    //   throw new Error(`El usuario ya tiene otro ERA asignado (ID: ${existingAssignment[0].id_era}).`);
+    // }
+    nuevoEstado = 'Operativo';
+  } else { // Desasignando
+    if (era.id_usuario_asignado === null) {
+      // No estaba asignado, no hacer nada o devolver error leve
+      console.warn(`ERA ${id_era} ya estaba desasignado.`);
+      return era;
+    }
+    nuevoEstado = 'Disponible';
+  }
+
+  const sql = 'UPDATE ERA_Equipos SET id_usuario_asignado = ?, estado_era = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id_era = ?';
+  const params = [id_usuario, nuevoEstado, id_era];
+
+  try {
+    const result = await query(sql, params) as ResultSetHeader;
+    if (result.affectedRows > 0) {
+      return getEraEquipmentById(id_era);
+    }
+    return era; // Devolver el era original si no hubo cambios (poco probable aquí)
+  } catch (error) {
+    console.error(`Error al ${id_usuario ? 'asignar' : 'desasignar'} ERA ${id_era}:`, error);
+    throw error;
+  }
+}
+
+export async function getEraAssignedToUser(userId: number): Promise<EraEquipment | null> {
+  const sql = `
+    SELECT 
+      e.*,
+      DATE_FORMAT(e.fecha_fabricacion, '%Y-%m-%d') as fecha_fabricacion,
+      DATE_FORMAT(e.fecha_adquisicion, '%Y-%m-%d') as fecha_adquisicion,
+      DATE_FORMAT(e.fecha_ultima_mantencion, '%Y-%m-%d') as fecha_ultima_mantencion,
+      DATE_FORMAT(e.fecha_proxima_inspeccion, '%Y-%m-%d') as fecha_proxima_inspeccion
+    FROM ERA_Equipos e
+    WHERE e.id_usuario_asignado = ? AND e.estado_era = 'Operativo'
+    LIMIT 1
+  `;
+  try {
+    const rows = await query(sql, [userId]) as EraEquipment[];
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.error(`Error fetching ERA assigned to user ${userId}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      return null;
+    }
+    throw error;
+  }
+}
