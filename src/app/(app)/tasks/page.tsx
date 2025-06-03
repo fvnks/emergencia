@@ -19,9 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import { AddTaskDialog } from "@/components/tasks/add-task-dialog"; // Próximamente
-// import { EditTaskDialog } from "@/components/tasks/edit-task-dialog"; // Próximamente
-// import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog"; // Próximamente
+import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
+import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
+import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog";
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -31,9 +31,12 @@ export default function TasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  // const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
-  // const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<Task | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -58,7 +61,17 @@ export default function TasksPage() {
   }, [fetchPageData]);
 
   const handleTaskAddedOrUpdatedOrDeleted = () => {
-    fetchPageData(); // Refrescar lista de tareas
+    fetchPageData(); 
+  };
+
+  const openEditDialog = (task: Task) => {
+    setSelectedTaskForEdit(task);
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (task: Task) => {
+    setSelectedTaskForDelete(task);
+    setIsDeleteDialogOpen(true);
   };
 
   const filteredTasks = useMemo(() => {
@@ -74,11 +87,11 @@ export default function TasksPage() {
 
   const getStatusBadgeVariant = (status: TaskStatus) => {
     switch (status) {
-      case "Completada": return "default"; // Green in current styling
-      case "En Proceso": return "secondary"; // Yellow in current styling
-      case "Programada": return "outline"; // Blue in current styling
-      case "Pendiente": return "destructive"; // Default red
-      case "Atrasada": return "destructive"; // Also red, maybe a different destructive variant later
+      case "Completada": return "default"; 
+      case "En Proceso": return "secondary"; 
+      case "Programada": return "outline"; 
+      case "Pendiente": return "destructive"; 
+      case "Atrasada": return "destructive"; 
       default: return "outline";
     }
   };
@@ -88,7 +101,7 @@ export default function TasksPage() {
       case "Completada": return "bg-green-500 hover:bg-green-600 text-white";
       case "En Proceso": return "bg-yellow-500 hover:bg-yellow-600 text-black";
       case "Programada": return "bg-blue-500 hover:bg-blue-600 text-white";
-      case "Pendiente": return ""; // Uses default destructive style
+      case "Pendiente": return "bg-slate-400 hover:bg-slate-500 text-white"; 
       case "Atrasada": return "border-red-700 bg-red-600 hover:bg-red-700 text-white";
       default: return "";
     }
@@ -135,7 +148,7 @@ export default function TasksPage() {
               <SelectItem value="unassigned">Sin Asignar</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="w-full sm:w-auto" onClick={() => alert("Próximamente: Crear Nueva Tarea")}> {/* onClick={() => setIsAddDialogOpen(true)} */}
+          <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
             <PlusCircle className="mr-2 h-5 w-5" /> Crear Nueva Tarea
           </Button>
         </div>
@@ -155,7 +168,7 @@ export default function TasksPage() {
           </CardHeader>
           {selectedUserIdFilter === "all" && (
             <CardContent>
-                <Button onClick={() => alert("Próximamente: Crear Nueva Tarea")}>
+                <Button onClick={() => setIsAddDialogOpen(true)}>
                     <PlusCircle className="mr-2 h-5 w-5" /> Crear Nueva Tarea
                 </Button>
             </CardContent>
@@ -196,10 +209,10 @@ export default function TasksPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => alert(`Próximamente: Ver Tarea ${task.id_tarea}`)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" title="Editar Tarea" onClick={() => alert(`Próximamente: Editar Tarea ${task.id_tarea}`)}> {/* onClick={() => setSelectedTaskForEdit(task)} */}
+                      <Button variant="outline" size="icon" className="h-8 w-8" title="Editar Tarea" onClick={() => openEditDialog(task)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" title="Eliminar Tarea" onClick={() => alert(`Próximamente: Eliminar Tarea ${task.id_tarea}`)}> {/* onClick={() => setSelectedTaskForDelete(task)} */}
+                      <Button variant="destructive" size="icon" className="h-8 w-8" title="Eliminar Tarea" onClick={() => openDeleteDialog(task)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -211,11 +224,25 @@ export default function TasksPage() {
         </Card>
       )}
 
-      {/* Próximamente: Diálogos */}
-      {/* {isAddDialogOpen && <AddTaskDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onTaskAdded={handleTaskAddedOrUpdatedOrDeleted} />} */}
-      {/* {selectedTaskForEdit && <EditTaskDialog task={selectedTaskForEdit} open={!!selectedTaskForEdit} onOpenChange={() => setSelectedTaskForEdit(null)} onTaskUpdated={handleTaskAddedOrUpdatedOrDeleted} />} */}
-      {/* {selectedTaskForDelete && <DeleteTaskDialog task={selectedTaskForDelete} open={!!selectedTaskForDelete} onOpenChange={() => setSelectedTaskForDelete(null)} onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted} />} */}
+      <AddTaskDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen} 
+        onTaskAdded={handleTaskAddedOrUpdatedOrDeleted} 
+        users={usersForFilter}
+      />
+      <EditTaskDialog 
+        task={selectedTaskForEdit} 
+        open={isEditDialogOpen} 
+        onOpenChange={setIsEditDialogOpen} 
+        onTaskUpdated={handleTaskAddedOrUpdatedOrDeleted}
+        users={usersForFilter}
+      />
+      <DeleteTaskDialog 
+        task={selectedTaskForDelete} 
+        open={isDeleteDialogOpen} 
+        onOpenChange={setIsDeleteDialogOpen} 
+        onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
+      />
     </div>
   );
 }
-
