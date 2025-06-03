@@ -1,20 +1,23 @@
 
 import { createUser } from '../services/userService';
 import { testConnection } from '../lib/db';
-import dotenv from 'dotenv';
 
-// Cargar variables de entorno desde .env.local para el script
-dotenv.config({ path: '.env.local' });
+// dotenv.config() is no longer needed here, it will be preloaded by tsx -r dotenv/config
 
 async function seedDatabase() {
   try {
-    console.log('Intentando conectar a la base de datos...');
-    // Asegúrate de que las variables de entorno de la BD están cargadas
-    if (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME) {
-        console.error('Error: Faltan variables de entorno para la conexión a la base de datos.');
-        console.log('Asegúrate de que DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT están definidas en tu archivo .env.local');
-        process.exit(1);
+    console.log('Verificando variables de entorno para la base de datos...');
+    const requiredEnvVars = ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingEnvVars.length > 0) {
+      console.error('Error: Faltan variables de entorno para la conexión a la base de datos:', missingEnvVars.join(', '));
+      console.log(`Asegúrate de que ${requiredEnvVars.join(', ')} están definidas en tu archivo .env.local`);
+      process.exit(1);
     }
+    console.log('Variables de entorno para la base de datos parecen estar presentes.');
+
+    console.log('Intentando conectar a la base de datos...');
     await testConnection();
     console.log('Conexión a la base de datos exitosa.');
 
@@ -22,8 +25,8 @@ async function seedDatabase() {
     const adminCredentials = {
       nombre_completo: "Administrador Del Sistema",
       email: "admin@example.com",
-      password_plaintext: "password123", // Recuerda cambiar esto si es necesario
-      rol: "admin" as "admin", // Asegurar el tipo para 'rol'
+      password_plaintext: "password123", 
+      rol: "admin" as "admin",
       telefono: "987654321",
       avatar_seed: "AS"
     };
@@ -37,8 +40,6 @@ async function seedDatabase() {
       console.log(`  Rol: ${admin.rol}`);
       console.log(`  Contraseña (para login): ${adminCredentials.password_plaintext}`);
     } else {
-      // createUser lanza error si ya existe o falla, esta parte no debería alcanzarse si lanza error.
-      // Pero si devuelve null (como en la firma original que podría haberse interpretado), esto lo cubriría.
       console.log("El usuario administrador podría ya existir o hubo un error no capturado al crearlo.");
     }
 
@@ -49,8 +50,9 @@ async function seedDatabase() {
       console.error(error.message);
       if (error.message.includes('El correo electrónico ya está registrado')) {
         console.log("El usuario 'admin@example.com' ya existe en la base de datos.");
-      } else if (error.message.toLowerCase().includes('connect etimedout') || error.message.toLowerCase().includes('access denied')) {
+      } else if (error.message.toLowerCase().includes('connect etimedout') || error.message.toLowerCase().includes('access denied') || error.message.toLowerCase().includes('econnrefused')) {
         console.error("Error de conexión a la base de datos. Verifica tus credenciales y la accesibilidad de la BD en .env.local.");
+        console.error(`Intentando conectar a: ${process.env.DB_HOST}:${process.env.DB_PORT} con usuario ${process.env.DB_USER} a la BD ${process.env.DB_NAME}`);
       } else if (error.message.includes('Unknown database')) {
         console.error(`La base de datos '${process.env.DB_NAME}' no existe. Por favor, créala primero.`);
       }
@@ -58,14 +60,13 @@ async function seedDatabase() {
       console.error("Un error desconocido ocurrió:", error);
     }
     console.error("------------------------------------------------------");
-    process.exit(1); // Termina el script con un código de error
+    process.exit(1); 
   } finally {
     console.log('Proceso de seeding finalizado.');
-    // No es estrictamente necesario llamar a process.exit(0) aquí si todo va bien,
-    // Node.js debería terminar automáticamente cuando no hay más operaciones pendientes.
-    // Si el script se queda "colgado", podría ser por el pool de MySQL.
-    // En ese caso, se podría necesitar una forma de cerrar el pool desde db.ts
-    // o usar process.exit(0) aquí. Por ahora, lo dejamos así.
+    // MySQL pool in db.ts should handle connection closing gracefully.
+    // If the script hangs, we might need to explicitly close the pool here.
+    // For now, let Node.js exit naturally.
+    // Example: if (getPool()) getPool().end(); // Would require exporting getPool and end method
   }
 }
 

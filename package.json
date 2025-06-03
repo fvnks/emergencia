@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed:db": "tsx src/scripts/seed-database.ts"
+    "seed:db": "DOTENV_CONFIG_PATH=.env.local tsx -r dotenv/config src/scripts/seed-database.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.8.0",
