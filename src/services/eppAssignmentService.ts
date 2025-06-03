@@ -18,10 +18,10 @@ export interface EppAssignment {
   id_item_epp: number;
   fecha_asignacion: string;
   cantidad_asignada: number;
-  estado_asignacion?: EppAssignmentStatus; // Hecho opcional temporalmente
+  estado_asignacion: EppAssignmentStatus;
   notas?: string | null;
-  fecha_creacion?: string; // Hecho opcional
-  fecha_actualizacion?: string; // Hecho opcional
+  fecha_creacion: string; 
+  fecha_actualizacion: string; 
   id_usuario_responsable?: number | null;
 
   // Campos unidos
@@ -98,29 +98,32 @@ export async function assignEppToUser(
     );
 
     // 3. Crear registro en EPP_Asignaciones_Actuales
-    // const assignmentStatus: EppAssignmentStatus = 'Asignado'; // Temporalmente no se usa
+    const assignmentStatus: EppAssignmentStatus = 'Asignado';
     const [assignmentResult] = await connection.execute(
       `INSERT INTO EPP_Asignaciones_Actuales
-       (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, notas, id_usuario_responsable)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, notas || null, responsibleUserId]
+       (id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, estado_asignacion, notas, id_usuario_responsable)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id_usuario, id_item_epp, fecha_asignacion, cantidad_asignada, assignmentStatus, notas || null, responsibleUserId]
     ) as [ResultSetHeader, any];
     const newAssignmentId = assignmentResult.insertId;
 
     // 4. Crear registro en Inventario_Movimientos
-    const movementType: EppMovementType = 'ASIGNACION_EPP';
-    await connection.execute(
-      `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, id_usuario_destino, notas_movimiento)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id_item_epp, movementType, -cantidad_asignada, responsibleUserId, id_usuario, notas || `Asignación EPP a usuario ID ${id_usuario}`]
-    );
+    // ---- TEMPORARY: Commented out due to "Unknown column 'cantidad_movimiento'" error ----
+    // const movementType: EppMovementType = 'ASIGNACION_EPP';
+    // await connection.execute(
+    //   `INSERT INTO Inventario_Movimientos
+    //    (id_item, tipo_movimiento, cantidad_movimiento, id_usuario_responsable, id_usuario_destino, notas_movimiento)
+    //    VALUES (?, ?, ?, ?, ?, ?)`,
+    //   [id_item_epp, movementType, -cantidad_asignada, responsibleUserId, id_usuario, notas || `Asignación EPP a usuario ID ${id_usuario}`]
+    // );
+    // ---- END TEMPORARY ----
+
 
     // 5. Obtener y devolver la nueva asignación
     const [newAssignmentRows] = await connection.execute(
       `SELECT
         ea.id_asignacion_epp, ea.id_usuario, ea.id_item_epp, ea.fecha_asignacion,
-        ea.cantidad_asignada, ea.notas,
+        ea.cantidad_asignada, ea.estado_asignacion, ea.notas,
         ea.fecha_creacion, ea.fecha_actualizacion, ea.id_usuario_responsable,
         ii.nombre_item AS nombre_item_epp, ii.codigo_item AS codigo_item_epp
       FROM EPP_Asignaciones_Actuales ea
@@ -129,19 +132,11 @@ export async function assignEppToUser(
       [newAssignmentId]
     ) as [EppAssignment[], any];
     
-    // Añadir estado_asignacion manualmente si la columna no existe en la DB para la lectura
-    if (newAssignmentRows.length > 0 && newAssignmentRows[0].estado_asignacion === undefined) {
-      // @ts-ignore  // Ignorando temporalmente el error de TS ya que la columna podría no existir
-      newAssignmentRows[0].estado_asignacion = 'Asignado'; // Valor por defecto si la columna no está
-    }
-
-
     return newAssignmentRows.length > 0 ? newAssignmentRows[0] : null;
   });
 }
 
 export async function getEppAssignedToUser(userId: number): Promise<EppAssignment[]> {
-  // Se elimina temporalmente la selección y el filtro por estado_asignacion
   const sql = `
     SELECT
       ea.id_asignacion_epp,
@@ -149,7 +144,7 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
       ea.id_item_epp,
       ea.fecha_asignacion,
       ea.cantidad_asignada,
-      -- ea.estado_asignacion, -- Temporalmente removido
+      ea.estado_asignacion,
       ea.notas,
       ea.fecha_creacion,
       ea.fecha_actualizacion,
@@ -160,23 +155,14 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     FROM EPP_Asignaciones_Actuales ea
     JOIN Inventario_Items ii ON ea.id_item_epp = ii.id_item
     JOIN Usuarios u ON ea.id_usuario = u.id_usuario
-    WHERE ea.id_usuario = ? 
-    -- AND ea.estado_asignacion = 'Asignado' -- Temporalmente removido
+    WHERE ea.id_usuario = ? AND ea.estado_asignacion = 'Asignado'
     ORDER BY ea.fecha_asignacion DESC, ii.nombre_item ASC
   `;
   try {
     const rows = await query(sql, [userId]) as EppAssignment[];
-     // Añadir estado_asignacion manualmente si la columna no existe en la DB para la lectura
-    return rows.map(row => ({
-      ...row,
-      estado_asignacion: row.estado_asignacion || 'Asignado' // Valor por defecto si la columna no está
-    }));
+    return rows;
   } catch (error) {
     console.error(`Error fetching EPP assigned to user ${userId}:`, error);
     throw error;
   }
 }
-
-// TODO: Implementar returnEppFromUser, updateEppAssignment, getAssignmentsForItem
-// Estas funciones también requerirán manejo de transacciones y ser conscientes de la estructura actual de la tabla.
-
