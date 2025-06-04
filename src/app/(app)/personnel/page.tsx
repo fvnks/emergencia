@@ -38,7 +38,7 @@ export default function PersonnelPage() {
   const fetchPersonnelDetails = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setPersonnel([]); // Clear personnel list to ensure fresh load
+    setPersonnel([]); 
     setAssignedEpp({});
     setAssignedTasks({});
     setEppLoading({});
@@ -58,56 +58,44 @@ export default function PersonnelPage() {
         setEppLoading(initialEppLoadingState);
         setTasksLoading(initialTasksLoadingState);
 
-        const detailPromises = users.map(async (person) => {
-          const eppPromise = getEppAssignedToUser(person.id_usuario)
-            .then(eppItems => ({ status: 'fulfilled' as const, value: eppItems, userId: person.id_usuario, type: 'epp' as const }))
-            .catch(eppError => ({ status: 'rejected' as const, reason: eppError, userId: person.id_usuario, type: 'epp' as const }));
+        // Fetch EPP and Tasks for each user
+        for (const person of users) {
+          getEppAssignedToUser(person.id_usuario)
+            .then(eppItems => {
+              setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: eppItems }));
+            })
+            .catch(eppError => {
+              console.error(`Error fetching EPP for user ${person.id_usuario}:`, eppError);
+              setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty on error
+            })
+            .finally(() => {
+              setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
+            });
 
-          const tasksPromise = getActiveTasksForUser(person.id_usuario)
-            .then(activeTasks => ({ status: 'fulfilled' as const, value: activeTasks, userId: person.id_usuario, type: 'tasks' as const }))
-            .catch(taskError => ({ status: 'rejected' as const, reason: taskError, userId: person.id_usuario, type: 'tasks' as const }));
-          
-          return Promise.allSettled([eppPromise, tasksPromise]);
-        });
-        
-        const allResults = await Promise.all(detailPromises);
-
-        allResults.forEach(userResults => {
-          userResults.forEach(promiseResult => {
-            if (promiseResult.status === 'fulfilled') {
-              const result = promiseResult.value;
-              if (result.type === 'epp') {
-                setAssignedEpp(prev => ({ ...prev, [result.userId]: result.value }));
-              } else if (result.type === 'tasks') {
-                setAssignedTasks(prev => ({ ...prev, [result.userId]: result.value }));
-              }
-            } else { // rejected
-              const result = promiseResult.reason; // This is the actual error from the service call itself wrapped in our structure
-               if (result.type === 'epp') {
-                console.error(`Error fetching EPP for user ${result.userId}:`, result.reason);
-                setAssignedEpp(prev => ({ ...prev, [result.userId]: [] }));
-              } else if (result.type === 'tasks') {
-                console.error(`Error fetching tasks for user ${result.userId}:`, result.reason);
-                setAssignedTasks(prev => ({ ...prev, [result.userId]: [] }));
-              }
-            }
-            // Finalize loading state for this specific user and type
-            if (promiseResult.status === 'fulfilled' || promiseResult.status === 'rejected') {
-                 const result = promiseResult.status === 'fulfilled' ? promiseResult.value : promiseResult.reason;
-                 if (result.type === 'epp') {
-                    setEppLoading(prev => ({ ...prev, [result.userId]: false }));
-                 } else if (result.type === 'tasks') {
-                    setTasksLoading(prev => ({ ...prev, [result.userId]: false }));
-                 }
-            }
-          });
-        });
+          getActiveTasksForUser(person.id_usuario)
+            .then(activeTasks => {
+              setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: activeTasks }));
+            })
+            .catch(taskError => {
+              console.error(`Error fetching tasks for user ${person.id_usuario}:`, taskError);
+              setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty on error
+            })
+            .finally(() => {
+              setTasksLoading(prev => ({ ...prev, [person.id_usuario]: false }));
+            });
+        }
       }
     } catch (err) {
       console.error("Error fetching personnel list:", err);
-      setError(err instanceof Error ? err.message : "No se pudo cargar la lista de personal.");
+      let errorMessage = "No se pudo cargar la lista de personal.";
+       if (err instanceof Error && (err as any).code === 'ER_NO_SUCH_TABLE') {
+           errorMessage = "Error: Una o más tablas requeridas para el personal no existen en la base de datos (Usuarios, EPP_Asignaciones_Actuales, Tareas).";
+       } else if (err instanceof Error) {
+           errorMessage = err.message;
+       }
+      setError(errorMessage);
     } finally {
-      setLoading(false); // Global loading finished after personnel list is fetched or fails
+      setLoading(false); 
     }
   }, []);
 
@@ -148,7 +136,7 @@ export default function PersonnelPage() {
     );
   }
 
-  if (error && personnel.length === 0) { // Show global error only if no personnel could be loaded
+  if (error && personnel.length === 0) { 
     return (
       <Alert variant="destructive" className="max-w-2xl mx-auto">
         <AlertTriangle className="h-4 w-4" />
@@ -248,7 +236,7 @@ export default function PersonnelPage() {
                 variant="destructive" 
                 size="sm" 
                 onClick={() => openDeleteDialog(person)}
-                disabled={currentUser?.id_usuario === person.id_usuario} // Corrected: currentUser.id to currentUser.id_usuario
+                disabled={currentUser?.id_usuario === person.id_usuario} 
               >
                 <Trash2 className="mr-1 h-4 w-4" /> Eliminar
               </Button>
@@ -275,5 +263,3 @@ export default function PersonnelPage() {
     </div>
   );
 }
-
-    

@@ -47,8 +47,8 @@ export default function InventoryPage() {
       console.error("Error fetching inventory items:", err);
       let errorMessage = "No se pudo cargar el inventario.";
       if (err instanceof Error) {
-        if (err.message.includes("ER_NO_SUCH_TABLE") && err.message.includes("Inventario_Items")) {
-          errorMessage = "La tabla 'Inventario_Items' no existe en la base de datos. Por favor, ejecute el script SQL para crearla.";
+        if (err.message.includes("ER_NO_SUCH_TABLE") && (err.message.includes("Inventario_Items") || err.message.includes("EPP_Asignaciones_Actuales") || err.message.includes("Inventario_Movimientos") )) {
+          errorMessage = "Una o más tablas requeridas para el inventario (Inventario_Items, EPP_Asignaciones_Actuales, Inventario_Movimientos) no existen. Por favor, ejecute el script SQL para crearlas.";
         } else {
           errorMessage = err.message;
         }
@@ -84,6 +84,10 @@ export default function InventoryPage() {
   const openAssignEppDialog = (item: InventoryItem) => {
     if (!item.es_epp) {
         alert("Este ítem no es un EPP y no puede ser asignado.");
+        return;
+    }
+    if (item.cantidad_actual <= 0) {
+        alert("Este ítem EPP no tiene stock disponible para ser asignado.");
         return;
     }
     setSelectedItemForEppAssign(item);
@@ -174,7 +178,7 @@ export default function InventoryPage() {
                           <Button 
                             variant="outline" 
                             size="xs" 
-                            className="text-xs h-6"
+                            className="text-xs h-7 px-2 py-1" // Ajuste de padding y altura para mejor apariencia
                             onClick={() => openAssignEppDialog(item)}
                             disabled={item.cantidad_actual <= 0}
                             title={item.cantidad_actual <= 0 ? "Sin stock para asignar" : "Asignar EPP"}

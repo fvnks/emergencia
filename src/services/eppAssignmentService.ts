@@ -114,6 +114,8 @@ export async function assignEppToUser(
 
     let assignmentIdToFetch: number;
     const assignmentStatus: EppAssignmentStatus = 'Asignado';
+    let id_movimiento_epp_fk: number | null = null;
+
 
     if (existingAssignments.length > 0) {
         // Actualizar la asignación existente
@@ -126,6 +128,7 @@ export async function assignEppToUser(
             [nuevaCantidadTotalAsignada, fecha_asignacion, assignmentStatus, notas || null, responsibleUserId, existingAssignment.id_asignacion_epp]
         );
         assignmentIdToFetch = existingAssignment.id_asignacion_epp;
+        id_movimiento_epp_fk = existingAssignment.id_asignacion_epp;
     } else {
         // Crear nueva asignación
         const [assignmentResult] = await connection.execute(
@@ -135,6 +138,7 @@ export async function assignEppToUser(
           [id_usuario, id_item_epp, fecha_asignacion, cantidad_a_asignar_ahora, assignmentStatus, notas || null, responsibleUserId]
         ) as [ResultSetHeader, any];
         assignmentIdToFetch = assignmentResult.insertId;
+        id_movimiento_epp_fk = assignmentResult.insertId;
     }
 
 
@@ -143,9 +147,9 @@ export async function assignEppToUser(
     const cantidadMovidaValor = -cantidad_a_asignar_ahora; // Cantidad negativa para salida de inventario
     await connection.execute(
       `INSERT INTO Inventario_Movimientos
-       (id_item, tipo_movimiento, cantidad_movimiento, cantidad_movida, id_usuario_responsable, notas_movimiento)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [id_item_epp, movementType, cantidadMovidaValor, cantidadMovidaValor, responsibleUserId, notas || `Asignación EPP a usuario ID ${id_usuario}`]
+       (id_item, tipo_movimiento, cantidad_movimiento, cantidad_movida, id_usuario_responsable, id_asignacion_epp, notas_movimiento)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id_item_epp, movementType, cantidadMovidaValor, Math.abs(cantidadMovidaValor), responsibleUserId, id_movimiento_epp_fk, notas || `Asignación EPP a usuario ID ${id_usuario}`]
     );
 
 
@@ -163,8 +167,12 @@ export async function assignEppToUser(
       WHERE ea.id_asignacion_epp = ?`,
       [assignmentIdToFetch]
     ) as [EppAssignment[], any];
+    
+    if (!newAssignmentRows || newAssignmentRows.length === 0) {
+        throw new Error('No se pudo recuperar la asignación después de crearla/actualizarla.');
+    }
 
-    return newAssignmentRows.length > 0 ? newAssignmentRows[0] : null;
+    return newAssignmentRows[0];
   });
 }
 
@@ -174,7 +182,7 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
       ea.id_asignacion_epp,
       ea.id_usuario,
       ea.id_item_epp,
-      ea.fecha_asignacion,
+      DATE_FORMAT(ea.fecha_asignacion, '%Y-%m-%d') as fecha_asignacion,
       ea.cantidad_asignada,
       ea.estado_asignacion,
       ea.notas,
@@ -195,25 +203,10 @@ export async function getEppAssignedToUser(userId: number): Promise<EppAssignmen
     return rows;
   } catch (error) {
     console.error(`Error fetching EPP assigned to user ${userId}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+       console.warn("La tabla 'EPP_Asignaciones_Actuales' o 'Inventario_Items' o 'Usuarios' no existe. Devolviendo array vacío.");
+       return [];
+    }
     throw error;
   }
 }
-
-// TODO: Implementar funciones para devolver EPP, marcar como perdido/dañado, etc.
-// Estas funciones deberían también crear registros en Inventario_Movimientos
-// y actualizar el estado en EPP_Asignaciones_Actuales.
-
-// Ejemplo de cómo podría ser una función para devolver EPP:
-/*
-export async function returnEppFromUser(assignmentId: number, quantityReturned: number, responsibleUserId: number, returnDate: string, notes?: string): Promise<boolean> {
-  return executeTransaction(async (connection) => {
-    // 1. Obtener la asignación actual (LOCKING READ)
-    // 2. Validar que la cantidad devuelta no exceda la asignada
-    // 3. Actualizar la cantidad_asignada en EPP_Asignaciones_Actuales o cambiar estado_asignacion
-    // 4. Incrementar la cantidad_actual en Inventario_Items
-    // 5. Crear registro en Inventario_Movimientos (tipo 'DEVOLUCION_EPP', cantidad positiva)
-    return true;
-  });
-}
-*/
-

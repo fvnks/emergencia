@@ -45,7 +45,7 @@ import { format } from 'date-fns';
 const assignEppFormSchema = z.object({
   id_usuario: z.string().min(1, { message: "Debe seleccionar un usuario." }),
   cantidad_asignada: z.coerce.number().min(1, { message: "La cantidad debe ser al menos 1." }),
-  fecha_asignacion: z.string().min(1, { message: "La fecha de asignación es requerida." }),
+  fecha_asignacion: z.string().min(1, { message: "La fecha de asignación es requerida." }).refine(val => /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)."}),
   notas: z.string().optional(),
 });
 
@@ -195,7 +195,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
                 <FormItem>
                   <FormLabel>Cantidad a Asignar</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} max={item.cantidad_actual} />
+                    <Input type="number" {...field} min={1} max={item.cantidad_actual} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -237,7 +237,7 @@ export function AssignEppDialog({ item, onEppAssigned, open, onOpenChange }: Ass
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || users.length === 0}>
+              <Button type="submit" disabled={isSubmitting || users.length === 0 || item.cantidad_actual <= 0}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                 Asignar EPP
               </Button>
