@@ -34,8 +34,6 @@ const addVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
-  // url_imagen: z.string().url("URL de imagen inválida").optional().nullable(), // Eliminado
-  // ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").optional().nullable(), // Eliminado
   notas: z.string().optional(),
 });
 
@@ -60,12 +58,10 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       patente: "",
       tipo_vehiculo: null,
       estado_vehiculo: "Operativo",
-      ano_fabricacion: undefined,
+      ano_fabricacion: null, // Changed from undefined
       fecha_adquisicion: "",
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
-      // url_imagen: "", // Eliminado
-      // ai_hint_imagen: "", // Eliminado
       notas: "",
     },
   });
@@ -79,12 +75,10 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         patente: "",
         tipo_vehiculo: null,
         estado_vehiculo: "Operativo",
-        ano_fabricacion: undefined,
+        ano_fabricacion: null, // Changed from undefined
         fecha_adquisicion: "",
         proxima_mantencion_programada: "",
         vencimiento_documentacion: "",
-        // url_imagen: "", // Eliminado
-        // ai_hint_imagen: "", // Eliminado
         notas: "",
       });
     }
@@ -96,11 +90,10 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       const createData: VehicleCreateInput = {
         ...values,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
-        ano_fabricacion: values.ano_fabricacion || undefined,
+        ano_fabricacion: values.ano_fabricacion || undefined, // Service expects undefined if null
         fecha_adquisicion: values.fecha_adquisicion || undefined,
         proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
         vencimiento_documentacion: values.vencimiento_documentacion || undefined,
-        // url_imagen y ai_hint_imagen no se incluyen ya que se eliminaron del form
       };
       await createVehicle(createData);
       toast({
@@ -148,7 +141,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Patente (Opcional)</FormLabel><FormControl><Input placeholder="Ej: ABCD-12" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="ano_fabricacion" render={({ field }) => (
-                <FormItem><FormLabel>Año Fabricación (Opcional)</FormLabel><FormControl><Input type="number" placeholder="Ej: 2020" {...field} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Año Fabricación (Opcional)</FormLabel><FormControl><Input type="number" placeholder="Ej: 2020" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,7 +177,6 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            {/* Los campos url_imagen y ai_hint_imagen han sido eliminados del JSX */}
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />

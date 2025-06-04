@@ -65,7 +65,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         patente: vehicle.patente || "",
         tipo_vehiculo: vehicle.tipo_vehiculo || null,
         estado_vehiculo: vehicle.estado_vehiculo,
-        ano_fabricacion: vehicle.ano_fabricacion || undefined,
+        ano_fabricacion: vehicle.ano_fabricacion ?? null, // Changed from || undefined
         fecha_adquisicion: vehicle.fecha_adquisicion || "",
         proxima_mantencion_programada: vehicle.proxima_mantencion_programada || "",
         vencimiento_documentacion: vehicle.vencimiento_documentacion || "",
@@ -83,7 +83,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
       const updateData: VehicleUpdateInput = {
         ...values,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
-        ano_fabricacion: values.ano_fabricacion || null,
+        ano_fabricacion: values.ano_fabricacion || null, // Service handles null if needed
         fecha_adquisicion: values.fecha_adquisicion || null,
         proxima_mantencion_programada: values.proxima_mantencion_programada || null,
         vencimiento_documentacion: values.vencimiento_documentacion || null,
