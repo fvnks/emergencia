@@ -1,13 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription
@@ -19,8 +18,10 @@ import { useToast } from "@/hooks/use-toast";
 import { createEraEquipment } from "@/services/eraService";
 import type { EraEquipmentCreateInput, EraEquipmentStatus } from "./era-types";
 import { ALL_ERA_STATUSES } from "./era-types";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { User } from "@/services/userService"; // Para el selector de asignación (opcional al crear)
+import { useEffect, useState } from "react";
+
 
 const addEraFormSchema = z.object({
   codigo_era: z.string().min(1, "El código del ERA es requerido."),
@@ -40,12 +41,13 @@ const addEraFormSchema = z.object({
 type AddEraFormValues = z.infer<typeof addEraFormSchema>;
 
 interface AddEraDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onEraAdded: () => void;
-  users: User[]; // Para el selector de asignación
+  users: User[];
 }
 
-export function AddEraDialog({ onEraAdded, users }: AddEraDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function AddEraDialog({ open, onOpenChange, onEraAdded, users }: AddEraDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -67,6 +69,26 @@ export function AddEraDialog({ onEraAdded, users }: AddEraDialogProps) {
     },
   });
 
+  useEffect(() => {
+    if (open) {
+      form.reset({ // Reset form when dialog opens
+        codigo_era: "",
+        descripcion: "",
+        marca: "",
+        modelo: "",
+        numero_serie: "",
+        fecha_fabricacion: "",
+        fecha_adquisicion: "",
+        fecha_ultima_mantencion: "",
+        fecha_proxima_inspeccion: "",
+        estado_era: "Disponible",
+        id_usuario_asignado: null,
+        notas: "",
+      });
+    }
+  }, [open, form]);
+
+
   async function onSubmit(values: AddEraFormValues) {
     setIsSubmitting(true);
     try {
@@ -85,7 +107,7 @@ export function AddEraDialog({ onEraAdded, users }: AddEraDialogProps) {
       });
       onEraAdded();
       form.reset();
-      setIsOpen(false);
+      onOpenChange(false); // Use prop to close dialog
     } catch (error) {
       console.error("Error creating ERA equipment:", error);
       toast({
@@ -99,12 +121,8 @@ export function AddEraDialog({ onEraAdded, users }: AddEraDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo ERA
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* <DialogTrigger asChild> ELIMINADO </DialogTrigger> */}
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Equipo ERA</DialogTitle>
@@ -217,7 +235,7 @@ export function AddEraDialog({ onEraAdded, users }: AddEraDialogProps) {
               </FormItem>
             )} />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Agregar Equipo ERA"}
               </Button>
