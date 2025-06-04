@@ -3,7 +3,6 @@
 
 import { query } from '@/lib/db';
 import type { ResultSetHeader } from 'mysql2/promise';
-// Eliminamos la importación de inventoryLocationService ya que las bodegas se manejarán directamente.
 
 export interface InventoryItem {
   id_item: number;
@@ -68,9 +67,22 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
     return rows.map(item => ({ ...item, es_epp: Boolean(item.es_epp_numeric) }));
   } catch (error) {
     console.error('Error fetching all inventory items:', error);
-    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      console.warn("La tabla 'Inventario_Items' o 'Bodegas' no existe. Devolviendo array vacío.");
-      return [];
+    if (error instanceof Error) {
+        const mysqlError = error as any;
+        if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
+            if (mysqlError.message.includes("'Inventario_Items'")) {
+                 throw new Error("Error de Base de Datos: La tabla 'Inventario_Items' no existe. Por favor, ejecute el script SQL para crearla.");
+            } else if (mysqlError.message.includes("'Bodegas'")) {
+                 throw new Error("Error de Base de Datos: La tabla 'Bodegas' no existe. Por favor, ejecute el script SQL para crearla o créela desde Configuración > Gestionar Bodegas.");
+            }
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
+            throw new Error(
+                "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items'. " +
+                "Esta columna es necesaria para vincular los ítems a las bodegas. " +
+                "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
+                "ALTER TABLE Inventario_Items ADD COLUMN id_bodega INT NULL, ADD CONSTRAINT fk_item_bodega FOREIGN KEY (id_bodega) REFERENCES Bodegas(id_bodega) ON DELETE SET NULL;"
+            );
+        }
     }
     throw error;
   }
@@ -94,8 +106,16 @@ export async function getInventoryItemById(id_item: number): Promise<InventoryIt
     return null;
   } catch (error) {
     console.error('Error fetching inventory item by ID:', error);
-    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      return null;
+    if (error instanceof Error) {
+        const mysqlError = error as any;
+        if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
+            return null; // Table doesn't exist, so item can't exist.
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
+            throw new Error(
+                "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items' al buscar por ID. " +
+                "Consulta el mensaje de error en la carga principal del inventario para obtener instrucciones de corrección."
+            );
+        }
     }
     throw error;
   }
@@ -107,7 +127,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     nombre_item,
     descripcion_item,
     categoria_item,
-    id_bodega, // Usamos id_bodega directamente
+    id_bodega, 
     sub_ubicacion,
     cantidad_actual,
     unidad_medida = 'unidad',
@@ -127,7 +147,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     nombre_item,
     descripcion_item || null,
     categoria_item,
-    id_bodega || null, // id_bodega directamente
+    id_bodega || null, 
     sub_ubicacion || null,
     cantidad_actual,
     unidad_medida,
@@ -150,13 +170,18 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     return null;
   } catch (error) {
     console.error('Error creating inventory item:', error);
-    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
-      if ((error as any).sqlMessage.includes('codigo_item')) {
-        throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
-      }
-    }
-    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'Inventario_Items' o 'Bodegas' no existe. No se pudo crear el ítem.");
+    if (error instanceof Error) {
+        const mysqlError = error as any;
+        if (mysqlError.code === 'ER_DUP_ENTRY' && mysqlError.sqlMessage.includes('codigo_item')) {
+            throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'id_bodega'")) {
+             throw new Error(
+                "Error de esquema de base de datos al crear ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
+                "Verifica la estructura de la tabla y consulta las guías de corrección en los errores de carga del inventario."
+            );
+        } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
+            throw new Error("Una o más tablas requeridas ('Inventario_Items', 'Inventario_Movimientos', 'Bodegas') no existen. No se pudo crear el ítem.");
+        }
     }
     throw error;
   }
@@ -242,18 +267,22 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
       }
       return getInventoryItemById(id_item);
     }
-    // Si no hay filas afectadas pero el ítem existe, devolverlo
     return currentItem;
 
   } catch (error) {
     console.error(`Error updating inventory item ${id_item}:`, error);
-    if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
-       if ((error as any).sqlMessage.includes('codigo_item')) {
-        throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
-      }
-    }
-    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'Inventario_Items' o 'Bodegas' no existe. No se pudo actualizar el ítem.");
+     if (error instanceof Error) {
+        const mysqlError = error as any;
+        if (mysqlError.code === 'ER_DUP_ENTRY' && mysqlError.sqlMessage.includes('codigo_item') && data.codigo_item) {
+            throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'id_bodega'")) {
+            throw new Error(
+                "Error de esquema de base de datos al actualizar ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
+                "Verifica la estructura de la tabla."
+            );
+        } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
+             throw new Error("Una o más tablas requeridas ('Inventario_Items', 'Inventario_Movimientos', 'Bodegas') no existen. No se pudo actualizar el ítem.");
+        }
     }
     throw error;
   }
@@ -275,5 +304,3 @@ export async function deleteInventoryItem(id_item: number): Promise<boolean> {
     throw error;
   }
 }
-
-    
