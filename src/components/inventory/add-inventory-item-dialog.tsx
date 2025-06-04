@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -42,7 +42,7 @@ const formSchema = z.object({
   unidad_medida: z.string().min(1, { message: "La unidad de medida es requerida." }).default("unidad"),
   stock_minimo: z.coerce.number().min(0, { message: "El stock mínimo no puede ser negativo." }).optional(),
   es_epp: z.boolean().default(false),
-  fecha_vencimiento_item: z.string().optional(), // Consider using a date picker if exact date is needed
+  fecha_vencimiento_item: z.string().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }).optional(),
 });
 
 type AddInventoryItemFormValues = z.infer<typeof formSchema>;
@@ -73,12 +73,31 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
     },
   });
 
+  useEffect(() => {
+    if(isOpen) {
+        form.reset({
+            codigo_item: "",
+            nombre_item: "",
+            descripcion_item: "",
+            categoria_item: "",
+            ubicacion_nombre: "",
+            sub_ubicacion: "",
+            cantidad_actual: 0,
+            unidad_medida: "unidad",
+            stock_minimo: 0,
+            es_epp: false,
+            fecha_vencimiento_item: "",
+        });
+    }
+  }, [isOpen, form]);
+
   async function onSubmit(values: AddInventoryItemFormValues) {
     setIsSubmitting(true);
     try {
       const createData: InventoryItemCreateInput = {
         ...values,
-        stock_minimo: values.stock_minimo || 0, // ensure number
+        stock_minimo: values.stock_minimo || 0, 
+        fecha_vencimiento_item: values.fecha_vencimiento_item || undefined,
       };
       await createInventoryItem(createData);
       toast({
@@ -86,7 +105,6 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
         description: `El ítem ${values.nombre_item} ha sido agregado al inventario.`,
       });
       onItemAdded();
-      form.reset();
       setIsOpen(false);
     } catch (error) {
       console.error("Error creating inventory item:", error);

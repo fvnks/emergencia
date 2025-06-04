@@ -42,7 +42,7 @@ const formSchema = z.object({
   unidad_medida: z.string().min(1, { message: "La unidad de medida es requerida." }),
   stock_minimo: z.coerce.number().min(0, { message: "El stock mínimo no puede ser negativo." }).nullable().optional(),
   es_epp: z.boolean().default(false),
-  fecha_vencimiento_item: z.string().nullable().optional(), // Consider using a date picker if exact date is needed
+  fecha_vencimiento_item: z.string().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }).nullable().optional(),
 });
 
 type EditInventoryItemFormValues = z.infer<typeof formSchema>;
@@ -60,19 +60,6 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
 
   const form = useForm<EditInventoryItemFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      codigo_item: "",
-      nombre_item: "",
-      descripcion_item: "",
-      categoria_item: "",
-      ubicacion_nombre: "",
-      sub_ubicacion: "",
-      cantidad_actual: 0,
-      unidad_medida: "unidad",
-      stock_minimo: 0,
-      es_epp: false,
-      fecha_vencimiento_item: "",
-    },
   });
 
   useEffect(() => {
@@ -86,9 +73,9 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
         sub_ubicacion: item.sub_ubicacion || "",
         cantidad_actual: item.cantidad_actual,
         unidad_medida: item.unidad_medida,
-        stock_minimo: item.stock_minimo === null ? undefined : item.stock_minimo, // handle null from DB for optional number
+        stock_minimo: item.stock_minimo === null ? undefined : item.stock_minimo, 
         es_epp: item.es_epp,
-        fecha_vencimiento_item: item.fecha_vencimiento_item ? item.fecha_vencimiento_item.split('T')[0] : "", // Format for date input
+        fecha_vencimiento_item: item.fecha_vencimiento_item ? item.fecha_vencimiento_item.split('T')[0] : "", 
       });
     }
   }, [item, open, form]);
@@ -98,7 +85,6 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
     try {
       const updateData: InventoryItemUpdateInput = {
         ...values,
-        // Ensure nullable fields are correctly passed if empty string means null
         descripcion_item: values.descripcion_item || null,
         ubicacion_nombre: values.ubicacion_nombre || null,
         sub_ubicacion: values.sub_ubicacion || null,

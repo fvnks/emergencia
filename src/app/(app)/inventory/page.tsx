@@ -13,7 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
 import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-item-dialog";
 import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
-import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog"; // Import AssignEppDialog
+import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog";
 
 
 declare module "@/components/ui/button" {
@@ -45,7 +45,15 @@ export default function InventoryPage() {
       setInventoryItems(items);
     } catch (err) {
       console.error("Error fetching inventory items:", err);
-      setError(err instanceof Error ? err.message : "No se pudo cargar el inventario.");
+      let errorMessage = "No se pudo cargar el inventario.";
+      if (err instanceof Error) {
+        if (err.message.includes("ER_NO_SUCH_TABLE") && err.message.includes("Inventario_Items")) {
+          errorMessage = "La tabla 'Inventario_Items' no existe en la base de datos. Por favor, ejecute el script SQL para crearla.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,7 +68,7 @@ export default function InventoryPage() {
   };
   
   const handleEppAssigned = () => {
-    fetchInventoryItems(); // Refresh inventory list after EPP assignment (e.g., stock might change)
+    fetchInventoryItems(); 
   };
 
   const openEditDialog = (item: InventoryItem) => {
@@ -75,7 +83,6 @@ export default function InventoryPage() {
   
   const openAssignEppDialog = (item: InventoryItem) => {
     if (!item.es_epp) {
-        // This should ideally not happen if button is disabled, but as a safeguard
         alert("Este ítem no es un EPP y no puede ser asignado.");
         return;
     }

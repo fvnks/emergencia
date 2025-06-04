@@ -2,7 +2,7 @@
 'use server';
 
 import { query } from '@/lib/db';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 export interface InventoryLocation {
   id_ubicacion: number;
@@ -21,6 +21,10 @@ export async function getAllInventoryLocations(): Promise<InventoryLocation[]> {
     return rows;
   } catch (error) {
     console.error('Error fetching all inventory locations:', error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      console.warn("La tabla 'Inventario_Ubicaciones' no existe. Devolviendo array vacío.");
+      return [];
+    }
     throw error;
   }
 }
@@ -37,10 +41,7 @@ export async function findInventoryLocationByName(nombre_ubicacion: string, sub_
       params.push(sub_ubicacion);
     }
   } else {
-    // If sub_ubicacion is not provided in search, we might assume it means general location without specific sub-location.
-    // For exact match, you might want to require sub_ubicacion to be explicitly null or a value.
-    // This logic can be adjusted based on how unique "nombre_ubicacion" alone should be.
-    // For now, we find by nombre_ubicacion and optionally by sub_ubicacion.
+     sql += ' AND sub_ubicacion IS NULL'; // Default to no sub-location if not specified
   }
   sql += ' LIMIT 1';
 
@@ -49,6 +50,9 @@ export async function findInventoryLocationByName(nombre_ubicacion: string, sub_
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
     console.error('Error finding inventory location by name:', error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      return null;
+    }
     throw error;
   }
 }
@@ -74,6 +78,9 @@ export async function createInventoryLocation(data: {
     return null;
   } catch (error) {
     console.error('Error creating inventory location:', error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      throw new Error("La tabla 'Inventario_Ubicaciones' no existe. No se pudo crear la ubicación.");
+    }
     throw error;
   }
 }
@@ -83,7 +90,7 @@ export async function findOrCreateLocationByName(
   sub_ubicacion?: string | null
 ): Promise<InventoryLocation | null> {
   if (!nombre_ubicacion || nombre_ubicacion.trim() === '') {
-    return null; // Cannot create/find location without a name
+    return null; 
   }
   let location = await findInventoryLocationByName(nombre_ubicacion, sub_ubicacion);
   if (!location) {

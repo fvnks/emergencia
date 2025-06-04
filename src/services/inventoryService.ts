@@ -2,7 +2,7 @@
 'use server';
 
 import { query } from '@/lib/db';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { findOrCreateLocationByName, type InventoryLocation } from './inventoryLocationService';
 
 export interface InventoryItem {
@@ -15,10 +15,10 @@ export interface InventoryItem {
   cantidad_actual: number;
   unidad_medida: string;
   stock_minimo?: number | null;
-  es_epp: boolean; // TINYINT(1) in DB will be 0 or 1
-  fecha_vencimiento_item?: string | null; // DATE
-  fecha_creacion: string; // TIMESTAMP
-  fecha_actualizacion: string; // TIMESTAMP
+  es_epp: boolean; 
+  fecha_vencimiento_item?: string | null; 
+  fecha_creacion: string; 
+  fecha_actualizacion: string; 
   // Joined fields
   ubicacion_nombre?: string | null;
   sub_ubicacion?: string | null;
@@ -43,8 +43,8 @@ export interface InventoryItemUpdateInput {
   nombre_item?: string;
   descripcion_item?: string | null;
   categoria_item?: string;
-  ubicacion_nombre?: string | null; // Pass null to clear location
-  sub_ubicacion?: string | null;    // Pass null to clear sub_location
+  ubicacion_nombre?: string | null; 
+  sub_ubicacion?: string | null;   
   cantidad_actual?: number;
   unidad_medida?: string;
   stock_minimo?: number | null;
@@ -57,7 +57,7 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
   const sql = `
     SELECT 
       i.*,
-      i.es_epp = 1 as es_epp, -- Convert TINYINT to boolean
+      CAST(i.es_epp AS UNSIGNED) as es_epp_numeric, -- Cast TINYINT to ensure it's number-like for JS
       ul.nombre_ubicacion as ubicacion_nombre,
       ul.sub_ubicacion
     FROM Inventario_Items i
@@ -65,10 +65,14 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
     ORDER BY i.nombre_item ASC
   `;
   try {
-    const rows = await query(sql) as InventoryItem[];
-    return rows.map(item => ({ ...item, es_epp: Boolean(item.es_epp) }));
+    const rows = await query(sql) as (InventoryItem & { es_epp_numeric: number })[];
+    return rows.map(item => ({ ...item, es_epp: Boolean(item.es_epp_numeric) }));
   } catch (error) {
     console.error('Error fetching all inventory items:', error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      console.warn("La tabla 'Inventario_Items' no existe. Devolviendo array vacío.");
+      return [];
+    }
     throw error;
   }
 }
@@ -77,7 +81,7 @@ export async function getInventoryItemById(id_item: number): Promise<InventoryIt
   const sql = `
     SELECT 
       i.*,
-      i.es_epp = 1 as es_epp, -- Convert TINYINT to boolean
+      CAST(i.es_epp AS UNSIGNED) as es_epp_numeric,
       ul.nombre_ubicacion as ubicacion_nombre,
       ul.sub_ubicacion
     FROM Inventario_Items i
@@ -85,13 +89,16 @@ export async function getInventoryItemById(id_item: number): Promise<InventoryIt
     WHERE i.id_item = ?
   `;
   try {
-    const rows = await query(sql, [id_item]) as InventoryItem[];
+    const rows = await query(sql, [id_item]) as (InventoryItem & { es_epp_numeric: number })[];
     if (rows.length > 0) {
-      return { ...rows[0], es_epp: Boolean(rows[0].es_epp) };
+      return { ...rows[0], es_epp: Boolean(rows[0].es_epp_numeric) };
     }
     return null;
   } catch (error) {
     console.error('Error fetching inventory item by ID:', error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      return null;
+    }
     throw error;
   }
 }
@@ -135,7 +142,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     unidad_medida,
     stock_minimo === undefined || stock_minimo === null ? null : stock_minimo,
     es_epp ? 1 : 0,
-    fecha_vencimiento_item || null,
+    (fecha_vencimiento_item && fecha_vencimiento_item.trim() !== "") ? fecha_vencimiento_item : null,
   ];
 
   try {
@@ -151,6 +158,9 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
         throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
       }
     }
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      throw new Error("La tabla 'Inventario_Items' o 'Inventario_Ubicaciones' no existe. No se pudo crear el ítem.");
+    }
     throw error;
   }
 }
@@ -159,18 +169,14 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
   const fieldsToUpdate: string[] = [];
   const params: (string | number | boolean | null)[] = [];
 
-  let id_ubicacion_resolved: number | null | undefined = undefined; // undefined means no change to location
+  let id_ubicacion_resolved: number | null | undefined = undefined; 
 
   if (data.ubicacion_nombre !== undefined) {
     if (data.ubicacion_nombre === null || data.ubicacion_nombre.trim() === "") {
-      id_ubicacion_resolved = null; // Clear location
+      id_ubicacion_resolved = null; 
     } else {
       const location = await findOrCreateLocationByName(data.ubicacion_nombre.trim(), data.sub_ubicacion?.trim() || null);
-      if (location) {
-        id_ubicacion_resolved = location.id_ubicacion;
-      } else {
-        id_ubicacion_resolved = null; 
-      }
+      id_ubicacion_resolved = location ? location.id_ubicacion : null;
     }
     fieldsToUpdate.push('id_ubicacion = ?');
     params.push(id_ubicacion_resolved);
@@ -211,11 +217,11 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
   }
   if (data.fecha_vencimiento_item !== undefined) {
     fieldsToUpdate.push('fecha_vencimiento_item = ?');
-    params.push(data.fecha_vencimiento_item);
+    params.push((data.fecha_vencimiento_item && data.fecha_vencimiento_item.trim() !== "") ? data.fecha_vencimiento_item : null);
   }
 
   if (fieldsToUpdate.length === 0) {
-    return getInventoryItemById(id_item); // No fields to update
+    return getInventoryItemById(id_item); 
   }
 
   fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
@@ -239,19 +245,14 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
         throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
       }
     }
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      throw new Error("La tabla 'Inventario_Items' o 'Inventario_Ubicaciones' no existe. No se pudo actualizar el ítem.");
+    }
     throw error;
   }
 }
 
 export async function deleteInventoryItem(id_item: number): Promise<boolean> {
-  // Considerar que Inventario_Movimientos y EPP_Asignaciones_Actuales podrían tener FK a id_item.
-  // Si las FKs son RESTRICT, esta operación fallará si existen registros relacionados.
-  // Si son CASCADE, los registros relacionados se eliminarán.
-  // Si son SET NULL, el id_item en las tablas referenciadoras se establecerá a NULL.
-  // La BD está configurada con ON DELETE RESTRICT para Inventario_Movimientos.id_item
-  // y ON DELETE CASCADE para EPP_Asignaciones_Actuales.id_item_epp.
-  // Esto significa que si hay movimientos, el borrado fallará.
-  // Si hay asignaciones de EPP, se borrarán las asignaciones.
   const sql = 'DELETE FROM Inventario_Items WHERE id_item = ?';
   try {
     const result = await query(sql, [id_item]) as ResultSetHeader;
@@ -259,7 +260,10 @@ export async function deleteInventoryItem(id_item: number): Promise<boolean> {
   } catch (error) {
     console.error(`Error deleting inventory item ${id_item}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_ROW_IS_REFERENCED_2') {
-      throw new Error(`No se puede eliminar el ítem porque tiene movimientos de inventario registrados. Elimine o modifique los movimientos primero.`);
+      throw new Error(`No se puede eliminar el ítem porque tiene movimientos de inventario registrados o asignaciones EPP. Elimine o modifique esos registros primero.`);
+    }
+     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      throw new Error("La tabla 'Inventario_Items' no existe. No se pudo eliminar el ítem.");
     }
     throw error;
   }
