@@ -93,10 +93,10 @@ export async function createEraEquipment(data: EraEquipmentCreateInput): Promise
   } catch (error) {
     console.error('Error creating ERA equipment:', error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era')) {
-      throw new Error("El código de ERA '" + codigo_era + "' ya existe.");
+      throw new Error(`El código de ERA '${codigo_era}' ya existe.`);
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo crear el equipo.");
+      throw new Error("Error de Base de Datos: La tabla 'ERA_Equipos' no existe. Por favor, asegúrese de que la tabla haya sido creada en la base de datos para poder registrar equipos ERA.");
     }
     throw error;
   }
@@ -151,10 +151,10 @@ export async function updateEraEquipment(id_era: number, data: EraEquipmentUpdat
   } catch (error) {
     console.error(`Error updating ERA equipment ${id_era}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage?.includes('codigo_era') && data.codigo_era) {
-      throw new Error("El código de ERA '" + data.codigo_era + "' ya existe para otro equipo.");
+      throw new Error(`El código de ERA '${data.codigo_era}' ya existe para otro equipo.`);
     }
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo actualizar el equipo.");
+      throw new Error("Error de Base de Datos: La tabla 'ERA_Equipos' no existe. No se pudo actualizar el equipo.");
     }
     throw error;
   }
@@ -168,7 +168,7 @@ export async function deleteEraEquipment(id_era: number): Promise<boolean> {
   } catch (error) {
     console.error(`Error deleting ERA equipment ${id_era}:`, error);
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'ERA_Equipos' no existe. No se pudo eliminar el equipo.");
+      throw new Error("Error de Base de Datos: La tabla 'ERA_Equipos' no existe. No se pudo eliminar el equipo.");
     }
     throw error;
   }
@@ -186,15 +186,9 @@ export async function assignEra(id_era: number, id_usuario: number | null): Prom
     if (!['Disponible', 'Operativo'].includes(era.estado_era)) {
       throw new Error(`No se puede asignar el ERA. Estado actual: ${era.estado_era}. Debe estar 'Disponible' u 'Operativo'.`);
     }
-    // Opcional: Verificar si el usuario ya tiene otro ERA asignado
-    // const existingAssignment = await query('SELECT id_era FROM ERA_Equipos WHERE id_usuario_asignado = ? AND id_era != ?', [id_usuario, id_era]);
-    // if (existingAssignment.length > 0) {
-    //   throw new Error(`El usuario ya tiene otro ERA asignado (ID: ${existingAssignment[0].id_era}).`);
-    // }
     nuevoEstado = 'Operativo';
   } else { // Desasignando
     if (era.id_usuario_asignado === null) {
-      // No estaba asignado, no hacer nada o devolver error leve
       console.warn(`ERA ${id_era} ya estaba desasignado.`);
       return era;
     }
@@ -209,9 +203,12 @@ export async function assignEra(id_era: number, id_usuario: number | null): Prom
     if (result.affectedRows > 0) {
       return getEraEquipmentById(id_era);
     }
-    return era; // Devolver el era original si no hubo cambios (poco probable aquí)
+    return era; 
   } catch (error) {
     console.error(`Error al ${id_usuario ? 'asignar' : 'desasignar'} ERA ${id_era}:`, error);
+    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
+      throw new Error("Error de Base de Datos: La tabla 'ERA_Equipos' no existe. No se pudo completar la asignación/desasignación.");
+    }
     throw error;
   }
 }
