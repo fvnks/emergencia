@@ -112,13 +112,13 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
     vencimiento_documentacion, url_imagen, ai_hint_imagen, notas
   } = data;
 
-  const sql = `
+  const sql = \`
     INSERT INTO Vehiculos (
       identificador_interno, marca, modelo, patente, tipo_vehiculo, estado_vehiculo,
       ano_fabricacion, fecha_adquisicion, proxima_mantencion_programada,
       vencimiento_documentacion, url_imagen, ai_hint_imagen, notas
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+  \`;
   const params = [
     identificador_interno || null, marca, modelo, patente || null, tipo_vehiculo || null, estado_vehiculo,
     ano_fabricacion || null, formatDateForDb(fecha_adquisicion), formatDateForDb(proxima_mantencion_programada),
