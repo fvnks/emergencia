@@ -71,13 +71,13 @@ export async function createMaintenanceTask(data: MaintenanceTaskCreateInput, cr
     id_usuario_responsable, estado_mantencion, fecha_ultima_realizada, notas_mantencion
   } = data;
 
-  const sql = \`
+  const sql = `
     INSERT INTO Mantenciones (
       nombre_item_mantenimiento, tipo_item, descripcion_mantencion, fecha_programada,
       id_usuario_responsable, estado_mantencion, fecha_ultima_realizada, notas_mantencion,
       id_usuario_creador
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  \`;
+  `;
   const params = [
     nombre_item_mantenimiento, tipo_item, descripcion_mantencion || null, formatDateForDb(fecha_programada),
     id_usuario_responsable || null, estado_mantencion, formatDateForDb(fecha_ultima_realizada),
@@ -105,7 +105,7 @@ export async function updateMaintenanceTask(id_mantencion: number, data: Mainten
 
   const addField = (fieldKey: keyof MaintenanceTaskUpdateInput, value?: string | number | null) => {
     if (value !== undefined) {
-      fieldsToUpdate.push(\`\${fieldKey} = ?\`);
+      fieldsToUpdate.push(`${fieldKey} = ?`);
       if (typeof fieldKey === 'string' && fieldKey.startsWith('fecha_')) {
         params.push(formatDateForDb(value as string | undefined | null));
       } else {
@@ -131,7 +131,7 @@ export async function updateMaintenanceTask(id_mantencion: number, data: Mainten
   fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
   params.push(id_mantencion);
 
-  const sql = \`UPDATE Mantenciones SET \${fieldsToUpdate.join(', ')} WHERE id_mantencion = ?\`;
+  const sql = `UPDATE Mantenciones SET ${fieldsToUpdate.join(', ')} WHERE id_mantencion = ?`;
 
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -139,10 +139,10 @@ export async function updateMaintenanceTask(id_mantencion: number, data: Mainten
       return getMaintenanceTaskById(id_mantencion);
     }
     const existingItem = await getMaintenanceTaskById(id_mantencion);
-    if (!existingItem) throw new Error (\`Tarea de mantención con ID \${id_mantencion} no encontrada para actualizar.\`);
+    if (!existingItem) throw new Error(`Tarea de mantención con ID ${id_mantencion} no encontrada para actualizar.`);
     return existingItem; 
   } catch (error) {
-    console.error(\`Error updating maintenance task \${id_mantencion}:\`, error);
+    console.error(`Error updating maintenance task ${id_mantencion}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'Mantenciones' no existe. No se pudo actualizar la tarea.");
     }
@@ -156,7 +156,7 @@ export async function deleteMaintenanceTask(id_mantencion: number): Promise<bool
     const result = await query(sql, [id_mantencion]) as ResultSetHeader;
     return result.affectedRows > 0;
   } catch (error) {
-    console.error(\`Error deleting maintenance task \${id_mantencion}:\`, error);
+    console.error(`Error deleting maintenance task ${id_mantencion}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'Mantenciones' no existe. No se pudo eliminar la tarea.");
     }
