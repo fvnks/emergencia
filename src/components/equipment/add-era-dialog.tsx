@@ -19,9 +19,10 @@ import { createEraEquipment } from "@/services/eraService";
 import type { EraEquipmentCreateInput, EraEquipmentStatus } from "./era-types";
 import { ALL_ERA_STATUSES } from "./era-types";
 import { Loader2 } from "lucide-react";
-import type { User } from "@/services/userService"; // Para el selector de asignación (opcional al crear)
+import type { User } from "@/services/userService";
 import { useEffect, useState } from "react";
 
+const NO_USER_ASSIGNED_VALUE = "__NO_USER_ASSIGNED__";
 
 const addEraFormSchema = z.object({
   codigo_era: z.string().min(1, "El código del ERA es requerido."),
@@ -34,7 +35,7 @@ const addEraFormSchema = z.object({
   fecha_ultima_mantencion: z.string().optional().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   fecha_proxima_inspeccion: z.string().optional().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   estado_era: z.enum(ALL_ERA_STATUSES as [EraEquipmentStatus, ...EraEquipmentStatus[]], { required_error: "Debe seleccionar un estado." }),
-  id_usuario_asignado: z.string().nullable().optional(), // string for form, will be parsed
+  id_usuario_asignado: z.string().nullable().optional(), // Stores user ID as string or null
   notas: z.string().optional(),
 });
 
@@ -64,14 +65,14 @@ export function AddEraDialog({ open, onOpenChange, onEraAdded, users }: AddEraDi
       fecha_ultima_mantencion: "",
       fecha_proxima_inspeccion: "",
       estado_era: "Disponible",
-      id_usuario_asignado: null,
+      id_usuario_asignado: null, // Internal form state is null for unassigned
       notas: "",
     },
   });
 
   useEffect(() => {
     if (open) {
-      form.reset({ // Reset form when dialog opens
+      form.reset({ 
         codigo_era: "",
         descripcion: "",
         marca: "",
@@ -107,7 +108,7 @@ export function AddEraDialog({ open, onOpenChange, onEraAdded, users }: AddEraDi
       });
       onEraAdded();
       form.reset();
-      onOpenChange(false); // Use prop to close dialog
+      onOpenChange(false);
     } catch (error) {
       console.error("Error creating ERA equipment:", error);
       toast({
@@ -122,7 +123,6 @@ export function AddEraDialog({ open, onOpenChange, onEraAdded, users }: AddEraDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* <DialogTrigger asChild> ELIMINADO </DialogTrigger> */}
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Equipo ERA</DialogTitle>
@@ -216,10 +216,13 @@ export function AddEraDialog({ open, onOpenChange, onEraAdded, users }: AddEraDi
              <FormField control={form.control} name="id_usuario_asignado" render={({ field }) => (
                 <FormItem>
                   <FormLabel>Asignar A (Opcional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === NO_USER_ASSIGNED_VALUE ? null : value)} 
+                    value={field.value === null ? NO_USER_ASSIGNED_VALUE : field.value}
+                  >
                     <FormControl><SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger></FormControl>
                     <SelectContent>
-                      <SelectItem value="">Sin asignar</SelectItem>
+                      <SelectItem value={NO_USER_ASSIGNED_VALUE}>Sin asignar</SelectItem>
                       {users.map(user => <SelectItem key={user.id_usuario} value={user.id_usuario.toString()}>{user.nombre_completo}</SelectItem>)}
                     </SelectContent>
                   </Select>

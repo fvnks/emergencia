@@ -22,6 +22,8 @@ import { ALL_ERA_STATUSES } from "./era-types";
 import { Loader2, Edit } from "lucide-react";
 import type { User } from "@/services/userService";
 
+const NO_USER_ASSIGNED_VALUE = "__NO_USER_ASSIGNED__";
+
 const editEraFormSchema = z.object({
   codigo_era: z.string().min(1, "El código del ERA es requerido."),
   descripcion: z.string().nullable().optional(),
@@ -33,7 +35,7 @@ const editEraFormSchema = z.object({
   fecha_ultima_mantencion: z.string().nullable().optional().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   fecha_proxima_inspeccion: z.string().nullable().optional().refine(val => !val || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   estado_era: z.enum(ALL_ERA_STATUSES as [EraEquipmentStatus, ...EraEquipmentStatus[]], { required_error: "Debe seleccionar un estado." }),
-  id_usuario_asignado: z.string().nullable().optional(),
+  id_usuario_asignado: z.string().nullable().optional(), // Stores user ID as string or null
   notas: z.string().nullable().optional(),
 });
 
@@ -68,7 +70,7 @@ export function EditEraDialog({ era, onEraUpdated, open, onOpenChange, users }: 
         fecha_ultima_mantencion: era.fecha_ultima_mantencion || "",
         fecha_proxima_inspeccion: era.fecha_proxima_inspeccion || "",
         estado_era: era.estado_era,
-        id_usuario_asignado: era.id_usuario_asignado ? era.id_usuario_asignado.toString() : null,
+        id_usuario_asignado: era.id_usuario_asignado ? era.id_usuario_asignado.toString() : null, // Internal form state
         notas: era.notas || "",
       });
     }
@@ -80,7 +82,6 @@ export function EditEraDialog({ era, onEraUpdated, open, onOpenChange, users }: 
     try {
       const updateData: EraEquipmentUpdateInput = {
         ...values,
-        // Convert empty strings from form to null for optional fields
         descripcion: values.descripcion || null,
         marca: values.marca || null,
         modelo: values.modelo || null,
@@ -166,10 +167,13 @@ export function EditEraDialog({ era, onEraUpdated, open, onOpenChange, users }: 
             <FormField control={form.control} name="id_usuario_asignado" render={({ field }) => (
               <FormItem>
                 <FormLabel>Asignado A (Opcional)</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ""}>
+                <Select 
+                  onValueChange={(value) => field.onChange(value === NO_USER_ASSIGNED_VALUE ? null : value)} 
+                  value={field.value === null ? NO_USER_ASSIGNED_VALUE : field.value}
+                >
                   <FormControl><SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger></FormControl>
                   <SelectContent>
-                    <SelectItem value="">Sin asignar</SelectItem>
+                    <SelectItem value={NO_USER_ASSIGNED_VALUE}>Sin asignar</SelectItem>
                     {users.map(user => <SelectItem key={user.id_usuario} value={user.id_usuario.toString()}>{user.nombre_completo}</SelectItem>)}
                   </SelectContent>
                 </Select>
