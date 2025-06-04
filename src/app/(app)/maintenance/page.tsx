@@ -9,12 +9,13 @@ import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, CheckSquare, Clock, Loader2, AlertTriangle, PackageSearch, ListChecks } from "lucide-react";
+import { PlusCircle, Edit, Trash2, CheckSquare, Clock, Loader2, AlertTriangle, PackageSearch, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
-import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog"; // Importar Delete Dialog
+import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog";
+import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog"; // Importar View Dialog
 import { format, parseISO, isValid, isPast, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -27,9 +28,10 @@ export default function MaintenancePage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<MaintenanceTask | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null); // Estado para Delete Dialog
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); // Estado para Delete Dialog
-  // States para View, Complete dialogs se agregarán después
+  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null); // Estado para View Dialog
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // Estado para View Dialog
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -70,9 +72,14 @@ export default function MaintenancePage() {
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (task: MaintenanceTask) => { // Función para abrir Delete Dialog
+  const openDeleteDialog = (task: MaintenanceTask) => {
     setSelectedTaskForDelete(task);
     setIsDeleteDialogOpen(true);
+  };
+
+  const openViewDialog = (task: MaintenanceTask) => { // Función para abrir View Dialog
+    setSelectedTaskForView(task);
+    setIsViewDialogOpen(true);
   };
 
   const formatDate = (dateString?: string | null) => {
@@ -195,13 +202,19 @@ export default function MaintenancePage() {
                     </TableCell>
                     <TableCell>{formatDate(task.fecha_ultima_realizada)}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" title={task.estado_mantencion === "Completada" ? "Ver Registro" : "Marcar Completada"} disabled> {/* TODO */}
-                        {task.estado_mantencion === "Completada" ? <Clock className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        title={task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? "Ver Detalles" : "Marcar Completada / Actualizar"}
+                        onClick={() => task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? openViewDialog(task) : openEditDialog(task)}
+                      >
+                        {task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? <Eye className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(task)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(task)} title="Editar Tarea">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(task)}> {/* Habilitar botón y llamar openDeleteDialog */}
+                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(task)} title="Eliminar Tarea">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -227,7 +240,7 @@ export default function MaintenancePage() {
             users={users}
         />
       )}
-      {selectedTaskForDelete && ( // Renderizar Delete Dialog
+      {selectedTaskForDelete && (
         <DeleteMaintenanceDialog
           task={selectedTaskForDelete}
           open={isDeleteDialogOpen}
@@ -235,7 +248,13 @@ export default function MaintenancePage() {
           onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
         />
       )}
-      {/* Otros dialogs (View, Complete) se agregarán aquí */}
+      {selectedTaskForView && (
+         <ViewMaintenanceDialog
+            task={selectedTaskForView}
+            open={isViewDialogOpen}
+            onOpenChange={setIsViewDialogOpen}
+        />
+      )}
     </div>
   );
 }
