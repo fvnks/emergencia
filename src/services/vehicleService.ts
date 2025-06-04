@@ -16,7 +16,7 @@ const handleMissingColumnError = (error: any, columnName: string, tableName: str
       ((error as any).code === 'ER_BAD_FIELD_ERROR' || (error as any).message?.toLowerCase().includes(`unknown column '${columnName.toLowerCase()}'`)) &&
       (error as any).sqlMessage?.toLowerCase().includes(columnName.toLowerCase())) {
     let suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(255) NULL;`; // Default suggestion
-    if (columnName.startsWith('fecha_') || columnName.includes('mantencion') || columnName.includes('documentacion')) {
+    if (columnName.startsWith('fecha_') || columnName === 'proxima_mantencion_programada' || columnName === 'vencimiento_documentacion') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} DATE NULL;`;
     } else if (columnName === 'ano_fabricacion') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} INT NULL;`;
@@ -112,13 +112,13 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
     vencimiento_documentacion, url_imagen, ai_hint_imagen, notas
   } = data;
 
-  const sql = \`
+  const sql = `
     INSERT INTO Vehiculos (
       identificador_interno, marca, modelo, patente, tipo_vehiculo, estado_vehiculo,
       ano_fabricacion, fecha_adquisicion, proxima_mantencion_programada,
       vencimiento_documentacion, url_imagen, ai_hint_imagen, notas
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  \`;
+  `;
   const params = [
     identificador_interno || null, marca, modelo, patente || null, tipo_vehiculo || null, estado_vehiculo,
     ano_fabricacion || null, formatDateForDb(fecha_adquisicion), formatDateForDb(proxima_mantencion_programada),
@@ -170,7 +170,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
       if (typeof fieldKey === 'string' && (fieldKey.startsWith('fecha_') || fieldKey === 'proxima_mantencion_programada' || fieldKey === 'vencimiento_documentacion')) {
         params.push(formatDateForDb(value as string | undefined | null));
       } else {
-        params.push(value === '' ? null : value); 
+        params.push(value === '' ? null : value);
       }
     }
   };
