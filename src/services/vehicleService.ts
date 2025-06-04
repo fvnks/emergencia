@@ -145,7 +145,6 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("La tabla 'Vehiculos' no existe. No se pudo crear el vehículo.");
         }
-        // Check for missing columns explicitly
         handleMissingColumnError(mysqlError, 'identificador_interno', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'tipo_vehiculo', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'estado_vehiculo', 'Vehiculos', 'insertar');
