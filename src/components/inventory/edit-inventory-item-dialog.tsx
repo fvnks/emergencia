@@ -26,17 +26,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { updateInventoryItem, type InventoryItemUpdateInput } from "@/services/inventoryService";
+import type { Bodega } from "@/services/bodegaService";
 import { Loader2, Edit } from "lucide-react";
+
+const NO_BODEGA_SELECTED_VALUE = "__NO_BODEGA__";
 
 const formSchema = z.object({
   codigo_item: z.string().min(1, { message: "El código del ítem es requerido." }),
   nombre_item: z.string().min(3, { message: "El nombre del ítem debe tener al menos 3 caracteres." }),
   descripcion_item: z.string().nullable().optional(),
   categoria_item: z.string().min(1, { message: "La categoría es requerida." }),
-  ubicacion_nombre: z.string().nullable().optional(),
+  id_bodega: z.string().nullable().optional(),
   sub_ubicacion: z.string().nullable().optional(),
   cantidad_actual: z.coerce.number().min(0, { message: "La cantidad no puede ser negativa." }),
   unidad_medida: z.string().min(1, { message: "La unidad de medida es requerida." }),
@@ -52,9 +56,10 @@ interface EditInventoryItemDialogProps {
   onItemUpdated: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  bodegas: Bodega[]; // Recibe la lista de bodegas
 }
 
-export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChange }: EditInventoryItemDialogProps) {
+export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChange, bodegas }: EditInventoryItemDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -69,13 +74,13 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
         nombre_item: item.nombre_item,
         descripcion_item: item.descripcion_item || "",
         categoria_item: item.categoria_item,
-        ubicacion_nombre: item.ubicacion_nombre || "",
+        id_bodega: item.id_bodega ? item.id_bodega.toString() : NO_BODEGA_SELECTED_VALUE,
         sub_ubicacion: item.sub_ubicacion || "",
         cantidad_actual: item.cantidad_actual,
         unidad_medida: item.unidad_medida,
-        stock_minimo: item.stock_minimo === null ? undefined : item.stock_minimo, 
+        stock_minimo: item.stock_minimo === null ? undefined : item.stock_minimo,
         es_epp: item.es_epp,
-        fecha_vencimiento_item: item.fecha_vencimiento_item ? item.fecha_vencimiento_item.split('T')[0] : "", 
+        fecha_vencimiento_item: item.fecha_vencimiento_item ? item.fecha_vencimiento_item.split('T')[0] : "",
       });
     }
   }, [item, open, form]);
@@ -85,8 +90,8 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
     try {
       const updateData: InventoryItemUpdateInput = {
         ...values,
+        id_bodega: values.id_bodega === NO_BODEGA_SELECTED_VALUE ? null : parseInt(values.id_bodega as string, 10),
         descripcion_item: values.descripcion_item || null,
-        ubicacion_nombre: values.ubicacion_nombre || null,
         sub_ubicacion: values.sub_ubicacion || null,
         stock_minimo: values.stock_minimo === undefined || values.stock_minimo === null ? null : values.stock_minimo,
         fecha_vencimiento_item: values.fecha_vencimiento_item || null,
@@ -94,7 +99,7 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
       await updateInventoryItem(item.id_item, updateData);
       toast({
         title: "Ítem Actualizado",
-        description: `El ítem ${values.nombre_item} ha sido actualizado.`,
+        description: \`El ítem \${values.nombre_item} ha sido actualizado.\`,
       });
       onItemUpdated();
       onOpenChange(false);
@@ -114,7 +119,7 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
     <Dialog open={open} onOpenChange={(isOpen) => {
       if (isSubmitting && !isOpen) return;
       onOpenChange(isOpen);
-      if (!isOpen) form.reset(); 
+      if (!isOpen) form.reset();
     }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
@@ -223,15 +228,30 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
               />
             </div>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
+               <FormField
                 control={form.control}
-                name="ubicacion_nombre"
+                name="id_bodega"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ubicación Principal (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Bodega A, Vehículo V01" {...field} value={field.value ?? ''} />
-                    </FormControl>
+                    <FormLabel>Bodega (Opcional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || NO_BODEGA_SELECTED_VALUE}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una bodega" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_BODEGA_SELECTED_VALUE}>Sin asignar a bodega</SelectItem>
+                        {bodegas.map((bodega) => (
+                          <SelectItem key={bodega.id_bodega} value={bodega.id_bodega.toString()}>
+                            {bodega.nombre_bodega}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -245,6 +265,7 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
                     <FormControl>
                       <Input placeholder="Ej: Estante 1, Compartimiento Lateral" {...field} value={field.value ?? ''} />
                     </FormControl>
+                    <FormDescription>Detalle dentro de la bodega seleccionada.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -300,3 +321,5 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
     </Dialog>
   );
 }
+
+    

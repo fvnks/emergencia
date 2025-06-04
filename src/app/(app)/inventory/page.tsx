@@ -2,9 +2,17 @@
 "use client";
 
 import type { InventoryItem } from "@/services/inventoryService";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getAllInventoryItems } from "@/services/inventoryService";
+import { getAllBodegas, type Bodega } from "@/services/bodegaService"; // Importar Bodega y servicio
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle } from "lucide-react";
@@ -25,9 +33,12 @@ declare module "@/components/ui/button" {
 
 export default function InventoryPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [bodegasForFilter, setBodegasForFilter] = useState<Bodega[]>([]);
+  const [selectedBodegaFilter, setSelectedBodegaFilter] = useState<string>("all"); // 'all' o id_bodega
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
+  const [isAddInventoryDialogOpen, setIsAddInventoryDialogOpen] = useState(false);
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<InventoryItem | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -41,18 +52,28 @@ export default function InventoryPage() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
 
-  const fetchInventoryItems = useCallback(async () => {
+  const fetchPageData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const items = await getAllInventoryItems();
+      const [items, fetchedBodegas] = await Promise.all([
+        getAllInventoryItems(),
+        getAllBodegas()
+      ]);
       setInventoryItems(items);
+      setBodegasForFilter(fetchedBodegas);
     } catch (err) {
-      console.error("Error fetching inventory items:", err);
-      let errorMessage = "No se pudo cargar el inventario.";
+      console.error("Error fetching inventory items or bodegas:", err);
+      let errorMessage = "No se pudo cargar el inventario o las bodegas.";
       if (err instanceof Error) {
-        if (err.message.includes("ER_NO_SUCH_TABLE") && (err.message.includes("Inventario_Items") || err.message.includes("EPP_Asignaciones_Actuales") || err.message.includes("Inventario_Movimientos") )) {
-          errorMessage = "Una o más tablas requeridas para el inventario (Inventario_Items, EPP_Asignaciones_Actuales, Inventario_Movimientos) no existen. Por favor, ejecute el script SQL para crearlas.";
+        if (err.message.includes("ER_NO_SUCH_TABLE")) {
+          if (err.message.includes("Inventario_Items")) {
+            errorMessage = "La tabla 'Inventario_Items' no existe. Por favor, ejecute el script SQL para crearla.";
+          } else if (err.message.includes("Bodegas")) {
+             errorMessage = "La tabla 'Bodegas' no existe. Por favor, vaya a Configuración > Gestionar Bodegas para crearla si es necesario o ejecute el script SQL.";
+          } else if (err.message.includes("EPP_Asignaciones_Actuales") || err.message.includes("Inventario_Movimientos")) {
+             errorMessage = "Una o más tablas requeridas para el inventario (EPP_Asignaciones_Actuales, Inventario_Movimientos) no existen. Por favor, ejecute el script SQL para crearlas.";
+          }
         } else {
           errorMessage = err.message;
         }
@@ -64,15 +85,15 @@ export default function InventoryPage() {
   }, []);
 
   useEffect(() => {
-    fetchInventoryItems();
-  }, [fetchInventoryItems]);
+    fetchPageData();
+  }, [fetchPageData]);
 
   const handleItemAddedOrUpdatedOrDeleted = () => {
-    fetchInventoryItems();
+    fetchPageData();
   };
-  
+
   const handleEppAssigned = () => {
-    fetchInventoryItems(); 
+    fetchPageData();
   };
 
   const openEditDialog = (item: InventoryItem) => {
@@ -84,7 +105,7 @@ export default function InventoryPage() {
     setSelectedItemForDelete(item);
     setIsDeleteDialogOpen(true);
   };
-  
+
   const openAssignEppDialog = (item: InventoryItem) => {
     if (!item.es_epp) {
         alert("Este ítem no es un EPP y no puede ser asignado.");
@@ -103,19 +124,28 @@ export default function InventoryPage() {
     setIsHistoryDialogOpen(true);
   };
 
-  const formatLocation = (item: InventoryItem) => {
-    const mainLoc = item.ubicacion_nombre?.trim();
-    const subLoc = item.sub_ubicacion?.trim();
+  const filteredInventoryItems = useMemo(() => {
+    if (selectedBodegaFilter === "all") {
+      return inventoryItems;
+    }
+    const bodegaId = parseInt(selectedBodegaFilter, 10);
+    return inventoryItems.filter(item => item.id_bodega === bodegaId);
+  }, [inventoryItems, selectedBodegaFilter]);
 
-    if (mainLoc && mainLoc !== "") {
+
+  const formatLocation = (item: InventoryItem) => {
+    const bodegaNombre = item.nombre_bodega?.trim(); // Nombre de la bodega desde el JOIN
+    const subLoc = item.sub_ubicacion?.trim(); // Sub-ubicación directamente del ítem
+
+    if (bodegaNombre && bodegaNombre !== "") {
       if (subLoc && subLoc !== "") {
-        return `${mainLoc} / ${subLoc}`;
+        return \`\${bodegaNombre} / \${subLoc}\`;
       }
-      return mainLoc;
+      return bodegaNombre;
     }
     return "N/A";
   };
-  
+
   if (loading && inventoryItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
@@ -132,7 +162,7 @@ export default function InventoryPage() {
         <AlertTitle>Error al Cargar Inventario</AlertTitle>
         <AlertDescription>
           {error}
-          <Button onClick={fetchInventoryItems} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
+          <Button onClick={fetchPageData} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
         </AlertDescription>
       </Alert>
     );
@@ -140,29 +170,68 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-headline font-bold">Inventario General</h1>
-        <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdatedOrDeleted} />
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
+          <Select value={selectedBodegaFilter} onValueChange={setSelectedBodegaFilter} disabled={bodegasForFilter.length === 0}>
+            <SelectTrigger className="w-full sm:w-[220px] bg-card">
+              <SelectValue placeholder="Filtrar por bodega" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las Bodegas</SelectItem>
+              {bodegasForFilter.map(bodega => (
+                <SelectItem key={bodega.id_bodega} value={bodega.id_bodega.toString()}>
+                  {bodega.nombre_bodega}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button className="w-full sm:w-auto" onClick={() => setIsAddInventoryDialogOpen(true)} disabled={bodegasForFilter.length === 0 && inventoryItems.length > 0}>
+            <PlusCircle className="mr-2 h-5 w-5" /> Agregar Ítem
+          </Button>
+           {bodegasForFilter.length === 0 && inventoryItems.length > 0 && (
+             <p className="text-xs text-muted-foreground sm:ml-2">Crea al menos una bodega en Configuración para agregar ítems.</p>
+           )}
+        </div>
       </div>
+      {isAddInventoryDialogOpen && (
+        <AddInventoryItemDialog
+          onItemAdded={handleItemAddedOrUpdatedOrDeleted}
+          bodegas={bodegasForFilter}
+          open={isAddInventoryDialogOpen}
+          onOpenChange={setIsAddInventoryDialogOpen}
+        />
+      )}
 
-      {inventoryItems.length === 0 && !loading && (
+
+      {filteredInventoryItems.length === 0 && !loading && (
          <Card className="shadow-lg text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <PackageSearch className="h-10 w-10" />
             </div>
-            <CardTitle className="mt-4">Inventario Vacío</CardTitle>
+            <CardTitle className="mt-4">
+              {selectedBodegaFilter === "all" && inventoryItems.length === 0
+                ? "Inventario Vacío"
+                : "No hay ítems para esta selección"}
+            </CardTitle>
             <CardDescription>
-              No hay ítems registrados en el inventario. Comienza agregando uno.
+              {selectedBodegaFilter === "all" && inventoryItems.length === 0
+                ? bodegasForFilter.length > 0 ? "No hay ítems registrados. Comienza agregando uno." : "Primero crea al menos una bodega en Configuración > Gestionar Bodegas."
+                : "No hay ítems que coincidan con el filtro de bodega actual."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-             <AddInventoryItemDialog onItemAdded={handleItemAddedOrUpdatedOrDeleted} />
-          </CardContent>
+          {selectedBodegaFilter === "all" && inventoryItems.length === 0 && bodegasForFilter.length > 0 && (
+            <CardContent>
+                <Button onClick={() => setIsAddInventoryDialogOpen(true)}>
+                    <PlusCircle className="mr-2 h-5 w-5" /> Agregar Ítem
+                </Button>
+            </CardContent>
+          )}
         </Card>
       )}
 
-      {inventoryItems.length > 0 && (
+      {filteredInventoryItems.length > 0 && (
         <Card className="shadow-lg">
           <CardContent className="p-0">
             <Table>
@@ -170,14 +239,14 @@ export default function InventoryPage() {
                 <TableRow>
                   <TableHead>Código</TableHead>
                   <TableHead>Nombre Ítem / Categoría</TableHead>
-                  <TableHead>Ubicación</TableHead>
+                  <TableHead>Ubicación (Bodega / Sub)</TableHead>
                   <TableHead>Cantidad</TableHead>
                   <TableHead>Asignación EPP</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inventoryItems.map((item) => (
+                {filteredInventoryItems.map((item) => (
                   <TableRow key={item.id_item}>
                     <TableCell className="font-medium">{item.codigo_item}</TableCell>
                     <TableCell>
@@ -188,9 +257,9 @@ export default function InventoryPage() {
                     <TableCell>{item.cantidad_actual} {item.unidad_medida}</TableCell>
                     <TableCell>
                       {item.es_epp ? (
-                          <Button 
-                            variant="outline" 
-                            size="xs" 
+                          <Button
+                            variant="outline"
+                            size="xs"
                             className="text-xs h-7 px-2 py-1"
                             onClick={() => openAssignEppDialog(item)}
                             disabled={item.cantidad_actual <= 0}
@@ -206,7 +275,7 @@ export default function InventoryPage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Historial Movimiento" onClick={() => openHistoryDialog(item)}>
                         <ArrowRightLeft className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)} disabled={bodegasForFilter.length === 0}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(item)}>
@@ -226,6 +295,7 @@ export default function InventoryPage() {
           onItemUpdated={handleItemAddedOrUpdatedOrDeleted}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
+          bodegas={bodegasForFilter}
         />
       )}
       {selectedItemForDelete && (
@@ -254,3 +324,5 @@ export default function InventoryPage() {
     </div>
   );
 }
+
+    

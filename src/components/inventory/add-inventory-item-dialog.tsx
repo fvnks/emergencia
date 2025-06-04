@@ -26,17 +26,21 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createInventoryItem, InventoryItemCreateInput } from "@/services/inventoryService";
+import { getAllBodegas, type Bodega } from "@/services/bodegaService";
 import { Loader2, PlusCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+
+const NO_BODEGA_SELECTED_VALUE = "__NO_BODEGA__";
 
 const formSchema = z.object({
   codigo_item: z.string().min(1, { message: "El código del ítem es requerido." }),
   nombre_item: z.string().min(3, { message: "El nombre del ítem debe tener al menos 3 caracteres." }),
   descripcion_item: z.string().optional(),
   categoria_item: z.string().min(1, { message: "La categoría es requerida." }),
-  ubicacion_nombre: z.string().optional(),
+  id_bodega: z.string().nullable().optional(), // Almacena el ID de la bodega como string
   sub_ubicacion: z.string().optional(),
   cantidad_actual: z.coerce.number().min(0, { message: "La cantidad no puede ser negativa." }),
   unidad_medida: z.string().min(1, { message: "La unidad de medida es requerida." }).default("unidad"),
@@ -49,9 +53,10 @@ type AddInventoryItemFormValues = z.infer<typeof formSchema>;
 
 interface AddInventoryItemDialogProps {
   onItemAdded: () => void;
+  bodegas: Bodega[]; // Recibe la lista de bodegas
 }
 
-export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogProps) {
+export function AddInventoryItemDialog({ onItemAdded, bodegas }: AddInventoryItemDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -63,7 +68,7 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
       nombre_item: "",
       descripcion_item: "",
       categoria_item: "",
-      ubicacion_nombre: "",
+      id_bodega: NO_BODEGA_SELECTED_VALUE,
       sub_ubicacion: "",
       cantidad_actual: 0,
       unidad_medida: "unidad",
@@ -80,7 +85,7 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
             nombre_item: "",
             descripcion_item: "",
             categoria_item: "",
-            ubicacion_nombre: "",
+            id_bodega: NO_BODEGA_SELECTED_VALUE,
             sub_ubicacion: "",
             cantidad_actual: 0,
             unidad_medida: "unidad",
@@ -96,13 +101,14 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
     try {
       const createData: InventoryItemCreateInput = {
         ...values,
-        stock_minimo: values.stock_minimo || 0, 
+        id_bodega: values.id_bodega === NO_BODEGA_SELECTED_VALUE ? null : parseInt(values.id_bodega as string, 10),
+        stock_minimo: values.stock_minimo || 0,
         fecha_vencimiento_item: values.fecha_vencimiento_item || undefined,
       };
       await createInventoryItem(createData);
       toast({
         title: "Ítem Agregado",
-        description: `El ítem ${values.nombre_item} ha sido agregado al inventario.`,
+        description: \`El ítem \${values.nombre_item} ha sido agregado al inventario.\`,
       });
       onItemAdded();
       setIsOpen(false);
@@ -234,13 +240,28 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="ubicacion_nombre"
+                name="id_bodega"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ubicación Principal (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Bodega A, Vehículo V01" {...field} />
-                    </FormControl>
+                    <FormLabel>Bodega (Opcional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || NO_BODEGA_SELECTED_VALUE}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una bodega" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={NO_BODEGA_SELECTED_VALUE}>Sin asignar a bodega</SelectItem>
+                        {bodegas.map((bodega) => (
+                          <SelectItem key={bodega.id_bodega} value={bodega.id_bodega.toString()}>
+                            {bodega.nombre_bodega}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -254,6 +275,7 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
                     <FormControl>
                       <Input placeholder="Ej: Estante 1, Compartimiento Lateral" {...field} />
                     </FormControl>
+                     <FormDescription>Detalle dentro de la bodega seleccionada.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -309,3 +331,5 @@ export function AddInventoryItemDialog({ onItemAdded }: AddInventoryItemDialogPr
     </Dialog>
   );
 }
+
+    
