@@ -34,8 +34,8 @@ const addVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
-  url_imagen: z.string().url("URL de imagen inválida").optional().nullable(),
-  ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").optional().nullable(),
+  // url_imagen: z.string().url("URL de imagen inválida").optional().nullable(), // Eliminado
+  // ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").optional().nullable(), // Eliminado
   notas: z.string().optional(),
 });
 
@@ -64,8 +64,8 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       fecha_adquisicion: "",
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
-      url_imagen: "",
-      ai_hint_imagen: "",
+      // url_imagen: "", // Eliminado
+      // ai_hint_imagen: "", // Eliminado
       notas: "",
     },
   });
@@ -83,8 +83,8 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         fecha_adquisicion: "",
         proxima_mantencion_programada: "",
         vencimiento_documentacion: "",
-        url_imagen: "",
-        ai_hint_imagen: "",
+        // url_imagen: "", // Eliminado
+        // ai_hint_imagen: "", // Eliminado
         notas: "",
       });
     }
@@ -100,8 +100,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         fecha_adquisicion: values.fecha_adquisicion || undefined,
         proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
         vencimiento_documentacion: values.vencimiento_documentacion || undefined,
-        url_imagen: values.url_imagen || undefined,
-        ai_hint_imagen: values.ai_hint_imagen || undefined,
+        // url_imagen y ai_hint_imagen no se incluyen ya que se eliminaron del form
       };
       await createVehicle(createData);
       toast({
@@ -185,16 +184,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>URL Imagen (Opcional)</FormLabel><FormControl><Input placeholder="https://placehold.co/600x400.png" {...field} value={field.value ?? ''}/></FormControl>
-                    <FormDescription>Dejar vacío para placeholder automático.</FormDescription><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="ai_hint_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>Pista AI Imagen (Opcional)</FormLabel><FormControl><Input placeholder="Ej: carro bomba, ambulancia" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormDescription>1-2 palabras para placeholder.</FormDescription><FormMessage /></FormItem>
-                )} />
-            </div>
+            {/* Los campos url_imagen y ai_hint_imagen han sido eliminados del JSX */}
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
