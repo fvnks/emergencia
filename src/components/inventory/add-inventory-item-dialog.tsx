@@ -108,7 +108,7 @@ export function AddInventoryItemDialog({ onItemAdded, bodegas }: AddInventoryIte
       await createInventoryItem(createData);
       toast({
         title: "Ítem Agregado",
-        description: \`El ítem \${values.nombre_item} ha sido agregado al inventario.\`,
+        description: `El ítem ${values.nombre_item} ha sido agregado al inventario.`,
       });
       onItemAdded();
       setIsOpen(false);
