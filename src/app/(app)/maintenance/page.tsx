@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
+import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog"; // Importar Delete Dialog
 import { format, parseISO, isValid, isPast, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -26,7 +27,9 @@ export default function MaintenancePage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<MaintenanceTask | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  // States para Delete, View, Complete dialogs se agregarán después
+  const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null); // Estado para Delete Dialog
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); // Estado para Delete Dialog
+  // States para View, Complete dialogs se agregarán después
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -58,13 +61,18 @@ export default function MaintenancePage() {
     fetchPageData();
   }, [fetchPageData]);
 
-  const handleTaskAddedOrUpdated = () => {
+  const handleTaskAddedOrUpdatedOrDeleted = () => {
     fetchPageData();
   };
 
   const openEditDialog = (task: MaintenanceTask) => {
     setSelectedTaskForEdit(task);
     setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (task: MaintenanceTask) => { // Función para abrir Delete Dialog
+    setSelectedTaskForDelete(task);
+    setIsDeleteDialogOpen(true);
   };
 
   const formatDate = (dateString?: string | null) => {
@@ -193,7 +201,9 @@ export default function MaintenancePage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(task)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="icon" className="h-8 w-8" disabled> {/* TODO */} <Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(task)}> {/* Habilitar botón y llamar openDeleteDialog */}
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -205,7 +215,7 @@ export default function MaintenancePage() {
       <AddMaintenanceDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onTaskAdded={handleTaskAddedOrUpdated}
+        onTaskAdded={handleTaskAddedOrUpdatedOrDeleted}
         users={users}
       />
       {selectedTaskForEdit && (
@@ -213,11 +223,19 @@ export default function MaintenancePage() {
             task={selectedTaskForEdit}
             open={isEditDialogOpen}
             onOpenChange={setIsEditDialogOpen}
-            onTaskUpdated={handleTaskAddedOrUpdated}
+            onTaskUpdated={handleTaskAddedOrUpdatedOrDeleted}
             users={users}
         />
       )}
-      {/* Otros dialogs (Delete, View, Complete) se agregarán aquí */}
+      {selectedTaskForDelete && ( // Renderizar Delete Dialog
+        <DeleteMaintenanceDialog
+          task={selectedTaskForDelete}
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
+        />
+      )}
+      {/* Otros dialogs (View, Complete) se agregarán aquí */}
     </div>
   );
 }
