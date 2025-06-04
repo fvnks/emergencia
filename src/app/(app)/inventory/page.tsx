@@ -103,13 +103,17 @@ export default function InventoryPage() {
     setIsHistoryDialogOpen(true);
   };
 
-
   const formatLocation = (item: InventoryItem) => {
-    let locationString = item.ubicacion_nombre || "N/A";
-    if (item.sub_ubicacion) {
-      locationString += ` / ${item.sub_ubicacion}`;
+    const mainLoc = item.ubicacion_nombre?.trim();
+    const subLoc = item.sub_ubicacion?.trim();
+
+    if (mainLoc && mainLoc !== "") {
+      if (subLoc && subLoc !== "") {
+        return `${mainLoc} / ${subLoc}`;
+      }
+      return mainLoc;
     }
-    return locationString;
+    return "N/A";
   };
   
   if (loading && inventoryItems.length === 0) {
