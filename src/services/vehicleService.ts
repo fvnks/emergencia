@@ -11,6 +11,16 @@ const formatDateForDb = (dateString?: string | null): string | null => {
   return /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? dateString : null;
 };
 
+const handleMissingColumnError = (error: any, columnName: string, tableName: string = 'Vehiculos') => {
+  if (error instanceof Error && (error as any).code === 'ER_BAD_FIELD_ERROR' && (error as any).sqlMessage?.includes(columnName)) {
+    throw new Error(
+      `Error de esquema de base de datos: La columna '${columnName}' no existe en la tabla '${tableName}'. ` +
+      `Por favor, verifica la estructura de tu tabla. Es posible que necesites agregar esta columna. ` +
+      `Ejemplo SQL: ALTER TABLE ${tableName} ADD COLUMN ${columnName} DATE NULL;`
+    );
+  }
+};
+
 export async function getAllVehicles(): Promise<Vehicle[]> {
   const sql = `
     SELECT 
@@ -30,6 +40,9 @@ export async function getAllVehicles(): Promise<Vehicle[]> {
       console.warn("La tabla 'Vehiculos' no existe. Devolviendo array vacío.");
       return [];
     }
+    handleMissingColumnError(error, 'fecha_adquisicion');
+    handleMissingColumnError(error, 'proxima_mantencion_programada');
+    handleMissingColumnError(error, 'vencimiento_documentacion');
     throw error;
   }
 }
@@ -52,6 +65,9 @@ export async function getVehicleById(id_vehiculo: number): Promise<Vehicle | nul
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       return null;
     }
+    handleMissingColumnError(error, 'fecha_adquisicion');
+    handleMissingColumnError(error, 'proxima_mantencion_programada');
+    handleMissingColumnError(error, 'vencimiento_documentacion');
     throw error;
   }
 }
@@ -96,6 +112,9 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("La tabla 'Vehiculos' no existe. No se pudo crear el vehículo.");
         }
+        handleMissingColumnError(mysqlError, 'fecha_adquisicion');
+        handleMissingColumnError(mysqlError, 'proxima_mantencion_programada');
+        handleMissingColumnError(mysqlError, 'vencimiento_documentacion');
     }
     throw error;
   }
@@ -107,7 +126,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
 
   const addField = (fieldKey: keyof VehicleUpdateInput, value?: string | number | null) => {
     if (value !== undefined) {
-      fieldsToUpdate.push(`${fieldKey} = ?`);
+      fieldsToUpdate.push(\`\${fieldKey} = ?\`);
       if (typeof fieldKey === 'string' && (fieldKey.startsWith('fecha_') || fieldKey === 'proxima_mantencion_programada' || fieldKey === 'vencimiento_documentacion')) {
         params.push(formatDateForDb(value as string | undefined | null));
       } else {
@@ -137,7 +156,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
   fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
   params.push(id_vehiculo);
 
-  const sql = `UPDATE Vehiculos SET ${fieldsToUpdate.join(', ')} WHERE id_vehiculo = ?`;
+  const sql = \`UPDATE Vehiculos SET \${fieldsToUpdate.join(', ')} WHERE id_vehiculo = ?\`;
 
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -145,22 +164,25 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
       return getVehicleById(id_vehiculo);
     }
     const existingItem = await getVehicleById(id_vehiculo);
-    if (!existingItem) throw new Error (`Vehículo con ID ${id_vehiculo} no encontrado para actualizar.`);
+    if (!existingItem) throw new Error (\`Vehículo con ID \${id_vehiculo} no encontrado para actualizar.\`);
     return existingItem; 
   } catch (error) {
-    console.error(`Error updating vehicle ${id_vehiculo}:`, error);
+    console.error(\`Error updating vehicle \${id_vehiculo}:\`, error);
     if (error instanceof Error) {
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY') {
              if (mysqlError.sqlMessage?.includes('patente') && data.patente) {
-                throw new Error(`La patente '${data.patente}' ya existe para otro vehículo.`);
+                throw new Error(\`La patente '\${data.patente}' ya existe para otro vehículo.\`);
             }
             if (mysqlError.sqlMessage?.includes('identificador_interno') && data.identificador_interno) {
-                throw new Error(`El identificador interno '${data.identificador_interno}' ya existe para otro vehículo.`);
+                throw new Error(\`El identificador interno '\${data.identificador_interno}' ya existe para otro vehículo.\`);
             }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("La tabla 'Vehiculos' no existe. No se pudo actualizar el vehículo.");
         }
+        handleMissingColumnError(mysqlError, 'fecha_adquisicion');
+        handleMissingColumnError(mysqlError, 'proxima_mantencion_programada');
+        handleMissingColumnError(mysqlError, 'vencimiento_documentacion');
     }
     throw error;
   }
@@ -172,7 +194,7 @@ export async function deleteVehicle(id_vehiculo: number): Promise<boolean> {
     const result = await query(sql, [id_vehiculo]) as ResultSetHeader;
     return result.affectedRows > 0;
   } catch (error) {
-    console.error(`Error deleting vehicle ${id_vehiculo}:`, error);
+    console.error(\`Error deleting vehicle \${id_vehiculo}:\`, error);
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'Vehiculos' no existe. No se pudo eliminar el vehículo.");
     }
