@@ -111,12 +111,12 @@ export async function updateBodega(id_bodega: number, data: BodegaUpdateInput): 
       return getBodegaById(id_bodega);
     }
     const existingBodega = await getBodegaById(id_bodega);
-    if (!existingBodega) throw new Error (\`Bodega con ID \${id_bodega} no encontrada para actualizar.\`);
+    if (!existingBodega) throw new Error(`Bodega con ID ${id_bodega} no encontrada para actualizar.`);
     return existingBodega; // No rows affected, but bodega exists
   } catch (error) {
-    console.error(\`Error updating bodega \${id_bodega}:\`, error);
+    console.error(`Error updating bodega ${id_bodega}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && data.nombre_bodega) {
-      throw new Error(\`El nombre de bodega '\${data.nombre_bodega}' ya existe para otra bodega.\`);
+      throw new Error(`El nombre de bodega '${data.nombre_bodega}' ya existe para otra bodega.`);
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'Bodegas' no existe. No se pudo actualizar la bodega.");
@@ -149,7 +149,7 @@ export async function deleteBodega(id_bodega: number): Promise<boolean> {
         // Check if the bodega actually existed
         const bodega = await getBodegaById(id_bodega);
         if (!bodega) {
-            throw new Error(\`Bodega con ID \${id_bodega} no encontrada para eliminar.\`);
+            throw new Error(`Bodega con ID ${id_bodega} no encontrada para eliminar.`);
         }
         // Bodega exists but was not deleted, could be due to FK constraints not directly handled here
         // or other reasons. For now, if affectedRows is 0 but no SQL error, we assume it's deletable
@@ -159,7 +159,7 @@ export async function deleteBodega(id_bodega: number): Promise<boolean> {
     }
     return result.affectedRows > 0;
   } catch (error) {
-    console.error(\`Error deleting bodega \${id_bodega}:\`, error);
+    console.error(`Error deleting bodega ${id_bodega}:`, error);
     if (error instanceof Error) {
       if ((error as any).code === 'ER_ROW_IS_REFERENCED_2') {
         throw new Error('No se puede eliminar la bodega porque está referenciada en otros registros (ej. ítems de inventario). Por favor, reasigne o elimine esos ítems primero.');
