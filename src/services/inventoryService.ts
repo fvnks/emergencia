@@ -152,7 +152,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     console.error('Error creating inventory item:', error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
       if ((error as any).sqlMessage.includes('codigo_item')) {
-        throw new Error(\`El código de ítem '\${codigo_item}' ya existe.\`);
+        throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
       }
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
@@ -168,7 +168,7 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
 
   const currentItem = await getInventoryItemById(id_item);
   if (!currentItem) {
-    throw new Error(\`Ítem con ID \${id_item} no encontrado para actualizar.\`);
+    throw new Error(`Ítem con ID ${id_item} no encontrado para actualizar.`);
   }
 
   let cantidadActualPrevia = currentItem.cantidad_actual;
@@ -225,7 +225,7 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
   fieldsToUpdate.push('fecha_actualizacion = CURRENT_TIMESTAMP');
   params.push(id_item);
 
-  const sql = \`UPDATE Inventario_Items SET \${fieldsToUpdate.join(', ')} WHERE id_item = ?\`;
+  const sql = `UPDATE Inventario_Items SET ${fieldsToUpdate.join(', ')} WHERE id_item = ?`;
 
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -246,10 +246,10 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
     return currentItem;
 
   } catch (error) {
-    console.error(\`Error updating inventory item \${id_item}:\`, error);
+    console.error(`Error updating inventory item ${id_item}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY') {
        if ((error as any).sqlMessage.includes('codigo_item')) {
-        throw new Error(\`El código de ítem '\${data.codigo_item}' ya existe para otro ítem.\`);
+        throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
       }
     }
     if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
@@ -265,9 +265,9 @@ export async function deleteInventoryItem(id_item: number): Promise<boolean> {
     const result = await query(sql, [id_item]) as ResultSetHeader;
     return result.affectedRows > 0;
   } catch (error) {
-    console.error(\`Error deleting inventory item \${id_item}:\`, error);
+    console.error(`Error deleting inventory item ${id_item}:`, error);
     if (error instanceof Error && (error as any).code === 'ER_ROW_IS_REFERENCED_2') {
-      throw new Error(\`No se puede eliminar el ítem porque tiene movimientos de inventario registrados o asignaciones EPP. Elimine o modifique esos registros primero.\`);
+      throw new Error(`No se puede eliminar el ítem porque tiene movimientos de inventario registrados o asignaciones EPP. Elimine o modifique esos registros primero.`);
     }
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
       throw new Error("La tabla 'Inventario_Items' no existe. No se pudo eliminar el ítem.");
