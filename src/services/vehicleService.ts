@@ -16,7 +16,7 @@ const handleMissingColumnError = (error: any, columnName: string, tableName: str
       ((error as any).code === 'ER_BAD_FIELD_ERROR' || (error as any).message?.toLowerCase().includes(`unknown column '${columnName.toLowerCase()}'`)) &&
       (error as any).sqlMessage?.toLowerCase().includes(columnName.toLowerCase())) {
     let suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(255) NULL;`; // Default suggestion
-    if (columnName.startsWith('fecha_') || columnName === 'proxima_mantencion_programada' || columnName === 'vencimiento_documentacion') {
+    if (columnName === 'fecha_adquisicion' || columnName === 'proxima_mantencion_programada' || columnName === 'vencimiento_documentacion') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} DATE NULL;`;
     } else if (columnName === 'ano_fabricacion') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} INT NULL;`;
@@ -250,5 +250,3 @@ export async function deleteVehicle(id_vehiculo: number): Promise<boolean> {
     throw error;
   }
 }
-
-    
