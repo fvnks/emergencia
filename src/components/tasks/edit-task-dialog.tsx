@@ -38,8 +38,8 @@ import { useToast } from "@/hooks/use-toast";
 import { updateTask } from "@/services/taskService";
 import { Loader2, Edit } from "lucide-react";
 
-const taskStatuses: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"];
-const UNASSIGNED_VALUE = "UNASSIGNED";
+const ALL_TASK_STATUSES: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"];
+const UNASSIGNED_VALUE = "__UNASSIGNED_USER__";
 
 const editTaskFormSchema = z.object({
   descripcion_tarea: z.string().min(3, { message: "La descripción debe tener al menos 3 caracteres." }),
@@ -50,7 +50,7 @@ const editTaskFormSchema = z.object({
       message: "Formato de fecha inválido. Use AAAA-MM-DD o déjelo vacío.",
     }).nullable().optional()
   ),
-  estado_tarea: z.enum(["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"], {
+  estado_tarea: z.enum(ALL_TASK_STATUSES as [TaskStatus, ...TaskStatus[]], {
     required_error: "Debe seleccionar un estado.",
   }),
 });
@@ -73,7 +73,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
     resolver: zodResolver(editTaskFormSchema),
     defaultValues: {
       descripcion_tarea: "",
-      id_usuario_asignado: null, 
+      id_usuario_asignado: UNASSIGNED_VALUE, 
       fecha_vencimiento: null,
       estado_tarea: "Pendiente",
     },
@@ -157,7 +157,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
                     <FormLabel>Asignar A (Opcional)</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || ""} // Map null/undefined to "" for placeholder
+                      value={field.value || UNASSIGNED_VALUE} 
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -190,7 +190,7 @@ export function EditTaskDialog({ task, open, onOpenChange, onTaskUpdated, users 
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {taskStatuses.map(status => (
+                        {ALL_TASK_STATUSES.map(status => (
                           <SelectItem key={status} value={status}>{status}</SelectItem>
                         ))}
                       </SelectContent>

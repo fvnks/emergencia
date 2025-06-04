@@ -14,7 +14,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, isValid } from 'date-fns';
-import { es } from 'date-fns/locale'; // For Spanish date formatting
+import { es } from 'date-fns/locale'; 
 
 interface ViewTaskDialogProps {
   task: Task | null;
@@ -22,63 +22,41 @@ interface ViewTaskDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactNode }> = ({ label, value }) => (
-  <div className="grid grid-cols-3 gap-2 py-1.5 items-start">
-    <Label htmlFor={label.toLowerCase().replace(/\s/g, '-')} className="text-sm font-medium text-muted-foreground col-span-1">
+const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactNode; fullWidthValue?: boolean }> = ({ label, value, fullWidthValue = false }) => (
+  <div className={`grid ${fullWidthValue ? 'grid-cols-1 sm:grid-cols-1' : 'grid-cols-3 sm:grid-cols-4'} gap-1 py-1.5 items-start border-b border-border/50 last:border-b-0`}>
+    <Label htmlFor={label.toLowerCase().replace(/\s/g, '-')} className="text-sm font-medium text-muted-foreground col-span-1 sm:col-span-1">
       {label}:
     </Label>
-    <div id={label.toLowerCase().replace(/\s/g, '-')} className="text-sm col-span-2">
+    <div id={label.toLowerCase().replace(/\s/g, '-')} className={`text-sm ${fullWidthValue ? 'col-span-1 sm:col-span-1 pt-1' : 'col-span-2 sm:col-span-3'}`}>
       {value || <span className="italic text-muted-foreground">N/A</span>}
     </div>
   </div>
 );
+
 
 export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps) {
   if (!task) return null;
 
   const formatDate = (dateInput?: string | null | Date): string | null => {
     if (!dateInput) return null;
-
     let dateToFormat: Date;
-
     if (dateInput instanceof Date) {
-      if (!isValid(dateInput)) {
-        console.warn("Invalid Date object received in formatDate:", dateInput);
-        return "Fecha inválida (obj)";
-      }
+      if (!isValid(dateInput)) return "Fecha inválida";
       dateToFormat = dateInput;
     } else if (typeof dateInput === 'string') {
       try {
-        // Standardize by replacing space with 'T' if it's a MySQL-like datetime string 'YYYY-MM-DD HH:MM:SS'
-        // or if it's just a date 'YYYY-MM-DD' append time for parseISO to work consistently for local time.
         let isoCompliantString = dateInput;
-        if (dateInput.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) { // YYYY-MM-DD
+        if (dateInput.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
           isoCompliantString = `${dateInput}T00:00:00`;
-        } else if (dateInput.includes(' ') && !dateInput.includes('T')) { // YYYY-MM-DD HH:MM:SS
+        } else if (dateInput.includes(' ') && !dateInput.includes('T')) {
            isoCompliantString = dateInput.replace(' ', 'T');
         }
-        
         dateToFormat = parseISO(isoCompliantString);
-        
-        if (!isValid(dateToFormat)) {
-            console.warn("parseISO resulted in an invalid date for string: ", dateInput, "parsed as", isoCompliantString);
-            return "Fecha inválida (str)";
-        }
-      } catch (e) {
-        console.warn("Error parsing date string in formatDate: ", dateInput, e);
-        return "Fecha inválida (parse err)"; 
-      }
-    } else {
-      console.warn("Unsupported date type for formatDate:", dateInput);
-      return "Tipo de fecha no soportado";
-    }
-
-    try {
-      return format(dateToFormat, "PPP", { locale: es }); // Example: "6 de diciembre de 2024"
-    } catch (e) {
-      console.warn("Error formatting date object in formatDate: ", dateToFormat, e);
-      return "Error al formatear fecha";
-    }
+        if (!isValid(dateToFormat)) return "Fecha inválida";
+      } catch (e) { return "Error al parsear"; }
+    } else { return "Tipo no soportado"; }
+    try { return format(dateToFormat, "PPP", { locale: es }); }
+    catch (e) { return "Error al formatear"; }
   };
   
   const getStatusBadgeVariant = (status: Task["estado_tarea"]) => {
@@ -105,15 +83,16 @@ export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md md:max-w-lg">
+      <DialogContent className="sm:max-w-lg md:max-w-xl">
         <DialogHeader>
           <DialogTitle>Detalles de la Tarea: T-{task.id_tarea.toString().padStart(3, '0')}</DialogTitle>
           <DialogDescription>
             Información completa de la tarea seleccionada.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto pr-2">
-          <DetailItem label="Descripción" value={<p className="whitespace-pre-wrap">{task.descripcion_tarea}</p>} />
+        <div className="space-y-1 py-4 max-h-[65vh] overflow-y-auto pr-3">
+          <DetailItem label="ID Tarea" value={`T-${task.id_tarea.toString().padStart(3, '0')}`} />
+          <DetailItem label="Descripción" value={<p className="whitespace-pre-wrap">{task.descripcion_tarea}</p>} fullWidthValue />
           <DetailItem label="Estado" value={
             <Badge 
               variant={getStatusBadgeVariant(task.estado_tarea)}
@@ -137,4 +116,3 @@ export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps
     </Dialog>
   );
 }
-

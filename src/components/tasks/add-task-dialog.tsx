@@ -37,10 +37,9 @@ import { createTask, type TaskCreateInput, type TaskStatus } from "@/services/ta
 import type { User } from "@/services/userService";
 import { useAuth } from "@/contexts/auth-context";
 import { Loader2, PlusCircle } from "lucide-react";
-import { format } from "date-fns";
 
-const taskStatuses: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"];
-const UNASSIGNED_VALUE = "UNASSIGNED";
+const ALL_TASK_STATUSES: TaskStatus[] = ["Pendiente", "Programada", "En Proceso", "Completada", "Atrasada"];
+const UNASSIGNED_VALUE = "__UNASSIGNED_USER__";
 
 const addTaskFormSchema = z.object({
   descripcion_tarea: z.string().min(3, { message: "La descripción debe tener al menos 3 caracteres." }),
@@ -51,7 +50,7 @@ const addTaskFormSchema = z.object({
       message: "Formato de fecha inválido. Use AAAA-MM-DD o déjelo vacío.",
     }).nullable().optional()
   ),
-  estado_tarea: z.enum(["Pendiente", "Programada", "En Proceso", "Atrasada", "Completada"], {
+  estado_tarea: z.enum(ALL_TASK_STATUSES as [TaskStatus, ...TaskStatus[]], {
     required_error: "Debe seleccionar un estado.",
   }),
 });
@@ -74,7 +73,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
     resolver: zodResolver(addTaskFormSchema),
     defaultValues: {
       descripcion_tarea: "",
-      id_usuario_asignado: null, 
+      id_usuario_asignado: UNASSIGNED_VALUE, 
       fecha_vencimiento: null,
       estado_tarea: "Pendiente",
     },
@@ -84,7 +83,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
     if (open) {
       form.reset({
         descripcion_tarea: "",
-        id_usuario_asignado: null,
+        id_usuario_asignado: UNASSIGNED_VALUE,
         fecha_vencimiento: null, 
         estado_tarea: "Pendiente",
       });
@@ -159,7 +158,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
                     <FormLabel>Asignar A (Opcional)</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      value={field.value || ""} // Use value for controlled component, map null/undefined to "" for placeholder
+                      value={field.value || UNASSIGNED_VALUE} 
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -192,7 +191,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskAdded, users }: AddTas
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {taskStatuses.map(status => (
+                        {ALL_TASK_STATUSES.map(status => (
                           <SelectItem key={status} value={status}>{status}</SelectItem>
                         ))}
                       </SelectContent>

@@ -9,7 +9,7 @@ import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, Eye, Loader2, AlertTriangle, PackageSearch, CheckCircle2, ListChecks, Filter, SquarePlus } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Eye, Loader2, AlertTriangle, PackageSearch, ListChecks, Filter, SquarePlus, CheckCircle2 } from "lucide-react"; // Added CheckCircle2
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -23,11 +23,14 @@ import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { EditTaskDialog } from "@/components/tasks/edit-task-dialog";
 import { DeleteTaskDialog } from "@/components/tasks/delete-task-dialog";
 import { ViewTaskDialog } from "@/components/tasks/view-task-dialog";
+import { format, parseISO, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
+
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [usersForFilter, setUsersForFilter] = useState<User[]>([]);
-  const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>("all"); // 'all', 'unassigned', or user_id
+  const [selectedUserIdFilter, setSelectedUserIdFilter] = useState<string>("all"); // 'all', or user_id as string
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,12 +89,22 @@ export default function TasksPage() {
     if (selectedUserIdFilter === "all") {
       return tasks;
     }
-    if (selectedUserIdFilter === "unassigned") {
-      return tasks.filter(task => task.id_usuario_asignado === null);
-    }
+    // No filter for "unassigned" yet, as DB schema does not directly support it without a specific value.
+    // For now, filtering by specific user ID.
     const userId = parseInt(selectedUserIdFilter, 10);
     return tasks.filter(task => task.id_usuario_asignado === userId);
   }, [tasks, selectedUserIdFilter]);
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      // Ensure date is parsed correctly if only YYYY-MM-DD
+      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
+      return format(date, "dd-MM-yyyy", { locale: es });
+    } catch (e) {
+      return dateString; // Fallback to original string if formatting fails
+    }
+  };
 
   const getStatusBadgeVariant = (status: TaskStatus) => {
     switch (status) {
@@ -130,7 +143,9 @@ export default function TasksPage() {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Error al Cargar Tareas</AlertTitle>
         <AlertDescription>
-          {error}
+          {error.includes("La tabla 'Tareas' no existe") 
+            ? "La tabla 'Tareas' no existe en la base de datos. Por favor, ejecute el script SQL proporcionado para crearla."
+            : error}
           <Button onClick={fetchPageData} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
         </AlertDescription>
       </Alert>
@@ -153,7 +168,7 @@ export default function TasksPage() {
                   {user.nombre_completo}
                 </SelectItem>
               ))}
-              <SelectItem value="unassigned">Sin Asignar</SelectItem>
+              {/* <SelectItem value="unassigned">Sin Asignar</SelectItem>  // TODO: Implementar si la lógica de "Sin Asignar" es necesaria */}
             </SelectContent>
           </Select>
           <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
@@ -170,9 +185,9 @@ export default function TasksPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-2">
+          <ul className="space-y-2 text-sm">
             {[
-              { text: "Listado de tareas.", icon: ListChecks },
+              { text: "Listado de tareas desde la base de datos.", icon: ListChecks },
               { text: "Creación de tareas (con diálogo).", icon: SquarePlus },
               { text: "Edición de tareas (con diálogo).", icon: Edit },
               { text: "Eliminación de tareas (con diálogo).", icon: Trash2 },
@@ -230,7 +245,7 @@ export default function TasksPage() {
                     <TableCell className="font-medium">{`T-${task.id_tarea.toString().padStart(3, '0')}`}</TableCell>
                     <TableCell>{task.descripcion_tarea}</TableCell>
                     <TableCell>{task.nombre_usuario_asignado || <span className="text-muted-foreground italic">Sin Asignar</span>}</TableCell>
-                    <TableCell>{task.fecha_vencimiento || <span className="text-muted-foreground italic">N/A</span>}</TableCell>
+                    <TableCell>{formatDate(task.fecha_vencimiento)}</TableCell>
                     <TableCell>
                       <Badge 
                         variant={getStatusBadgeVariant(task.estado_tarea)}
@@ -264,24 +279,30 @@ export default function TasksPage() {
         onTaskAdded={handleTaskAddedOrUpdatedOrDeleted} 
         users={usersForFilter}
       />
-      <EditTaskDialog 
-        task={selectedTaskForEdit} 
-        open={isEditDialogOpen} 
-        onOpenChange={setIsEditDialogOpen} 
-        onTaskUpdated={handleTaskAddedOrUpdatedOrDeleted}
-        users={usersForFilter}
-      />
-      <DeleteTaskDialog 
-        task={selectedTaskForDelete} 
-        open={isDeleteDialogOpen} 
-        onOpenChange={setIsDeleteDialogOpen} 
-        onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
-      />
-      <ViewTaskDialog 
-        task={selectedTaskForView}
-        open={isViewDialogOpen}
-        onOpenChange={setIsViewDialogOpen}
-      />
+      {selectedTaskForEdit && (
+        <EditTaskDialog 
+            task={selectedTaskForEdit} 
+            open={isEditDialogOpen} 
+            onOpenChange={setIsEditDialogOpen} 
+            onTaskUpdated={handleTaskAddedOrUpdatedOrDeleted}
+            users={usersForFilter}
+        />
+      )}
+      {selectedTaskForDelete && (
+        <DeleteTaskDialog 
+            task={selectedTaskForDelete} 
+            open={isDeleteDialogOpen} 
+            onOpenChange={setIsDeleteDialogOpen} 
+            onTaskDeleted={handleTaskAddedOrUpdatedOrDeleted}
+        />
+      )}
+      {selectedTaskForView && (
+        <ViewTaskDialog 
+            task={selectedTaskForView}
+            open={isViewDialogOpen}
+            onOpenChange={setIsViewDialogOpen}
+        />
+      )}
     </div>
   );
 }

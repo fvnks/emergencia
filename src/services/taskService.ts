@@ -35,6 +35,10 @@ export interface TaskUpdateInput {
   estado_tarea?: TaskStatus;
 }
 
+const formatDateForDb = (dateString?: string | null): string | null => {
+  if (!dateString || dateString.trim() === "") return null;
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? dateString : null;
+};
 
 const ACTIVE_TASK_STATUSES_FOR_SUMMARY: TaskStatus[] = ['Pendiente', 'En Proceso', 'Atrasada', 'Programada'];
 
@@ -60,7 +64,6 @@ export async function getActiveTasksForUser(userId: number): Promise<Task[]> {
   `;
   try {
     const rows = await query(sql, [userId, ACTIVE_TASK_STATUSES_FOR_SUMMARY]) as Task[];
-    console.log(`[taskService.ts] getActiveTasksForUser for userId ${userId}: Found ${rows.length} tasks. Data:`, JSON.stringify(rows, null, 2));
     return rows;
   } catch (error) {
     console.error(`Error fetching active tasks for user ${userId}:`, error);
@@ -150,7 +153,7 @@ export async function createTask(data: TaskCreateInput, creatorUserId: number): 
   const params = [
     descripcion_tarea,
     id_usuario_asignado === undefined ? null : id_usuario_asignado,
-    fecha_vencimiento === undefined ? null : fecha_vencimiento,
+    formatDateForDb(fecha_vencimiento),
     estado_tarea,
     creatorUserId,
   ];
@@ -174,23 +177,22 @@ export async function updateTask(taskId: number, data: TaskUpdateInput): Promise
   const fieldsToUpdate: string[] = [];
   const params: (string | number | null)[] = [];
 
-  if (data.descripcion_tarea !== undefined) {
-    fieldsToUpdate.push('descripcion_tarea = ?');
-    params.push(data.descripcion_tarea);
-  }
-  // Si id_usuario_asignado es explícitamente null, se desasigna. Si es undefined, no se toca.
-  if (data.id_usuario_asignado !== undefined) {
-    fieldsToUpdate.push('id_usuario_asignado = ?');
-    params.push(data.id_usuario_asignado);
-  }
-  if (data.fecha_vencimiento !== undefined) {
-    fieldsToUpdate.push('fecha_vencimiento = ?');
-    params.push(data.fecha_vencimiento);
-  }
-  if (data.estado_tarea !== undefined) {
-    fieldsToUpdate.push('estado_tarea = ?');
-    params.push(data.estado_tarea);
-  }
+  const addField = (fieldKey: keyof TaskUpdateInput, value?: string | number | null) => {
+    if (value !== undefined) {
+      fieldsToUpdate.push(`${fieldKey} = ?`);
+      if (fieldKey === 'fecha_vencimiento') {
+        params.push(formatDateForDb(value as string | undefined | null));
+      } else {
+        params.push(value);
+      }
+    }
+  };
+
+  addField('descripcion_tarea', data.descripcion_tarea);
+  addField('id_usuario_asignado', data.id_usuario_asignado);
+  addField('fecha_vencimiento', data.fecha_vencimiento);
+  addField('estado_tarea', data.estado_tarea);
+
 
   if (fieldsToUpdate.length === 0) {
     return getTaskById(taskId); // No fields to update
@@ -208,7 +210,7 @@ export async function updateTask(taskId: number, data: TaskUpdateInput): Promise
     }
     const existingTask = await getTaskById(taskId);
     if (!existingTask) throw new Error(`Tarea con ID ${taskId} no encontrada para actualizar.`);
-    return existingTask; // Devuelve la tarea existente si no hubo filas afectadas (ej. datos idénticos)
+    return existingTask; 
   } catch (error) {
     console.error(`Error updating task ${taskId}:`, error);
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
@@ -231,4 +233,3 @@ export async function deleteTask(taskId: number): Promise<boolean> {
     throw error;
   }
 }
-
