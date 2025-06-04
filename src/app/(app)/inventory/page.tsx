@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle } from "lucide-react";
+import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
@@ -66,7 +66,7 @@ export default function InventoryPage() {
       console.error("Error fetching inventory items or bodegas:", err);
       let errorMessage = "No se pudo cargar el inventario o las bodegas.";
       if (err instanceof Error) {
-        if (err.message.includes("ER_NO_SUCH_TABLE")) {
+        if ((err as any).code === 'ER_NO_SUCH_TABLE') {
           if (err.message.includes("Inventario_Items")) {
             errorMessage = "La tabla 'Inventario_Items' no existe. Por favor, ejecute el script SQL para crearla.";
           } else if (err.message.includes("Bodegas")) {
@@ -139,7 +139,7 @@ export default function InventoryPage() {
 
     if (bodegaNombre && bodegaNombre !== "") {
       if (subLoc && subLoc !== "") {
-        return \`\${bodegaNombre} / \${subLoc}\`;
+        return `${bodegaNombre} / ${subLoc}`;
       }
       return bodegaNombre;
     }
@@ -324,5 +324,3 @@ export default function InventoryPage() {
     </div>
   );
 }
-
-    
