@@ -99,7 +99,7 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
       await updateInventoryItem(item.id_item, updateData);
       toast({
         title: "Ítem Actualizado",
-        description: \`El ítem \${values.nombre_item} ha sido actualizado.\`,
+        description: `El ítem ${values.nombre_item} ha sido actualizado.`,
       });
       onItemUpdated();
       onOpenChange(false);
@@ -321,5 +321,7 @@ export function EditInventoryItemDialog({ item, onItemUpdated, open, onOpenChang
     </Dialog>
   );
 }
+
+    
 
     
