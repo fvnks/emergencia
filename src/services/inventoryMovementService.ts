@@ -42,10 +42,24 @@ export async function getMovementsForItem(id_item: number): Promise<InventoryMov
     return rows;
   } catch (error) {
     console.error(`Error fetching movements for item ${id_item}:`, error);
-    if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      console.warn("La tabla 'Inventario_Movimientos' o tablas relacionadas no existen. Devolviendo array vacío.");
-      return [];
+    if (error instanceof Error) {
+      const mysqlError = error as any; // Type assertion to access MySQL specific codes
+      if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
+        console.warn("La tabla 'Inventario_Movimientos' o tablas relacionadas no existen. Devolviendo array vacío.");
+        return [];
+      }
+      // MySQL error code for "Unknown column" is 1054 (ER_BAD_FIELD_ERROR)
+      if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage && mysqlError.sqlMessage.includes("'im.id_asignacion_epp'")) {
+        throw new Error(
+          "Error de esquema de base de datos: La columna 'id_asignacion_epp' no existe en la tabla 'Inventario_Movimientos'. " +
+          "Por favor, verifica la estructura de tu tabla. Es posible que necesites agregar esta columna. " +
+          "Consulta la documentación del esquema o considera ejecutar un comando SQL similar a: " +
+          "ALTER TABLE Inventario_Movimientos ADD COLUMN id_asignacion_epp INT NULL, " +
+          "ADD CONSTRAINT fk_mov_asig_epp FOREIGN KEY (id_asignacion_epp) REFERENCES EPP_Asignaciones_Actuales(id_asignacion_epp) ON DELETE SET NULL;"
+        );
+      }
     }
     throw error;
   }
 }
+
