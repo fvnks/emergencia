@@ -151,7 +151,7 @@ export default function EquipmentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* El botón "Agregar Nuevo ERA" que estaba aquí ha sido eliminado. */}
+            {/* Este espacio está intencionalmente vacío para eliminar el botón redundante */}
           </CardContent>
         </Card>
       )}
