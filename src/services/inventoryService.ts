@@ -75,13 +75,22 @@ export async function getAllInventoryItems(): Promise<InventoryItem[]> {
             } else if (mysqlError.message.includes("'Bodegas'")) {
                  throw new Error("Error de Base de Datos: La tabla 'Bodegas' no existe. Por favor, ejecute el script SQL para crearla o créela desde Configuración > Gestionar Bodegas.");
             }
-        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
-            throw new Error(
-                "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items'. " +
-                "Esta columna es necesaria para vincular los ítems a las bodegas. " +
-                "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
-                "ALTER TABLE Inventario_Items ADD COLUMN id_bodega INT NULL, ADD CONSTRAINT fk_item_bodega FOREIGN KEY (id_bodega) REFERENCES Bodegas(id_bodega) ON DELETE SET NULL;"
-            );
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR') {
+            if (mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
+              throw new Error(
+                  "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items'. " +
+                  "Esta columna es necesaria para vincular los ítems a las bodegas. " +
+                  "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
+                  "ALTER TABLE Inventario_Items ADD COLUMN id_bodega INT NULL, ADD CONSTRAINT fk_item_bodega FOREIGN KEY (id_bodega) REFERENCES Bodegas(id_bodega) ON DELETE SET NULL;"
+              );
+            } else if (mysqlError.sqlMessage?.includes("'sub_ubicacion'")) {
+               throw new Error(
+                  "Error de esquema de base de datos: La columna 'sub_ubicacion' no existe en la tabla 'Inventario_Items'. " +
+                  "Esta columna es necesaria para detallar la ubicación dentro de una bodega. " +
+                  "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
+                  "ALTER TABLE Inventario_Items ADD COLUMN sub_ubicacion VARCHAR(255) NULL;"
+              );
+            }
         }
     }
     throw error;
@@ -110,11 +119,18 @@ export async function getInventoryItemById(id_item: number): Promise<InventoryIt
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             return null; // Table doesn't exist, so item can't exist.
-        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
-            throw new Error(
-                "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items' al buscar por ID. " +
-                "Consulta el mensaje de error en la carga principal del inventario para obtener instrucciones de corrección."
-            );
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR') {
+            if (mysqlError.sqlMessage?.includes("'i.id_bodega'")) {
+              throw new Error(
+                  "Error de esquema de base de datos: La columna 'id_bodega' no existe en la tabla 'Inventario_Items' al buscar por ID. " +
+                  "Consulta el mensaje de error en la carga principal del inventario para obtener instrucciones de corrección."
+              );
+            } else if (mysqlError.sqlMessage?.includes("'sub_ubicacion'")) {
+               throw new Error(
+                  "Error de esquema de base de datos: La columna 'sub_ubicacion' no existe en la tabla 'Inventario_Items' al buscar por ID. " +
+                  "Consulta el mensaje de error en la carga principal del inventario para obtener instrucciones de corrección."
+              );
+            }
         }
     }
     throw error;
@@ -127,7 +143,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     nombre_item,
     descripcion_item,
     categoria_item,
-    id_bodega, 
+    id_bodega,
     sub_ubicacion,
     cantidad_actual,
     unidad_medida = 'unidad',
@@ -147,7 +163,7 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
     nombre_item,
     descripcion_item || null,
     categoria_item,
-    id_bodega || null, 
+    id_bodega || null,
     sub_ubicacion || null,
     cantidad_actual,
     unidad_medida,
@@ -174,11 +190,19 @@ export async function createInventoryItem(data: InventoryItemCreateInput): Promi
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY' && mysqlError.sqlMessage.includes('codigo_item')) {
             throw new Error(`El código de ítem '${codigo_item}' ya existe.`);
-        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'id_bodega'")) {
-             throw new Error(
-                "Error de esquema de base de datos al crear ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
-                "Verifica la estructura de la tabla y consulta las guías de corrección en los errores de carga del inventario."
-            );
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR') {
+            if (mysqlError.sqlMessage?.includes("'id_bodega'")) {
+                 throw new Error(
+                    "Error de esquema de base de datos al crear ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
+                    "Verifica la estructura de la tabla y consulta las guías de corrección en los errores de carga del inventario."
+                );
+            } else if (mysqlError.sqlMessage?.includes("'sub_ubicacion'")) {
+                throw new Error(
+                    "Error de esquema de base de datos al crear ítem: La columna 'sub_ubicacion' no existe en 'Inventario_Items'. " +
+                    "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
+                    "ALTER TABLE Inventario_Items ADD COLUMN sub_ubicacion VARCHAR(255) NULL;"
+                );
+            }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("Una o más tablas requeridas ('Inventario_Items', 'Inventario_Movimientos', 'Bodegas') no existen. No se pudo crear el ítem.");
         }
@@ -275,11 +299,19 @@ export async function updateInventoryItem(id_item: number, data: InventoryItemUp
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY' && mysqlError.sqlMessage.includes('codigo_item') && data.codigo_item) {
             throw new Error(`El código de ítem '${data.codigo_item}' ya existe para otro ítem.`);
-        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR' && mysqlError.sqlMessage?.includes("'id_bodega'")) {
-            throw new Error(
-                "Error de esquema de base de datos al actualizar ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
-                "Verifica la estructura de la tabla."
-            );
+        } else if (mysqlError.code === 'ER_BAD_FIELD_ERROR') {
+            if (mysqlError.sqlMessage?.includes("'id_bodega'")) {
+                throw new Error(
+                    "Error de esquema de base de datos al actualizar ítem: La columna 'id_bodega' podría no existir en 'Inventario_Items'. " +
+                    "Verifica la estructura de la tabla."
+                );
+            } else if (mysqlError.sqlMessage?.includes("'sub_ubicacion'")) {
+                 throw new Error(
+                    "Error de esquema de base de datos al actualizar ítem: La columna 'sub_ubicacion' no existe en 'Inventario_Items'. " +
+                    "Por favor, modifica tu tabla 'Inventario_Items' para agregarla. Ejemplo SQL: " +
+                    "ALTER TABLE Inventario_Items ADD COLUMN sub_ubicacion VARCHAR(255) NULL;"
+                );
+            }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
              throw new Error("Una o más tablas requeridas ('Inventario_Items', 'Inventario_Movimientos', 'Bodegas') no existen. No se pudo actualizar el ítem.");
         }
