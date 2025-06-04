@@ -2,7 +2,7 @@
 "use client";
 
 import type { Vehicle } from "@/types/vehicleTypes";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react"; // Import useState
 import { getAllVehicles } from "@/services/vehicleService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,7 @@ export default function VehiclesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false); // Estado para el diálogo de agregar
   const [selectedVehicleForEdit, setSelectedVehicleForEdit] = useState<Vehicle | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedVehicleForDelete, setSelectedVehicleForDelete] = useState<Vehicle | null>(null);
@@ -107,7 +107,7 @@ export default function VehiclesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-headline font-bold">Gestión de Vehículos</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Button onClick={() => setIsAddDialogOpen(true)}> {/* Activar diálogo de agregar */}
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
         </Button>
       </div>
@@ -124,7 +124,7 @@ export default function VehiclesPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <Button onClick={() => setIsAddDialogOpen(true)}>
+             <Button onClick={() => setIsAddDialogOpen(true)}> {/* También aquí para consistencia */}
                 <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
             </Button>
           </CardContent>
@@ -184,6 +184,8 @@ export default function VehiclesPage() {
         </div>
       )}
       <AddVehicleDialog
+        open={isAddDialogOpen} // Controlar visibilidad con estado
+        onOpenChange={setIsAddDialogOpen} // Manejar cambio de estado del diálogo
         onVehicleAdded={handleVehicleAddedOrUpdatedOrDeleted}
       />
       {selectedVehicleForEdit && (
