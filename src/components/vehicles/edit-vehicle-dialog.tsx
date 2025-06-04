@@ -21,6 +21,8 @@ import type { Vehicle, VehicleUpdateInput, VehicleStatus, VehicleType } from "@/
 import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes";
 import { Loader2, Edit } from "lucide-react";
 
+const NULL_VEHICLE_TYPE_VALUE = "__NULL_VEHICLE_TYPE__";
+
 const editVehicleFormSchema = z.object({
   identificador_interno: z.string().nullable().optional(),
   marca: z.string().min(1, "La marca es requerida."),
@@ -80,6 +82,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     try {
       const updateData: VehicleUpdateInput = {
         ...values,
+        tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
         ano_fabricacion: values.ano_fabricacion || null,
         fecha_adquisicion: values.fecha_adquisicion || null,
         proxima_mantencion_programada: values.proxima_mantencion_programada || null,
@@ -139,10 +142,13 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="tipo_vehiculo" render={({ field }) => (
                     <FormItem><FormLabel>Tipo de Vehículo</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === NULL_VEHICLE_TYPE_VALUE ? null : value)}
+                      value={field.value || NULL_VEHICLE_TYPE_VALUE}
+                    >
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl>
                         <SelectContent>
-                            <SelectItem value="">N/A</SelectItem>
+                            <SelectItem value={NULL_VEHICLE_TYPE_VALUE}>N/A</SelectItem>
                             {ALL_VEHICLE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>

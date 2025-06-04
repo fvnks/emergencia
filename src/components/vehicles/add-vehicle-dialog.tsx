@@ -21,6 +21,8 @@ import type { VehicleCreateInput, VehicleStatus, VehicleType } from "@/types/veh
 import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes";
 import { Loader2, PlusCircle } from "lucide-react";
 
+const NULL_VEHICLE_TYPE_VALUE = "__NULL_VEHICLE_TYPE__";
+
 const addVehicleFormSchema = z.object({
   identificador_interno: z.string().optional(),
   marca: z.string().min(1, "La marca es requerida."),
@@ -40,11 +42,12 @@ const addVehicleFormSchema = z.object({
 type AddVehicleFormValues = z.infer<typeof addVehicleFormSchema>;
 
 interface AddVehicleDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onVehicleAdded: () => void;
 }
 
-export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehicleDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -68,16 +71,31 @@ export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
   });
 
   useEffect(() => {
-    if (isOpen) {
-      form.reset();
+    if (open) {
+      form.reset({
+        identificador_interno: "",
+        marca: "",
+        modelo: "",
+        patente: "",
+        tipo_vehiculo: null,
+        estado_vehiculo: "Operativo",
+        ano_fabricacion: undefined,
+        fecha_adquisicion: "",
+        proxima_mantencion_programada: "",
+        vencimiento_documentacion: "",
+        url_imagen: "",
+        ai_hint_imagen: "",
+        notas: "",
+      });
     }
-  }, [isOpen, form]);
+  }, [open, form]);
 
   async function onSubmit(values: AddVehicleFormValues) {
     setIsSubmitting(true);
     try {
       const createData: VehicleCreateInput = {
         ...values,
+        tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
         ano_fabricacion: values.ano_fabricacion || undefined,
         fecha_adquisicion: values.fecha_adquisicion || undefined,
         proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
@@ -91,7 +109,7 @@ export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
         description: `El vehículo ${values.marca} ${values.modelo} ha sido agregado.`,
       });
       onVehicleAdded();
-      setIsOpen(false);
+      onOpenChange(false);
     } catch (error) {
       console.error("Error creating vehicle:", error);
       toast({
@@ -105,12 +123,7 @@ export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[750px]">
         <DialogHeader>
           <DialogTitle>Agregar Nuevo Vehículo</DialogTitle>
@@ -142,10 +155,13 @@ export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="tipo_vehiculo" render={({ field }) => (
                     <FormItem><FormLabel>Tipo de Vehículo (Opcional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === NULL_VEHICLE_TYPE_VALUE ? null : value)}
+                      value={field.value || NULL_VEHICLE_TYPE_VALUE}
+                    >
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl>
                         <SelectContent>
-                        <SelectItem value="">N/A</SelectItem>
+                        <SelectItem value={NULL_VEHICLE_TYPE_VALUE}>N/A</SelectItem>
                         {ALL_VEHICLE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -183,7 +199,7 @@ export function AddVehicleDialog({ onVehicleAdded }: AddVehicleDialogProps) {
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>Cancelar</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Agregar Vehículo"}
               </Button>
