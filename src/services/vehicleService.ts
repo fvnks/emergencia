@@ -250,3 +250,5 @@ export async function deleteVehicle(id_vehiculo: number): Promise<boolean> {
     throw error;
   }
 }
+
+    
