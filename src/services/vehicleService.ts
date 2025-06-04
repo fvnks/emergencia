@@ -137,10 +137,10 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY') {
             if (mysqlError.sqlMessage?.includes('patente') && patente) {
-                throw new Error(\`La patente '\${patente}' ya existe para otro vehículo.\`);
+                throw new Error(\`La patente '${patente}' ya existe para otro vehículo.\`);
             }
             if (mysqlError.sqlMessage?.includes('identificador_interno') && identificador_interno) {
-                throw new Error(\`El identificador interno '\${identificador_interno}' ya existe para otro vehículo.\`);
+                throw new Error(\`El identificador interno '${identificador_interno}' ya existe para otro vehículo.\`);
             }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("La tabla 'Vehiculos' no existe. No se pudo crear el vehículo.");
@@ -211,10 +211,10 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY') {
              if (mysqlError.sqlMessage?.includes('patente') && data.patente) {
-                throw new Error(\`La patente '\${data.patente}' ya existe para otro vehículo.\`);
+                throw new Error(\`La patente '${data.patente}' ya existe para otro vehículo.\`);
             }
             if (mysqlError.sqlMessage?.includes('identificador_interno') && data.identificador_interno) {
-                throw new Error(\`El identificador interno '\${data.identificador_interno}' ya existe para otro vehículo.\`);
+                throw new Error(\`El identificador interno '${data.identificador_interno}' ya existe para otro vehículo.\`);
             }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
             throw new Error("La tabla 'Vehiculos' no existe. No se pudo actualizar el vehículo.");
