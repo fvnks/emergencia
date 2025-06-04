@@ -12,8 +12,8 @@ const formatDateForDb = (dateString?: string | null): string | null => {
 };
 
 const handleMissingColumnError = (error: any, columnName: string, tableName: string = 'Vehiculos', operation: string = 'seleccionar') => {
-  if (error instanceof Error && 
-      ((error as any).code === 'ER_BAD_FIELD_ERROR' || (error as any).message?.includes(`Unknown column '${columnName}'`)) && 
+  if (error instanceof Error &&
+      ((error as any).code === 'ER_BAD_FIELD_ERROR' || (error as any).message?.includes(`Unknown column '${columnName}'`)) &&
       (error as any).sqlMessage?.toLowerCase().includes(columnName.toLowerCase())) {
     let suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(255) NULL;`; // Default suggestion
     if (columnName.startsWith('fecha_') || columnName.includes('mantencion') || columnName.includes('documentacion')) {
@@ -24,6 +24,8 @@ const handleMissingColumnError = (error: any, columnName: string, tableName: str
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(50) NULL UNIQUE;`;
     } else if (columnName === 'patente') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(20) NULL UNIQUE;`;
+    } else if (columnName === 'tipo_vehiculo') {
+      suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(100) NULL;`;
     }
 
 
@@ -37,7 +39,7 @@ const handleMissingColumnError = (error: any, columnName: string, tableName: str
 
 export async function getAllVehicles(): Promise<Vehicle[]> {
   const sql = `
-    SELECT 
+    SELECT
       v.*,
       DATE_FORMAT(v.fecha_adquisicion, '%Y-%m-%d') as fecha_adquisicion,
       DATE_FORMAT(v.proxima_mantencion_programada, '%Y-%m-%d') as proxima_mantencion_programada,
@@ -57,6 +59,7 @@ export async function getAllVehicles(): Promise<Vehicle[]> {
     handleMissingColumnError(error, 'fecha_adquisicion', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'proxima_mantencion_programada', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'vencimiento_documentacion', 'Vehiculos', 'seleccionar');
+    handleMissingColumnError(error, 'tipo_vehiculo', 'Vehiculos', 'seleccionar');
     // Check for identificador_interno only if it's explicitly selected or crucial for this context
     // For SELECT *, it won't throw if the column is missing, it just won't be in v.*
     throw error;
@@ -65,7 +68,7 @@ export async function getAllVehicles(): Promise<Vehicle[]> {
 
 export async function getVehicleById(id_vehiculo: number): Promise<Vehicle | null> {
   const sql = `
-    SELECT 
+    SELECT
       v.*,
       DATE_FORMAT(v.fecha_adquisicion, '%Y-%m-%d') as fecha_adquisicion,
       DATE_FORMAT(v.proxima_mantencion_programada, '%Y-%m-%d') as proxima_mantencion_programada,
@@ -84,6 +87,7 @@ export async function getVehicleById(id_vehiculo: number): Promise<Vehicle | nul
     handleMissingColumnError(error, 'fecha_adquisicion', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'proxima_mantencion_programada', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'vencimiento_documentacion', 'Vehiculos', 'seleccionar');
+    handleMissingColumnError(error, 'tipo_vehiculo', 'Vehiculos', 'seleccionar');
     throw error;
   }
 }
@@ -130,6 +134,7 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         }
         // Specific checks for missing columns during INSERT
         handleMissingColumnError(mysqlError, 'identificador_interno', 'Vehiculos', 'insertar');
+        handleMissingColumnError(mysqlError, 'tipo_vehiculo', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'fecha_adquisicion', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'proxima_mantencion_programada', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'vencimiento_documentacion', 'Vehiculos', 'insertar');
@@ -155,7 +160,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
       }
     }
   };
-  
+
   addField('identificador_interno', data.identificador_interno);
   addField('marca', data.marca);
   addField('modelo', data.modelo);
@@ -186,7 +191,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
     }
     const existingItem = await getVehicleById(id_vehiculo);
     if (!existingItem) throw new Error (`Vehículo con ID ${id_vehiculo} no encontrado para actualizar.`);
-    return existingItem; 
+    return existingItem;
   } catch (error) {
     console.error(`Error updating vehicle ${id_vehiculo}:`, error);
     if (error instanceof Error) {
@@ -203,6 +208,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
         }
         // Specific checks for missing columns during UPDATE
         handleMissingColumnError(mysqlError, 'identificador_interno', 'Vehiculos', 'actualizar');
+        handleMissingColumnError(mysqlError, 'tipo_vehiculo', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'fecha_adquisicion', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'proxima_mantencion_programada', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'vencimiento_documentacion', 'Vehiculos', 'actualizar');
