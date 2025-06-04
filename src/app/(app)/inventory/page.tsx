@@ -14,6 +14,7 @@ import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-ite
 import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-item-dialog";
 import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
 import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog";
+import { InventoryMovementHistoryDialog } from "@/components/inventory/inventory-movement-history-dialog";
 
 
 declare module "@/components/ui/button" {
@@ -35,6 +36,9 @@ export default function InventoryPage() {
 
   const [selectedItemForEppAssign, setSelectedItemForEppAssign] = useState<InventoryItem | null>(null);
   const [isAssignEppDialogOpen, setIsAssignEppDialogOpen] = useState(false);
+
+  const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
 
   const fetchInventoryItems = useCallback(async () => {
@@ -92,6 +96,11 @@ export default function InventoryPage() {
     }
     setSelectedItemForEppAssign(item);
     setIsAssignEppDialogOpen(true);
+  };
+
+  const openHistoryDialog = (item: InventoryItem) => {
+    setSelectedItemForHistory(item);
+    setIsHistoryDialogOpen(true);
   };
 
 
@@ -178,7 +187,7 @@ export default function InventoryPage() {
                           <Button 
                             variant="outline" 
                             size="xs" 
-                            className="text-xs h-7 px-2 py-1" // Ajuste de padding y altura para mejor apariencia
+                            className="text-xs h-7 px-2 py-1"
                             onClick={() => openAssignEppDialog(item)}
                             disabled={item.cantidad_actual <= 0}
                             title={item.cantidad_actual <= 0 ? "Sin stock para asignar" : "Asignar EPP"}
@@ -190,7 +199,7 @@ export default function InventoryPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" className="h-8 w-8" title="Historial Movimiento" disabled> {/* TODO */}
+                      <Button variant="outline" size="icon" className="h-8 w-8" title="Historial Movimiento" onClick={() => openHistoryDialog(item)}>
                         <ArrowRightLeft className="h-4 w-4" />
                       </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(item)}>
@@ -229,6 +238,13 @@ export default function InventoryPage() {
             onEppAssigned={handleEppAssigned}
             open={isAssignEppDialogOpen}
             onOpenChange={setIsAssignEppDialogOpen}
+        />
+      )}
+      {selectedItemForHistory && (
+        <InventoryMovementHistoryDialog
+            item={selectedItemForHistory}
+            open={isHistoryDialogOpen}
+            onOpenChange={setIsHistoryDialogOpen}
         />
       )}
     </div>
