@@ -13,6 +13,7 @@ import { PlusCircle, Edit, Trash2, CheckSquare, Clock, Loader2, AlertTriangle, P
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
+import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
 import { format, parseISO, isValid, isPast, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -23,7 +24,9 @@ export default function MaintenancePage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  // States para Edit, Delete, View, Complete dialogs se agregarán después
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<MaintenanceTask | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  // States para Delete, View, Complete dialogs se agregarán después
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -34,9 +37,8 @@ export default function MaintenancePage() {
         getAllUsers()
       ]);
       setMaintenanceTasks(tasks.map(task => {
-        // Lógica para determinar si está 'Atrasada'
         if (task.estado_mantencion !== 'Completada' && task.estado_mantencion !== 'Cancelada' && task.fecha_programada) {
-            const dueDate = parseISO(task.fecha_programada + "T00:00:00"); // Asegurar que se parsea como local
+            const dueDate = parseISO(task.fecha_programada + "T00:00:00"); 
             if (isValid(dueDate) && isPast(dueDate) && differenceInDays(new Date(), dueDate) > 0) {
                  return { ...task, estado_mantencion: 'Atrasada' as MaintenanceStatus };
             }
@@ -60,13 +62,18 @@ export default function MaintenancePage() {
     fetchPageData();
   };
 
+  const openEditDialog = (task: MaintenanceTask) => {
+    setSelectedTaskForEdit(task);
+    setIsEditDialogOpen(true);
+  };
+
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
       return format(date, "dd-MM-yyyy");
     } catch (e) {
-      return dateString; // Devuelve el string original si hay error
+      return dateString; 
     }
   };
 
@@ -183,7 +190,9 @@ export default function MaintenancePage() {
                       <Button variant="outline" size="icon" className="h-8 w-8" title={task.estado_mantencion === "Completada" ? "Ver Registro" : "Marcar Completada"} disabled> {/* TODO */}
                         {task.estado_mantencion === "Completada" ? <Clock className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" disabled> {/* TODO */} <Edit className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(task)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <Button variant="destructive" size="icon" className="h-8 w-8" disabled> {/* TODO */} <Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
@@ -199,7 +208,16 @@ export default function MaintenancePage() {
         onTaskAdded={handleTaskAddedOrUpdated}
         users={users}
       />
-      {/* Otros dialogs (Edit, Delete, View, Complete) se agregarán aquí */}
+      {selectedTaskForEdit && (
+        <EditMaintenanceDialog
+            task={selectedTaskForEdit}
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onTaskUpdated={handleTaskAddedOrUpdated}
+            users={users}
+        />
+      )}
+      {/* Otros dialogs (Delete, View, Complete) se agregarán aquí */}
     </div>
   );
 }
