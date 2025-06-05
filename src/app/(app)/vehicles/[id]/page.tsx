@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -14,8 +14,9 @@ import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
+import { ManageVehicleEraDialog } from "@/components/vehicles/manage-vehicle-era-dialog"; // Importar el nuevo diálogo
 
-type LucideIcon = typeof Loader2; // Example, adjust as needed
+type LucideIcon = typeof Loader2;
 
 const DetailItem: React.FC<{ label: string; value?: string | number | null | React.ReactNode; icon?: LucideIcon }> = ({ label, value, icon: Icon }) => (
   <div className="py-2">
@@ -39,7 +40,10 @@ export default function VehicleDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const [isManageEraDialogOpen, setIsManageEraDialogOpen] = useState(false);
+  // const [isManageInventoryDialogOpen, setIsManageInventoryDialogOpen] = useState(false); // Estado para futuro diálogo de inventario
+
+  const fetchVehicleDetails = useCallback(async () => {
     if (id) {
       const vehicleId = parseInt(id, 10);
       if (isNaN(vehicleId)) {
@@ -48,33 +52,34 @@ export default function VehicleDetailPage() {
         return;
       }
 
-      const fetchVehicle = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const data = await getVehicleById(vehicleId);
-          if (data) {
-            setVehicle(data);
-          } else {
-            setError("Vehículo no encontrado.");
-          }
-        } catch (err) {
-          console.error("Error fetching vehicle details:", err);
-          setError(err instanceof Error ? err.message : "No se pudieron cargar los detalles del vehículo.");
-        } finally {
-          setLoading(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getVehicleById(vehicleId);
+        if (data) {
+          setVehicle(data);
+        } else {
+          setError("Vehículo no encontrado.");
         }
-      };
-      fetchVehicle();
+      } catch (err) {
+        console.error("Error fetching vehicle details:", err);
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los detalles del vehículo.");
+      } finally {
+        setLoading(false);
+      }
     }
   }, [id]);
+
+  useEffect(() => {
+    fetchVehicleDetails();
+  }, [fetchVehicleDetails]);
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return null;
     try {
-      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00Z"); // Ensure UTC if no timezone
+      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00Z");
       if (!isValid(date)) return "Fecha inválida";
-      return format(date, "PPP", { locale: es }); // PPP for long date format e.g., "1 de ene. de 2023"
+      return format(date, "PPP", { locale: es });
     } catch (e) {
       return dateString;
     }
@@ -91,10 +96,11 @@ export default function VehicleDetailPage() {
   };
 
   const handleManageEra = () => {
-    toast({
-      title: "Funcionalidad Pendiente",
-      description: "La gestión de equipos ERA asignados aún no está implementada.",
-    });
+    setIsManageEraDialogOpen(true);
+  };
+
+  const handleAssignmentsUpdated = () => {
+    fetchVehicleDetails(); // Recargar datos del vehículo
   };
 
   const handleManageInventory = () => {
@@ -102,6 +108,7 @@ export default function VehicleDetailPage() {
       title: "Funcionalidad Pendiente",
       description: "La gestión de ítems de inventario asignados aún no está implementada.",
     });
+    // setIsManageInventoryDialogOpen(true); // Habilitar cuando el diálogo exista
   };
 
   if (loading) {
@@ -135,7 +142,7 @@ export default function VehicleDetailPage() {
   }
 
   if (!vehicle) {
-    return ( 
+    return (
       <div className="space-y-4">
          <Button variant="outline" onClick={() => router.push('/vehicles')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista
@@ -222,7 +229,9 @@ export default function VehicleDetailPage() {
             {(vehicle.assignedEraIds && vehicle.assignedEraIds.length > 0) ? (
               <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
                 {vehicle.assignedEraIds.map(eraId => (
-                  <li key={eraId}>Equipo ERA ID: {eraId} (Nombre y detalles se mostrarán aquí)</li>
+                  // Idealmente, aquí tendrías el nombre/código del ERA, no solo el ID.
+                  // Esto requiere que getVehicleById devuelva los detalles de los ERAs asignados.
+                  <li key={eraId}>Equipo ERA ID: {eraId} (Se requiere backend para mostrar detalles)</li>
                 ))}
               </ul>
             ) : (
@@ -240,8 +249,10 @@ export default function VehicleDetailPage() {
             {(vehicle.assignedInventoryItems && vehicle.assignedInventoryItems.length > 0) ? (
               <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
                 {vehicle.assignedInventoryItems.map(item => (
+                  // Idealmente, aquí tendrías el nombre del ítem, no solo el ID.
+                  // Esto requiere que getVehicleById devuelva los detalles de los ítems asignados.
                   <li key={item.id_item}>
-                    Ítem ID: {item.id_item} - Cantidad: {item.cantidad} (Nombre y detalles se mostrarán aquí)
+                    Ítem ID: {item.id_item} - Cantidad: {item.cantidad} (Se requiere backend para mostrar detalles)
                   </li>
                 ))}
               </ul>
@@ -255,9 +266,27 @@ export default function VehicleDetailPage() {
             <p>Última actualización: {formatDate(vehicle.fecha_actualizacion)}</p>
             <p>Fecha creación: {formatDate(vehicle.fecha_creacion)}</p>
           </section>
-
         </CardContent>
       </Card>
+      
+      {vehicle && (
+        <ManageVehicleEraDialog
+          vehicle={vehicle}
+          open={isManageEraDialogOpen}
+          onOpenChange={setIsManageEraDialogOpen}
+          onAssignmentsUpdated={handleAssignmentsUpdated}
+        />
+      )}
+      {/* Futuro diálogo para inventario:
+      {vehicle && (
+        <ManageVehicleInventoryDialog
+          vehicle={vehicle}
+          open={isManageInventoryDialogOpen}
+          onOpenChange={setIsManageInventoryDialogOpen}
+          onAssignmentsUpdated={handleAssignmentsUpdated}
+        />
+      )}
+      */}
     </div>
   );
 }
