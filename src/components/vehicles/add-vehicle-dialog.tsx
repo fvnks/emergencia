@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription
@@ -19,9 +19,12 @@ import { useToast } from "@/hooks/use-toast";
 import { createVehicle } from "@/services/vehicleService";
 import type { VehicleCreateInput, VehicleStatus, VehicleType } from "@/types/vehicleTypes";
 import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const NULL_VEHICLE_TYPE_VALUE = "__NULL_VEHICLE_TYPE__";
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const addVehicleFormSchema = z.object({
   identificador_interno: z.string().optional(),
@@ -34,10 +37,12 @@ const addVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
-  url_imagen: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.string().url("URL de imagen inválida. Asegúrate que incluya http:// o https://").optional().nullable()
-  ),
+  imagen_archivo: z.custom<File | null | undefined>(
+      (val) => val === undefined || val === null || val instanceof File,
+      "Debe ser un archivo"
+    ).optional().nullable()
+    .refine(file => !file || file.size <= MAX_FILE_SIZE_BYTES, `El archivo es demasiado grande (máx ${MAX_FILE_SIZE_MB}MB).`)
+    .refine(file => !file || ACCEPTED_IMAGE_TYPES.includes(file.type), "Tipo de archivo no soportado (permitidos: JPG, PNG, WEBP, GIF)."),
   notas: z.string().optional(),
 });
 
@@ -66,7 +71,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       fecha_adquisicion: "",
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
-      url_imagen: "",
+      imagen_archivo: null,
       notas: "",
     },
   });
@@ -84,7 +89,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         fecha_adquisicion: "",
         proxima_mantencion_programada: "",
         vencimiento_documentacion: "",
-        url_imagen: "",
+        imagen_archivo: null,
         notas: "",
       });
     }
@@ -92,21 +97,39 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
 
   async function onSubmit(values: AddVehicleFormValues) {
     setIsSubmitting(true);
+    
+    const { imagen_archivo, ...otherFormValues } = values;
+    let imageUploadMessage = "";
+
+    if (imagen_archivo) {
+      console.log("Archivo de imagen seleccionado (backend no implementado):", imagen_archivo);
+      // Aquí es donde manejarías la subida del archivo a tu backend/servicio de almacenamiento.
+      // Por ejemplo, usando FormData:
+      // const formData = new FormData();
+      // formData.append('vehicleImage', imagen_archivo);
+      // const response = await fetch('/api/upload-vehicle-image', { method: 'POST', body: formData });
+      // const result = await response.json();
+      // const uploadedImageUrl = result.imageUrl; // Esto sería la URL a guardar
+      imageUploadMessage = "La subida de la imagen seleccionada requiere implementación de backend.";
+    }
+
     try {
       const createData: VehicleCreateInput = {
-        ...values,
-        tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
-        ano_fabricacion: values.ano_fabricacion || undefined,
-        fecha_adquisicion: values.fecha_adquisicion || undefined,
-        proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
-        vencimiento_documentacion: values.vencimiento_documentacion || undefined,
-        url_imagen: values.url_imagen || undefined,
-        // ai_hint_imagen ya no se incluye aquí
+        ...otherFormValues,
+        tipo_vehiculo: otherFormValues.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : otherFormValues.tipo_vehiculo,
+        ano_fabricacion: otherFormValues.ano_fabricacion || undefined,
+        fecha_adquisicion: otherFormValues.fecha_adquisicion || undefined,
+        proxima_mantencion_programada: otherFormValues.proxima_mantencion_programada || undefined,
+        vencimiento_documentacion: otherFormValues.vencimiento_documentacion || undefined,
+        url_imagen: null, // Se establece en null porque la subida real y obtención de URL no está implementada aquí.
+                            // En una implementación completa, aquí iría `uploadedImageUrl`.
+        ai_hint_imagen: undefined, // ai_hint_imagen no se maneja en este formulario de agregar
       };
       await createVehicle(createData);
       toast({
         title: "Vehículo Agregado",
-        description: `El vehículo ${values.marca} ${values.modelo} ha sido agregado.`,
+        description: `El vehículo ${values.marca} ${values.modelo} ha sido agregado. ${imageUploadMessage}`,
+        duration: imageUploadMessage ? 7000 : 5000,
       });
       onVehicleAdded();
       onOpenChange(false);
@@ -185,10 +208,27 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                <FormItem><FormLabel>URL Imagen (Opcional)</FormLabel><FormControl><Input placeholder="https://ejemplo.com/imagen.png" {...field} value={field.value ?? ''} /></FormControl>
-                <FormDescription>Pega la URL de una imagen para el vehículo.</FormDescription><FormMessage /></FormItem>
-            )} />
+             <FormField
+                control={form.control}
+                name="imagen_archivo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagen del Vehículo (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                        onChange={(event) => field.onChange(event.target.files ? event.target.files[0] : null)}
+                        className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Seleccione un archivo de imagen (JPG, PNG, WEBP, GIF). Máx. {MAX_FILE_SIZE_MB}MB.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
