@@ -7,8 +7,9 @@ import { getAllVehicles } from "@/services/vehicleService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, FileText, Wrench, Loader2, AlertTriangle, Truck, Search, Filter } from "lucide-react"; // Added Search and Filter icons
+import { PlusCircle, Edit, Trash2, FileText, Wrench, Loader2, AlertTriangle, Truck, Search, Filter, Eye } from "lucide-react"; // Added Eye
 import Image from "next/image";
+import Link from "next/link"; // Import Link
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddVehicleDialog } from "@/components/vehicles/add-vehicle-dialog";
 import { EditVehicleDialog } from "@/components/vehicles/edit-vehicle-dialog";
@@ -63,12 +64,14 @@ export default function VehiclesPage() {
     fetchVehicles();
   };
 
-  const openEditDialog = (vehicle: Vehicle) => {
+  const openEditDialog = (vehicle: Vehicle, e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent Link navigation if button within card is clicked
     setSelectedVehicleForEdit(vehicle);
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (vehicle: Vehicle) => {
+  const openDeleteDialog = (vehicle: Vehicle, e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent Link navigation
     setSelectedVehicleForDelete(vehicle);
     setIsDeleteDialogOpen(true);
   };
@@ -76,7 +79,8 @@ export default function VehiclesPage() {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
-      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
+      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00Z"); // Assume UTC if no T
+      if (!isValid(date)) return "Fecha inválida";
       return format(date, "dd-MM-yyyy", { locale: es });
     } catch (e) {
       return dateString;
@@ -88,7 +92,7 @@ export default function VehiclesPage() {
       case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
       case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
       case "Fuera de Servicio": return "bg-red-600 hover:bg-red-700 text-white";
-      default: return "";
+      default: return "bg-gray-400 text-white";
     }
   };
 
@@ -215,52 +219,59 @@ export default function VehiclesPage() {
       {filteredVehicles.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredVehicles.map((vehicle) => (
-            <Card key={vehicle.id_vehiculo} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
-              <CardHeader>
-                <div className="relative h-48 w-full mb-4 rounded-t-lg overflow-hidden bg-muted">
-                  <Image 
-                    src={vehicle.url_imagen || `https://placehold.co/600x400.png?text=${encodeURIComponent(vehicle.marca)}`} 
-                    alt={`${vehicle.marca} ${vehicle.modelo}`} 
-                    layout="fill" 
-                    objectFit="cover" 
-                    data-ai-hint={vehicle.ai_hint_imagen || vehicle.tipo_vehiculo?.toLowerCase() || "vehiculo emergencia"}
-                    onError={(e) => { e.currentTarget.src = `https://placehold.co/600x400.png?text=${encodeURIComponent(vehicle.marca)}`; }}
-                  />
-                </div>
-                <CardTitle className="font-headline text-xl">{vehicle.marca} {vehicle.modelo}</CardTitle>
-                <CardDescription>
-                    {vehicle.identificador_interno && <span className="font-semibold">{vehicle.identificador_interno}</span>}
-                    {vehicle.identificador_interno && vehicle.patente && " | "}
-                    {vehicle.patente && `Patente: ${vehicle.patente}`}
-                    {!vehicle.identificador_interno && !vehicle.patente && "Sin identificador"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow space-y-3">
-                <div>
-                  <span className="text-sm font-medium text-muted-foreground">Estado: </span>
-                  <Badge variant={vehicle.estado_vehiculo === "Operativo" ? "default" : "destructive"} className={getStatusBadgeClassName(vehicle.estado_vehiculo)}>
-                    {vehicle.estado_vehiculo}
-                  </Badge>
-                </div>
-                {vehicle.tipo_vehiculo && (
-                    <div className="text-sm">
-                        <span className="font-medium text-muted-foreground">Tipo: </span>{vehicle.tipo_vehiculo}
-                    </div>
-                )}
-                <div className="flex items-center text-sm">
-                  <Wrench className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Próx. Mantención: {formatDate(vehicle.proxima_mantencion_programada)}
-                </div>
-                <div className="flex items-center text-sm">
-                  <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                  Docs Vencen: {formatDate(vehicle.vencimiento_documentacion)}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                <Button variant="outline" size="sm" onClick={() => openEditDialog(vehicle)}><Edit className="mr-1 h-4 w-4" /> Editar</Button>
-                <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(vehicle)}><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
-              </CardFooter>
-            </Card>
+            <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full cursor-pointer">
+                <CardHeader className="p-0">
+                  <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
+                    <Image 
+                      src={vehicle.url_imagen || `https://placehold.co/600x400.png?text=${encodeURIComponent(vehicle.marca)}`} 
+                      alt={`${vehicle.marca} ${vehicle.modelo}`} 
+                      layout="fill" 
+                      objectFit="cover" 
+                      data-ai-hint={vehicle.ai_hint_imagen || vehicle.tipo_vehiculo?.toLowerCase() || "vehiculo emergencia"}
+                      onError={(e) => { e.currentTarget.src = `https://placehold.co/600x400.png?text=Error`; }}
+                    />
+                  </div>
+                   <div className="p-4">
+                    <CardTitle className="font-headline text-xl">{vehicle.marca} {vehicle.modelo}</CardTitle>
+                    <CardDescription>
+                        {vehicle.identificador_interno && <span className="font-semibold">{vehicle.identificador_interno}</span>}
+                        {vehicle.identificador_interno && vehicle.patente && " | "}
+                        {vehicle.patente && `Patente: ${vehicle.patente}`}
+                        {!vehicle.identificador_interno && !vehicle.patente && "Sin identificador"}
+                    </CardDescription>
+                   </div>
+                </CardHeader>
+                <CardContent className="flex-grow space-y-3 p-4">
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Estado: </span>
+                    <Badge variant={vehicle.estado_vehiculo === "Operativo" ? "default" : "destructive"} className={getStatusBadgeClassName(vehicle.estado_vehiculo)}>
+                      {vehicle.estado_vehiculo}
+                    </Badge>
+                  </div>
+                  {vehicle.tipo_vehiculo && (
+                      <div className="text-sm">
+                          <span className="font-medium text-muted-foreground">Tipo: </span>{vehicle.tipo_vehiculo}
+                      </div>
+                  )}
+                  <div className="flex items-center text-sm">
+                    <Wrench className="mr-2 h-4 w-4 text-muted-foreground" />
+                    Próx. Mantención: {formatDate(vehicle.proxima_mantencion_programada)}
+                  </div>
+                  <div className="flex items-center text-sm">
+                    <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
+                    Docs Vencen: {formatDate(vehicle.vencimiento_documentacion)}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 border-t pt-4 p-4">
+                   <Button variant="outline" size="sm" onClick={(e) => { e.preventDefault(); router.push(`/vehicles/${vehicle.id_vehiculo}`)}}>
+                        <Eye className="mr-1 h-4 w-4" /> Ver
+                    </Button>
+                  <Button variant="outline" size="sm" onClick={(e) => openEditDialog(vehicle, e)}><Edit className="mr-1 h-4 w-4" /> Editar</Button>
+                  <Button variant="destructive" size="sm" onClick={(e) => openDeleteDialog(vehicle, e)}><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
+                </CardFooter>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
@@ -288,5 +299,3 @@ export default function VehiclesPage() {
     </div>
   );
 }
-
-    
