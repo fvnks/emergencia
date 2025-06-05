@@ -67,14 +67,12 @@ export default function VehiclesPage() {
     fetchVehicles();
   };
 
-  const openEditDialog = (vehicle: Vehicle, e?: React.MouseEvent) => {
-    e?.stopPropagation(); // Prevent Link navigation if button within card is clicked
+  const openEditDialog = (vehicle: Vehicle) => {
     setSelectedVehicleForEdit(vehicle);
     setIsEditDialogOpen(true);
   };
 
-  const openDeleteDialog = (vehicle: Vehicle, e?: React.MouseEvent) => {
-    e?.stopPropagation(); // Prevent Link navigation
+  const openDeleteDialog = (vehicle: Vehicle) => {
     setSelectedVehicleForDelete(vehicle);
     setIsDeleteDialogOpen(true);
   };
@@ -327,11 +325,39 @@ export default function VehiclesPage() {
                     </div>
                   </CardContent>
                   <CardFooter className="flex justify-end gap-2 border-t pt-4 p-4">
-                     <Button variant="outline" size="sm" onClick={(e) => { e.preventDefault(); router.push(`/vehicles/${vehicle.id_vehiculo}`)}}>
+                     <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => { 
+                            e.preventDefault(); 
+                            e.stopPropagation(); 
+                            router.push(`/vehicles/${vehicle.id_vehiculo}`);
+                        }}
+                      >
                           <Eye className="mr-1 h-4 w-4" /> Ver
                       </Button>
-                    <Button variant="outline" size="sm" onClick={(e) => openEditDialog(vehicle, e)}><Edit className="mr-1 h-4 w-4" /> Editar</Button>
-                    <Button variant="destructive" size="sm" onClick={(e) => openDeleteDialog(vehicle, e)}><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openEditDialog(vehicle);
+                        }}
+                    >
+                        <Edit className="mr-1 h-4 w-4" /> Editar
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openDeleteDialog(vehicle);
+                        }}
+                    >
+                        <Trash2 className="mr-1 h-4 w-4" /> Eliminar
+                    </Button>
                   </CardFooter>
                 </Card>
               </Link>
@@ -364,3 +390,5 @@ export default function VehiclesPage() {
   );
 }
 
+
+    
