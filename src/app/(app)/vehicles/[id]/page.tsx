@@ -129,7 +129,7 @@ export default function VehicleDetailPage() {
         <Button variant="outline" onClick={() => router.push('/vehicles')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista
         </Button>
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="text-destructive flex items-center">
               <AlertTriangle className="mr-2 h-6 w-6" /> Error

@@ -157,7 +157,7 @@ export default function PersonnelPage() {
       </div>
 
       {personnel.length === 0 && !loading && (
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground">No hay personal registrado en el sistema.</p>
             <p className="text-sm text-muted-foreground mt-1">
@@ -169,7 +169,7 @@ export default function PersonnelPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {personnel.map((person) => (
-          <Card key={person.id_usuario} className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
+          <Card key={person.id_usuario} className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col">
             <CardHeader className="items-center text-center">
               <Avatar className="h-24 w-24 mb-3">
                 <AvatarImage 

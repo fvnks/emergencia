@@ -42,7 +42,7 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Gestiona tu cuenta y la configuración del sistema.</p>
       </div>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center"><KeyRound className="mr-2 h-5 w-5 text-primary" /> Cambiar Contraseña</CardTitle>
           <CardDescription>Actualiza la contraseña de tu cuenta para mayor seguridad.</CardDescription>
@@ -67,7 +67,7 @@ export default function SettingsPage() {
       </Card>
 
       {user?.role === 'admin' && (
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center"><ShieldAlert className="mr-2 h-5 w-5 text-destructive" /> Configuración de Administrador</CardTitle>
             <CardDescription>Gestiona las configuraciones generales del sistema. Estas acciones son críticas y deben manejarse con cuidado.</CardDescription>

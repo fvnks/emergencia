@@ -102,7 +102,7 @@ export default function WarehousesPage() {
       </p>
 
       {bodegas.length === 0 && !loading && (
-         <Card className="shadow-lg text-center">
+         <Card className="shadow-md text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <Warehouse className="h-10 w-10" />
@@ -119,7 +119,7 @@ export default function WarehousesPage() {
       )}
 
       {bodegas.length > 0 && (
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardContent className="p-0">
             <Table>
               <TableHeader>

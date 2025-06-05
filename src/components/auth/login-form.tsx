@@ -37,13 +37,13 @@ export function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-2xl">
+      <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
-             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="160" height="40" aria-label="Logo Gestor de Brigada" className="fill-primary">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="160" height="40" aria-label="Logo Gestor de Brigada">
                 <rect width="200" height="50" fill="transparent" />
                 {/* Simple shield icon */}
-                <path d="M25 5 Q 25 2.5 27.5 2.5 L 42.5 2.5 Q 45 2.5 45 5 L 45 22.5 L 35 27.5 L 25 22.5 Z M 22.5 20 L 35 30 L 47.5 20" fill="hsl(var(--primary))" stroke="hsl(var(--primary-foreground))" strokeWidth="1.5" />
+                <path d="M25 5 Q 25 2.5 27.5 2.5 L 42.5 2.5 Q 45 2.5 45 5 L 45 22.5 L 35 27.5 L 25 22.5 Z M 22.5 20 L 35 30 L 47.5 20" fill="hsl(var(--primary))" stroke="hsl(var(--card-foreground))" strokeWidth="1.5" />
                 <text x="55" y="32" fontFamily="'PT Sans', sans-serif" fontSize="24" fontWeight="bold" fill="hsl(var(--primary))">
                     Gestor de Brigada
                 </text>
@@ -108,7 +108,7 @@ export function LoginForm() {
       </Card>
       <footer className="mt-8 text-center text-sm text-muted-foreground">
         <p>Para demostración, crea un usuario en tu base de datos o usa credenciales pre-configuradas si existen.</p>
-        <p>Ejemplo: admin@ejemplo.cl / password (si lo creaste con el servicio createUser)</p>
+        <p>Ejemplo: admin@example.com / password (si lo creaste con el servicio createUser)</p>
       </footer>
     </div>
   );

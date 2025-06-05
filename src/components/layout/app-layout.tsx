@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from "react";
@@ -27,7 +28,11 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <Sidebar collapsible="icon" className="border-r border-sidebar-border shadow-lg">
+      <Sidebar
+        variant="floating"
+        collapsible="icon"
+        className="border-sidebar-border"
+      >
         <SidebarHeader className="p-4">
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-6" />

@@ -140,7 +140,7 @@ export default function EquipmentPage() {
       </div>
 
       {eraEquipments.length === 0 && !loading && (
-         <Card className="shadow-lg text-center">
+         <Card className="shadow-md text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <ShieldQuestion className="h-10 w-10" />
@@ -157,7 +157,7 @@ export default function EquipmentPage() {
       )}
 
       {eraEquipments.length > 0 && (
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -217,7 +217,7 @@ export default function EquipmentPage() {
       <AddEraDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
-        onItemAdded={handleEraAddedOrUpdatedOrDeletedOrAssigned}
+        onEraAdded={handleEraAddedOrUpdatedOrDeletedOrAssigned}
         users={users}
       />
       {selectedEraForEdit && (

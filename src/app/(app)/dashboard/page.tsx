@@ -186,7 +186,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="font-headline">Operaciones y Mantenciones Diarias</CardTitle>
             <CardDescription>Resumen de la semana actual.</CardDescription>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="font-headline">Actividad Reciente</CardTitle>
             <CardDescription>Registro de eventos importantes recientes.</CardDescription>

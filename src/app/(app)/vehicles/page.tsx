@@ -155,7 +155,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* Filtros y Búsqueda */}
-      <Card className="p-4 shadow-md">
+      <Card className="p-4 shadow-sm">
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -194,7 +194,7 @@ export default function VehiclesPage() {
       </Card>
 
       {filteredVehicles.length === 0 && !loading && (
-         <Card className="shadow-lg text-center">
+         <Card className="shadow-md text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <Truck className="h-10 w-10" />
@@ -265,7 +265,7 @@ export default function VehiclesPage() {
 
             return (
               <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
-                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full cursor-pointer">
+                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer">
                   <CardHeader className="p-0">
                     <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
                       <Image 
@@ -389,8 +389,3 @@ export default function VehiclesPage() {
     </div>
   );
 }
-
-
-    
-
-    
