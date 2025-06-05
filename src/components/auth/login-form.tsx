@@ -37,7 +37,7 @@ export function LoginForm() {
     <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900">
       <header className="py-3 px-4 sm:px-6 shadow-sm bg-white">
         <div className="container mx-auto flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-600" />
+          <Shield className="h-5 w-5 text-primary" />
           <span className="font-semibold text-md text-slate-700">Administrador de Respuesta a Emergencias</span>
         </div>
       </header>
@@ -66,7 +66,7 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-slate-100 border-slate-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg py-2.5 px-4 h-11 text-sm"
+                className="bg-slate-100 border-slate-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent rounded-lg py-2.5 px-4 h-11 text-sm"
               />
             </div>
 
@@ -79,7 +79,7 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="bg-slate-100 border-slate-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent rounded-lg py-2.5 px-4 h-11 text-sm"
+                className="bg-slate-100 border-slate-300 placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-primary focus:border-transparent rounded-lg py-2.5 px-4 h-11 text-sm"
               />
             </div>
 
@@ -89,27 +89,23 @@ export function LoginForm() {
                 id="remember-me"
                 checked={rememberMe}
                 onCheckedChange={() => setRememberMe(!rememberMe)}
-                className="h-5 w-5 rounded border-slate-300 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500 data-[state=checked]:text-white focus-visible:ring-blue-500"
+                className="h-5 w-5 rounded border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-white focus-visible:ring-primary"
               />
             </div>
 
-            <Button type="submit" className="w-full font-semibold bg-blue-500 hover:bg-blue-600 text-white py-3 h-11 rounded-lg text-sm" disabled={isLoading}>
+            <Button type="submit" className="w-full font-semibold bg-primary hover:bg-primary/90 text-primary-foreground py-3 h-11 rounded-lg text-sm" disabled={isLoading}>
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Sesión"}
             </Button>
 
             <div className="text-center">
-              <a href="#" className="text-sm text-blue-500 hover:text-blue-600 hover:underline">
+              <a href="#" className="text-sm text-primary hover:text-primary/80 hover:underline">
                 ¿Olvidaste tu contraseña?
               </a>
             </div>
           </form>
         </div>
       </main>
-
-      <footer className="py-6 text-center text-xs text-slate-500">
-        <p>Para demostración, crea un usuario en tu base de datos o usa credenciales pre-configuradas si existen.</p>
-        <p>Ejemplo: admin@example.com / password (si lo creaste con el servicio createUser)</p>
-      </footer>
+      {/* Footer removido */}
     </div>
   );
 }
