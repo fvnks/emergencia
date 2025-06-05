@@ -66,7 +66,7 @@ export default function ManageUsersPage() {
   };
   
   const getRoleBadgeClassName = (role: User["rol"]) => {
-    return role === 'admin' ? 'bg-destructive hover:bg-destructive/90' : 'bg-blue-500 hover:bg-blue-600 text-white';
+    return role === 'admin' ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : 'bg-blue-500 hover:bg-blue-600 text-white';
   }
 
   if (loading && users.length === 0) {
@@ -208,3 +208,4 @@ export default function ManageUsersPage() {
     </div>
   );
 }
+
