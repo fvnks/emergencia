@@ -32,6 +32,8 @@ const handleMissingColumnError = (error: any, columnName: string, tableName: str
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(255) NULL;`;
     } else if (columnName === 'ai_hint_imagen') {
       suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} VARCHAR(100) NULL;`;
+    } else if (columnName === 'notas') {
+      suggestion = `ALTER TABLE ${tableName} ADD COLUMN ${columnName} TEXT NULL;`;
     }
 
     throw new Error(
@@ -70,6 +72,7 @@ export async function getAllVehicles(): Promise<Vehicle[]> {
     handleMissingColumnError(error, 'identificador_interno', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'url_imagen', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'ai_hint_imagen', 'Vehiculos', 'seleccionar');
+    handleMissingColumnError(error, 'notas', 'Vehiculos', 'seleccionar');
     throw error;
   }
 }
@@ -101,6 +104,7 @@ export async function getVehicleById(id_vehiculo: number): Promise<Vehicle | nul
     handleMissingColumnError(error, 'identificador_interno', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'url_imagen', 'Vehiculos', 'seleccionar');
     handleMissingColumnError(error, 'ai_hint_imagen', 'Vehiculos', 'seleccionar');
+    handleMissingColumnError(error, 'notas', 'Vehiculos', 'seleccionar');
     throw error;
   }
 }
@@ -154,6 +158,7 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         handleMissingColumnError(mysqlError, 'vencimiento_documentacion', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'url_imagen', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'ai_hint_imagen', 'Vehiculos', 'insertar');
+        handleMissingColumnError(mysqlError, 'notas', 'Vehiculos', 'insertar');
     }
     throw error;
   }
@@ -228,6 +233,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
         handleMissingColumnError(mysqlError, 'vencimiento_documentacion', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'url_imagen', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'ai_hint_imagen', 'Vehiculos', 'actualizar');
+        handleMissingColumnError(mysqlError, 'notas', 'Vehiculos', 'actualizar');
     }
     throw error;
   }
