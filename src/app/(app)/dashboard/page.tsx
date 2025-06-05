@@ -9,6 +9,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { useEffect, useState } from "react";
 import { getAllVehicles, type Vehicle } from "@/services/vehicleService";
 import { getAllUsers, type User } from "@/services/userService";
+import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService"; // Added Task and TaskStatus
 
 const dailyOpsData = [
   { name: 'Lun', ops: 4, maint: 2 },
@@ -31,11 +32,16 @@ const chartConfig = {
   },
 } satisfies import("@/components/ui/chart").ChartConfig;
 
+const ACTIVE_TASK_STATUSES: TaskStatus[] = ['Pendiente', 'Programada', 'En Proceso', 'Atrasada'];
+
 export default function DashboardPage() {
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
   const [totalVehicles, setTotalVehicles] = useState<number | string>("N/A");
   const [personnelCount, setPersonnelCount] = useState<number | string>("N/A");
   const [totalPersonnel, setTotalPersonnel] = useState<number | string>("N/A");
+  const [activeTasksCount, setActiveTasksCount] = useState<number | string>("N/A");
+  const [overdueTasksCount, setOverdueTasksCount] = useState<number | string>("N/A");
+
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +51,10 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const [vehiclesData, usersData] = await Promise.all([
+        const [vehiclesData, usersData, tasksData] = await Promise.all([
           getAllVehicles(),
-          getAllUsers()
+          getAllUsers(),
+          getAllTasks()
         ]);
 
         // Process vehicle data
@@ -57,7 +64,13 @@ export default function DashboardPage() {
 
         // Process personnel data
         setPersonnelCount(usersData.length);
-        setTotalPersonnel(usersData.length); // Assuming all registered users are "total personnel"
+        setTotalPersonnel(usersData.length);
+
+        // Process tasks data
+        const activeTasks = tasksData.filter(task => ACTIVE_TASK_STATUSES.includes(task.estado_tarea));
+        const overdueTasks = activeTasks.filter(task => task.estado_tarea === 'Atrasada');
+        setActiveTasksCount(activeTasks.length);
+        setOverdueTasksCount(overdueTasks.length);
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -66,6 +79,8 @@ export default function DashboardPage() {
         setTotalVehicles("Error");
         setPersonnelCount("Error");
         setTotalPersonnel("Error");
+        setActiveTasksCount("Error");
+        setOverdueTasksCount("Error");
       } finally {
         setLoading(false);
       }
@@ -103,9 +118,9 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Tareas Activas"
-          value="12" // Placeholder - to be dynamic later
+          value={activeTasksCount.toString()}
           icon={Activity}
-          description="3 atrasadas" // Placeholder
+          description={overdueTasksCount !== "N/A" && overdueTasksCount !== "Error" && overdueTasksCount > 0 ? `${overdueTasksCount} atrasada(s)` : "Ninguna tarea atrasada"}
           iconClassName="text-blue-500"
         />
         <StatCard
