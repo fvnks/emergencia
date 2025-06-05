@@ -54,8 +54,14 @@ export function AppLayout({ children }: AppLayoutProps) {
       </Sidebar>
       <SidebarInset className="bg-background">
         <Header />
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-          {children}
+        <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto">
+          <div className="flex-grow">
+            {children}
+          </div>
+          <footer className="mt-8 py-4 text-center text-xs text-muted-foreground border-t border-border">
+            <p>Esto es una demo para Iván Santander de 5ta.cl.</p>
+            <p>Aplicación funcional para demostración, no para uso en producción.</p>
+          </footer>
         </main>
       </SidebarInset>
     </SidebarProvider>
