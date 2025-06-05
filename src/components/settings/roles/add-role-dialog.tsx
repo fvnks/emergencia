@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react"; // Added useMemo here
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -162,9 +162,9 @@ export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermis
                                       checked={field.value?.includes(permission.id)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, permission.id])
+                                          ? field.onChange([...(field.value || []), permission.id])
                                           : field.onChange(
-                                              field.value?.filter(
+                                              (field.value || []).filter(
                                                 (value) => value !== permission.id
                                               )
                                             );
