@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { KeyRound, Users, Database, ShieldAlert, Warehouse, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { performSystemBackup } from "@/ai/flows/backup-system-flow"; // Import the Genkit flow
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -38,21 +39,37 @@ export default function SettingsPage() {
     setConfirmPassword('');
   };
 
-  const handleBackupSystemData = () => {
+  const handleBackupSystemData = async () => {
     setIsBackupLoading(true);
     toast({
       title: "Iniciando Respaldo",
       description: "El proceso de respaldo de datos del sistema ha comenzado...",
     });
 
-    // Simular una operación de respaldo que toma tiempo
-    setTimeout(() => {
+    try {
+      const result = await performSystemBackup({}); // Call the Genkit flow
+      if (result.status === 'success') {
+        toast({
+          title: "Respaldo Completado",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Error en el Respaldo",
+          description: result.message || "Ocurrió un error durante el respaldo.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error calling backup flow:", error);
       toast({
-        title: "Respaldo Completado",
-        description: "El respaldo de los datos del sistema se ha completado exitosamente (simulado).",
+        title: "Error Crítico en Respaldo",
+        description: error instanceof Error ? error.message : "No se pudo conectar con el servicio de respaldo.",
+        variant: "destructive",
       });
+    } finally {
       setIsBackupLoading(false);
-    }, 3000); // Simular 3 segundos de proceso
+    }
   };
 
   return (
