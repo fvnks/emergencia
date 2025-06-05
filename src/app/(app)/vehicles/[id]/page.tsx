@@ -14,7 +14,8 @@ import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
-import { ManageVehicleEraDialog } from "@/components/vehicles/manage-vehicle-era-dialog"; // Importar el nuevo diálogo
+import { ManageVehicleEraDialog } from "@/components/vehicles/manage-vehicle-era-dialog";
+import { ManageVehicleInventoryDialog } from "@/components/vehicles/manage-vehicle-inventory-dialog"; // Importar el nuevo diálogo
 
 type LucideIcon = typeof Loader2;
 
@@ -41,7 +42,7 @@ export default function VehicleDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [isManageEraDialogOpen, setIsManageEraDialogOpen] = useState(false);
-  // const [isManageInventoryDialogOpen, setIsManageInventoryDialogOpen] = useState(false); // Estado para futuro diálogo de inventario
+  const [isManageInventoryDialogOpen, setIsManageInventoryDialogOpen] = useState(false);
 
   const fetchVehicleDetails = useCallback(async () => {
     if (id) {
@@ -104,11 +105,7 @@ export default function VehicleDetailPage() {
   };
 
   const handleManageInventory = () => {
-    toast({
-      title: "Funcionalidad Pendiente",
-      description: "La gestión de ítems de inventario asignados aún no está implementada.",
-    });
-    // setIsManageInventoryDialogOpen(true); // Habilitar cuando el diálogo exista
+    setIsManageInventoryDialogOpen(true);
   };
 
   if (loading) {
@@ -277,7 +274,6 @@ export default function VehicleDetailPage() {
           onAssignmentsUpdated={handleAssignmentsUpdated}
         />
       )}
-      {/* Futuro diálogo para inventario:
       {vehicle && (
         <ManageVehicleInventoryDialog
           vehicle={vehicle}
@@ -286,7 +282,7 @@ export default function VehicleDetailPage() {
           onAssignmentsUpdated={handleAssignmentsUpdated}
         />
       )}
-      */}
     </div>
   );
 }
+
