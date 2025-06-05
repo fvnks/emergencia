@@ -22,6 +22,9 @@ import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes";
 import { Loader2, Edit } from "lucide-react";
 
 const NULL_VEHICLE_TYPE_VALUE = "__NULL_VEHICLE_TYPE__";
+const MAX_FILE_SIZE_MB = 5;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const editVehicleFormSchema = z.object({
   identificador_interno: z.string().nullable().optional(),
@@ -34,8 +37,13 @@ const editVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
-  url_imagen: z.string().url("URL de imagen inválida").nullable().optional(),
-  // ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").nullable().optional(), // Eliminado
+  url_imagen: z.string().url("URL de imagen inválida si se provee.").nullable().optional(),
+  imagen_archivo: z.custom<File | null | undefined>(
+      (val) => val === undefined || val === null || val instanceof File,
+      "Debe ser un archivo"
+    ).optional().nullable()
+    .refine(file => !file || file.size <= MAX_FILE_SIZE_BYTES, `El archivo es demasiado grande (máx ${MAX_FILE_SIZE_MB}MB).`)
+    .refine(file => !file || ACCEPTED_IMAGE_TYPES.includes(file.type), "Tipo de archivo no soportado (permitidos: JPG, PNG, WEBP, GIF)."),
   notas: z.string().nullable().optional(),
 });
 
@@ -70,7 +78,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         proxima_mantencion_programada: vehicle.proxima_mantencion_programada || "",
         vencimiento_documentacion: vehicle.vencimiento_documentacion || "",
         url_imagen: vehicle.url_imagen || "",
-        // ai_hint_imagen: vehicle.ai_hint_imagen || "", // Eliminado
+        imagen_archivo: null, // Siempre resetear el archivo al abrir
         notas: vehicle.notas || "",
       });
     }
@@ -79,21 +87,41 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
   async function onSubmit(values: EditVehicleFormValues) {
     if (!vehicle) return;
     setIsSubmitting(true);
+
+    let finalUrlImagen = values.url_imagen;
+    let imageUploadMessage = "";
+
+    if (values.imagen_archivo) {
+      console.log("Nuevo archivo de imagen seleccionado para editar (backend no implementado):", values.imagen_archivo.name);
+      // Cuando el backend esté implementado, aquí se subiría `values.imagen_archivo` y `finalUrlImagen` se actualizaría con la nueva URL.
+      // Por ahora, se pasará `null` a `url_imagen` si se elige un archivo nuevo,
+      // o se podría optar por mantener la URL antigua si el backend no la puede procesar aún.
+      // Para indicar que se quiere cambiar, pero sin tener la nueva URL:
+      finalUrlImagen = null; // O alguna señal para el backend
+      imageUploadMessage = "La subida de la nueva imagen seleccionada requiere implementación de backend. La URL de imagen actual se eliminará o actualizará si el backend está preparado.";
+    }
+    
     try {
       const updateData: VehicleUpdateInput = {
-        ...values,
+        identificador_interno: values.identificador_interno,
+        marca: values.marca,
+        modelo: values.modelo,
+        patente: values.patente,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
+        estado_vehiculo: values.estado_vehiculo,
         ano_fabricacion: values.ano_fabricacion || null,
         fecha_adquisicion: values.fecha_adquisicion || null,
         proxima_mantencion_programada: values.proxima_mantencion_programada || null,
         vencimiento_documentacion: values.vencimiento_documentacion || null,
-        url_imagen: values.url_imagen || null,
-        ai_hint_imagen: null, // Asegurarse de que se envíe null o no se envíe para este campo
+        url_imagen: finalUrlImagen, // Usar la URL final determinada
+        ai_hint_imagen: null, // ai_hint_imagen ya no se usa
+        notas: values.notas || null,
       };
       await updateVehicle(vehicle.id_vehiculo, updateData);
       toast({
         title: "Vehículo Actualizado",
-        description: `El vehículo ${values.marca} ${values.modelo} ha sido actualizado.`,
+        description: `El vehículo ${values.marca} ${values.modelo} ha sido actualizado. ${imageUploadMessage}`,
+        duration: imageUploadMessage ? 7000: 5000,
       });
       onVehicleUpdated();
       onOpenChange(false);
@@ -172,11 +200,35 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
+
             <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                <FormItem><FormLabel>URL Imagen</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                <FormDescription>Dejar vacío para placeholder automático.</FormDescription><FormMessage /></FormItem>
+                <FormItem><FormLabel>URL Imagen Actual (Opcional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="https://ejemplo.com/imagen.png" /></FormControl>
+                <FormDescription>Mantener o editar URL existente si no se sube una nueva imagen.</FormDescription><FormMessage /></FormItem>
             )} />
-            {/* El campo Pista AI Imagen ha sido eliminado del JSX */}
+
+            <FormField
+              control={form.control}
+              name="imagen_archivo"
+              render={({ field: { onChange, value, ...restField } }) => (
+                <FormItem>
+                  <FormLabel>Subir Nueva Imagen (Opcional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...restField}
+                      type="file"
+                      accept={ACCEPTED_IMAGE_TYPES.join(",")}
+                      onChange={(event) => onChange(event.target.files ? event.target.files[0] : null)}
+                      className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Si selecciona un archivo, reemplazará la URL de imagen actual. Máx. {MAX_FILE_SIZE_MB}MB.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -192,4 +244,3 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     </Dialog>
   );
 }
-
