@@ -13,19 +13,9 @@ import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService"
 import { getAllMaintenanceTasks, type MaintenanceTask } from "@/services/maintenanceService";
 import { getAllEraEquipments, type EraEquipment } from "@/services/eraService";
 import { getAllInventoryItems, type InventoryItem } from "@/services/inventoryService";
-import { formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
-
-const dailyOpsData = [
-  { name: 'Lun', ops: 4, maint: 2 },
-  { name: 'Mar', ops: 3, maint: 1 },
-  { name: 'Mié', ops: 5, maint: 3 },
-  { name: 'Jue', ops: 2, maint: 2 },
-  { name: 'Vie', ops: 6, maint: 1 },
-  { name: 'Sáb', ops: 3, maint: 0 },
-  { name: 'Dom', ops: 1, maint: 1 },
-];
 
 const chartConfig = {
   ops: {
@@ -51,6 +41,12 @@ interface ActivityItem {
   type: 'task' | 'maintenance' | 'vehicle' | 'equipment' | 'personnel' | 'inventory' | 'alert';
 }
 
+interface DailyOpsChartDataItem {
+  name: string; // 'Lun', 'Mar', etc.
+  ops: number;
+  maint: number;
+}
+
 
 export default function DashboardPage() {
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
@@ -63,6 +59,7 @@ export default function DashboardPage() {
   const [readyExtinguisherCount, setReadyExtinguisherCount] = useState<number | string>("N/A");
   const [totalReadyEquipmentCount, setTotalReadyEquipmentCount] = useState<number | string>("N/A");
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
+  const [dailyOpsChartData, setDailyOpsChartData] = useState<DailyOpsChartDataItem[]>([]);
 
 
   const [loading, setLoading] = useState(true);
@@ -112,7 +109,6 @@ export default function DashboardPage() {
         // Process Recent Activity
         const activities: ActivityItem[] = [];
 
-        // Recent Tasks (last 3 updated/created)
         tasksData
           .sort((a, b) => new Date(b.fecha_actualizacion).getTime() - new Date(a.fecha_actualizacion).getTime())
           .slice(0, 3)
@@ -127,7 +123,7 @@ export default function DashboardPage() {
             }
             activities.push({
               id: `task-${task.id_tarea}`,
-              date: new Date(task.fecha_actualizacion), // Changed from parseISO
+              date: new Date(task.fecha_actualizacion),
               description: taskDesc,
               icon: Activity,
               iconClassName: "text-blue-500",
@@ -135,10 +131,8 @@ export default function DashboardPage() {
             });
           });
 
-        // Recent Maintenance (last 2 scheduled/completed)
         maintenanceData
           .sort((a, b) => {
-            // Prioritize completada, then programada, then actualizacion for sorting
             const dateAValue = a.fecha_completada || a.fecha_programada || a.fecha_actualizacion;
             const dateBValue = b.fecha_completada || b.fecha_programada || b.fecha_actualizacion;
             return new Date(dateBValue).getTime() - new Date(dateAValue).getTime();
@@ -150,13 +144,13 @@ export default function DashboardPage() {
 
             if (maint.estado_mantencion === 'Completada' && maint.fecha_completada) {
               maintDesc += ` completada.`;
-              activityDate = parseISO(maint.fecha_completada); // parseISO for YYYY-MM-DD strings
+              activityDate = parseISO(maint.fecha_completada);
             } else if (maint.fecha_programada) {
               maintDesc += ` programada.`;
-              activityDate = parseISO(maint.fecha_programada); // parseISO for YYYY-MM-DD strings
+              activityDate = parseISO(maint.fecha_programada);
             } else {
               maintDesc += ` registrada.`;
-              activityDate = new Date(maint.fecha_actualizacion); // Changed from parseISO
+              activityDate = new Date(maint.fecha_actualizacion);
             }
             activities.push({
               id: `maint-${maint.id_mantencion}`,
@@ -168,14 +162,13 @@ export default function DashboardPage() {
             });
           });
         
-        // Recent Vehicles (last 1 added)
         vehiclesData
             .sort((a,b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime())
             .slice(0,1)
             .forEach(vehicle => {
                 activities.push({
                     id: `vehicle-${vehicle.id_vehiculo}`,
-                    date: new Date(vehicle.fecha_creacion), // Changed from parseISO
+                    date: new Date(vehicle.fecha_creacion),
                     description: `Nuevo vehículo ${vehicle.marca} ${vehicle.modelo} (ID: ${vehicle.identificador_interno || vehicle.patente || vehicle.id_vehiculo}) agregado.`,
                     icon: Truck,
                     iconClassName: "text-green-500",
@@ -183,10 +176,9 @@ export default function DashboardPage() {
                 });
             });
         
-        // Placeholder Alert (can be replaced with real alert logic later)
          activities.push({
               id: 'alert-fuel-low',
-              date: new Date(Date.now() - 2 * 60 * 60 * 1000), // Example: 2 hours ago
+              date: new Date(Date.now() - 2 * 60 * 60 * 1000), 
               description: "Alerta de combustible bajo para Vehículo #5 (Patente XYZ-789).",
               icon: AlertTriangle,
               iconClassName: "text-red-500",
@@ -197,14 +189,50 @@ export default function DashboardPage() {
         setRecentActivity(
           activities
             .sort((a, b) => b.date.getTime() - a.date.getTime())
-            .slice(0, 5) // Show top 5 most recent activities overall
+            .slice(0, 5) 
         );
+
+        // Process Daily Operations Chart Data
+        const today = new Date();
+        // Ensure week starts on Monday for 'es' locale typically
+        const weekStart = startOfWeek(today, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+        const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+        const chartData: DailyOpsChartDataItem[] = daysInWeek.map(day => ({
+            name: format(day, 'E', { locale: es }).charAt(0).toUpperCase() + format(day, 'E', { locale: es }).slice(1,3), // Ej: Lun, Mar
+            ops: 0,
+            maint: 0
+        }));
+
+        tasksData.forEach(task => {
+            const taskCreationDate = new Date(task.fecha_creacion);
+            chartData.forEach(dayData => {
+                // Ensure dayData.name corresponds to a date object for comparison
+                const dayDate = daysInWeek.find(d => (format(d, 'E', { locale: es }).charAt(0).toUpperCase() + format(d, 'E', { locale: es }).slice(1,3)) === dayData.name);
+                if (dayDate && isValid(taskCreationDate) && isSameDay(taskCreationDate, dayDate)) {
+                    dayData.ops += 1;
+                }
+            });
+        });
+
+        maintenanceData.forEach(maint => {
+            if (maint.fecha_completada) {
+                const maintCompletionDate = parseISO(maint.fecha_completada); // Assuming YYYY-MM-DD
+                 chartData.forEach(dayData => {
+                    const dayDate = daysInWeek.find(d => (format(d, 'E', { locale: es }).charAt(0).toUpperCase() + format(d, 'E', { locale: es }).slice(1,3)) === dayData.name);
+                    if (dayDate && isValid(maintCompletionDate) && isSameDay(maintCompletionDate, dayDate)) {
+                        dayData.maint += 1;
+                    }
+                });
+            }
+        });
+        setDailyOpsChartData(chartData);
 
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError(err instanceof Error ? err.message : "No se pudieron cargar los datos del panel.");
-        // Set all data points to error state
         setOperativeVehicles("Error");
         setTotalVehicles("Error");
         setPersonnelCount("Error");
@@ -215,6 +243,7 @@ export default function DashboardPage() {
         setReadyExtinguisherCount("Error");
         setTotalReadyEquipmentCount("Error");
         setRecentActivity([]);
+        setDailyOpsChartData( Array(7).fill(null).map((_, i) => ({ name: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).charAt(0).toUpperCase() + format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).slice(1,3), ops: 0, maint: 0 })) );
       } finally {
         setLoading(false);
       }
@@ -302,7 +331,7 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyOpsData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                <BarChart data={dailyOpsChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" stroke="hsl(var(--foreground))" />
                   <YAxis stroke="hsl(var(--foreground))" />
