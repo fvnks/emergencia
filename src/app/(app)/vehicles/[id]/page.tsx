@@ -59,7 +59,12 @@ export default function VehicleDetailPage() {
       try {
         const data = await getVehicleById(vehicleId);
         if (data) {
-          setVehicle(data);
+          // Asegurar que los arrays de asignaciones existan si son null/undefined
+          setVehicle({
+            ...data,
+            assignedEras: data.assignedEras || [],
+            assignedInventoryItems: data.assignedInventoryItems || [],
+          });
         } else {
           setError("Vehículo no encontrado.");
         }
@@ -229,7 +234,7 @@ export default function VehicleDetailPage() {
                 {vehicle.assignedEras.map((era: EraEquipment) => (
                   <li key={era.id_era} className="ml-4 p-1 border-b border-border/50 last:border-b-0">
                     <strong>{era.codigo_era}</strong> - {era.marca} {era.modelo || ''}
-                    <span className="block text-xs text-muted-foreground">S/N: {era.numero_serie || 'N/A'}</span>
+                    <span className="block text-xs text-muted-foreground">S/N: {era.numero_serie || 'N/A'} - Estado: {era.estado_era}</span>
                   </li>
                 ))}
               </ul>
@@ -288,4 +293,3 @@ export default function VehicleDetailPage() {
     </div>
   );
 }
-

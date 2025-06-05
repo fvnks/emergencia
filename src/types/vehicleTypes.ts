@@ -9,8 +9,10 @@ export type VehicleType = 'Bomba' | 'Escala' | 'Rescate' | 'Ambulancia' | 'HazMa
 export const ALL_VEHICLE_TYPES: VehicleType[] = ['Bomba', 'Escala', 'Rescate', 'Ambulancia', 'HazMat', 'Forestal', 'Utilitario', 'Transporte Personal', 'Otro'];
 
 export interface VehicleAssignedInventoryItem {
-  itemDetails: InventoryItem; // Asumiendo que InventoryItem tiene id_item, nombre_item, codigo_item, etc.
+  itemDetails: InventoryItem;
   cantidad: number;
+  // Potencialmente otros detalles de la asignación específica si fueran necesarios
+  // id_vehiculo_inventario_item?: number; // ID de la tabla de unión, si se necesita
 }
 
 export interface Vehicle {
@@ -31,12 +33,12 @@ export interface Vehicle {
   fecha_creacion: string;
   fecha_actualizacion: string;
 
-  // Campos para asignaciones (ahora con detalles)
-  assignedEras?: EraEquipment[]; // Lista de objetos EraEquipment completos
-  assignedInventoryItems?: VehicleAssignedInventoryItem[]; // Lista de objetos con detalles del ítem y cantidad
+  // Campos actualizados para asignaciones con detalles completos
+  assignedEras?: EraEquipment[];
+  assignedInventoryItems?: VehicleAssignedInventoryItem[];
 
-  // Campos antiguos, mantener por si el backend aún no está completamente actualizado
-  // o para compatibilidad durante la transición
+  // Mantener assignedEraIds por si el backend aún no se actualizó completamente
+  // o para referencias internas si fuera necesario, aunque la visualización usará assignedEras.
   assignedEraIds?: number[];
 }
 
@@ -51,7 +53,7 @@ export interface VehicleCreateInput {
   fecha_adquisicion?: string; // YYYY-MM-DD
   proxima_mantencion_programada?: string; // YYYY-MM-DD
   vencimiento_documentacion?: string; // YYYY-MM-DD
-  url_imagen?: string | null; // Puede ser null si se sube un archivo
+  url_imagen?: string | null;
   ai_hint_imagen?: string;
   notas?: string;
   assignedEraIds?: number[];
@@ -75,4 +77,3 @@ export interface VehicleUpdateInput {
   assignedEraIds?: number[];
   assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
-
