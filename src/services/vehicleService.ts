@@ -50,7 +50,9 @@ export async function getAllVehicles(): Promise<Vehicle[]> {
       v.*,
       DATE_FORMAT(v.fecha_adquisicion, '%Y-%m-%d') as fecha_adquisicion,
       DATE_FORMAT(v.proxima_mantencion_programada, '%Y-%m-%d') as proxima_mantencion_programada,
-      DATE_FORMAT(v.vencimiento_documentacion, '%Y-%m-%d') as vencimiento_documentacion
+      DATE_FORMAT(v.vencimiento_documentacion, '%Y-%m-%d') as vencimiento_documentacion,
+      DATE_FORMAT(v.fecha_creacion, '%Y-%m-%dT%H:%i:%SZ') as fecha_creacion,
+      DATE_FORMAT(v.fecha_actualizacion, '%Y-%m-%dT%H:%i:%SZ') as fecha_actualizacion
     FROM Vehiculos v
     ORDER BY v.marca ASC, v.modelo ASC
   `;
@@ -83,7 +85,9 @@ export async function getVehicleById(id_vehiculo: number): Promise<Vehicle | nul
       v.*,
       DATE_FORMAT(v.fecha_adquisicion, '%Y-%m-%d') as fecha_adquisicion,
       DATE_FORMAT(v.proxima_mantencion_programada, '%Y-%m-%d') as proxima_mantencion_programada,
-      DATE_FORMAT(v.vencimiento_documentacion, '%Y-%m-%d') as vencimiento_documentacion
+      DATE_FORMAT(v.vencimiento_documentacion, '%Y-%m-%d') as vencimiento_documentacion,
+      DATE_FORMAT(v.fecha_creacion, '%Y-%m-%dT%H:%i:%SZ') as fecha_creacion,
+      DATE_FORMAT(v.fecha_actualizacion, '%Y-%m-%dT%H:%i:%SZ') as fecha_actualizacion
     FROM Vehiculos v
     WHERE v.id_vehiculo = ?
   `;
@@ -141,13 +145,13 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY') {
             if (mysqlError.sqlMessage?.includes('patente') && patente) {
-                throw new Error(`La patente '${patente}' ya existe para otro veh\u00edculo.`);
+                throw new Error(`La patente '${patente}' ya existe para otro vehículo.`);
             }
             if (mysqlError.sqlMessage?.includes('identificador_interno') && identificador_interno) {
-                throw new Error(`El identificador interno '${identificador_interno}' ya existe para otro veh\u00edculo.`);
+                throw new Error(`El identificador interno '${identificador_interno}' ya existe para otro vehículo.`);
             }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
-            throw new Error("La tabla 'Vehiculos' no existe. No se pudo crear el veh\u00edculo.");
+            throw new Error("La tabla 'Vehiculos' no existe. No se pudo crear el vehículo.");
         }
         handleMissingColumnError(mysqlError, 'identificador_interno', 'Vehiculos', 'insertar');
         handleMissingColumnError(mysqlError, 'tipo_vehiculo', 'Vehiculos', 'insertar');
@@ -208,7 +212,7 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
       return getVehicleById(id_vehiculo);
     }
     const existingItem = await getVehicleById(id_vehiculo);
-    if (!existingItem) throw new Error (`Veh\u00edculo con ID ${id_vehiculo} no encontrado para actualizar.`);
+    if (!existingItem) throw new Error (`Vehículo con ID ${id_vehiculo} no encontrado para actualizar.`);
     return existingItem;
   } catch (error) {
     console.error(`Error updating vehicle ${id_vehiculo}:`, error);
@@ -216,13 +220,13 @@ export async function updateVehicle(id_vehiculo: number, data: VehicleUpdateInpu
         const mysqlError = error as any;
         if (mysqlError.code === 'ER_DUP_ENTRY') {
              if (mysqlError.sqlMessage?.includes('patente') && data.patente) {
-                throw new Error(`La patente '${data.patente}' ya existe para otro veh\u00edculo.`);
+                throw new Error(`La patente '${data.patente}' ya existe para otro vehículo.`);
             }
             if (mysqlError.sqlMessage?.includes('identificador_interno') && data.identificador_interno) {
-                throw new Error(`El identificador interno '${data.identificador_interno}' ya existe para otro veh\u00edculo.`);
+                throw new Error(`El identificador interno '${data.identificador_interno}' ya existe para otro vehículo.`);
             }
         } else if (mysqlError.code === 'ER_NO_SUCH_TABLE') {
-            throw new Error("La tabla 'Vehiculos' no existe. No se pudo actualizar el veh\u00edculo.");
+            throw new Error("La tabla 'Vehiculos' no existe. No se pudo actualizar el vehículo.");
         }
         handleMissingColumnError(mysqlError, 'identificador_interno', 'Vehiculos', 'actualizar');
         handleMissingColumnError(mysqlError, 'tipo_vehiculo', 'Vehiculos', 'actualizar');
@@ -247,10 +251,10 @@ export async function deleteVehicle(id_vehiculo: number): Promise<boolean> {
   } catch (error) {
     console.error(`Error deleting vehicle ${id_vehiculo}:`, error);
      if (error instanceof Error && (error as any).code === 'ER_NO_SUCH_TABLE') {
-      throw new Error("La tabla 'Vehiculos' no existe. No se pudo eliminar el veh\u00edculo.");
+      throw new Error("La tabla 'Vehiculos' no existe. No se pudo eliminar el vehículo.");
     }
     if (error instanceof Error && (error as any).code === 'ER_ROW_IS_REFERENCED_2') {
-      throw new Error('No se puede eliminar el veh\u00edculo porque est\u00e1 referenciado en otros registros (ej. tareas de mantenimiento). Por favor, reasigne o elimine esos registros primero.');
+      throw new Error('No se puede eliminar el vehículo porque está referenciado en otros registros (ej. tareas de mantenimiento). Por favor, reasigne o elimine esos registros primero.');
     }
     throw error;
   }
