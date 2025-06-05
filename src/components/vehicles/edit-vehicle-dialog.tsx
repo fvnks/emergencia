@@ -35,7 +35,7 @@ const editVehicleFormSchema = z.object({
   proxima_mantencion_programada: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   url_imagen: z.string().url("URL de imagen inválida").nullable().optional(),
-  ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").nullable().optional(),
+  // ai_hint_imagen: z.string().max(50, "Máximo 50 caracteres para pista AI").nullable().optional(), // Eliminado
   notas: z.string().nullable().optional(),
 });
 
@@ -65,12 +65,12 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         patente: vehicle.patente || "",
         tipo_vehiculo: vehicle.tipo_vehiculo || null,
         estado_vehiculo: vehicle.estado_vehiculo,
-        ano_fabricacion: vehicle.ano_fabricacion ?? null, // Changed from || undefined
+        ano_fabricacion: vehicle.ano_fabricacion ?? null,
         fecha_adquisicion: vehicle.fecha_adquisicion || "",
         proxima_mantencion_programada: vehicle.proxima_mantencion_programada || "",
         vencimiento_documentacion: vehicle.vencimiento_documentacion || "",
         url_imagen: vehicle.url_imagen || "",
-        ai_hint_imagen: vehicle.ai_hint_imagen || "",
+        // ai_hint_imagen: vehicle.ai_hint_imagen || "", // Eliminado
         notas: vehicle.notas || "",
       });
     }
@@ -83,12 +83,12 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
       const updateData: VehicleUpdateInput = {
         ...values,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
-        ano_fabricacion: values.ano_fabricacion || null, // Service handles null if needed
+        ano_fabricacion: values.ano_fabricacion || null,
         fecha_adquisicion: values.fecha_adquisicion || null,
         proxima_mantencion_programada: values.proxima_mantencion_programada || null,
         vencimiento_documentacion: values.vencimiento_documentacion || null,
         url_imagen: values.url_imagen || null,
-        ai_hint_imagen: values.ai_hint_imagen || null,
+        ai_hint_imagen: null, // Asegurarse de que se envíe null o no se envíe para este campo
       };
       await updateVehicle(vehicle.id_vehiculo, updateData);
       toast({
@@ -172,16 +172,11 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>URL Imagen</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                    <FormDescription>Dejar vacío para placeholder automático.</FormDescription><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="ai_hint_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>Pista AI Imagen</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
-                    <FormDescription>1-2 palabras para placeholder.</FormDescription><FormMessage /></FormItem>
-                )} />
-            </div>
+            <FormField control={form.control} name="url_imagen" render={({ field }) => (
+                <FormItem><FormLabel>URL Imagen</FormLabel><FormControl><Input {...field} value={field.value ?? ''} /></FormControl>
+                <FormDescription>Dejar vacío para placeholder automático.</FormDescription><FormMessage /></FormItem>
+            )} />
+            {/* El campo Pista AI Imagen ha sido eliminado del JSX */}
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas</FormLabel><FormControl><Textarea {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -197,3 +192,4 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     </Dialog>
   );
 }
+

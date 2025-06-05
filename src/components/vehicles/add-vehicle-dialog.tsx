@@ -102,14 +102,8 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
     let imageUploadMessage = "";
 
     if (imagen_archivo) {
-      console.log("Archivo de imagen seleccionado (backend no implementado):", imagen_archivo);
+      console.log("Archivo de imagen seleccionado (backend no implementado):", imagen_archivo.name, imagen_archivo.size, imagen_archivo.type);
       // Aquí es donde manejarías la subida del archivo a tu backend/servicio de almacenamiento.
-      // Por ejemplo, usando FormData:
-      // const formData = new FormData();
-      // formData.append('vehicleImage', imagen_archivo);
-      // const response = await fetch('/api/upload-vehicle-image', { method: 'POST', body: formData });
-      // const result = await response.json();
-      // const uploadedImageUrl = result.imageUrl; // Esto sería la URL a guardar
       imageUploadMessage = "La subida de la imagen seleccionada requiere implementación de backend.";
     }
 
@@ -122,8 +116,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         proxima_mantencion_programada: otherFormValues.proxima_mantencion_programada || undefined,
         vencimiento_documentacion: otherFormValues.vencimiento_documentacion || undefined,
         url_imagen: null, // Se establece en null porque la subida real y obtención de URL no está implementada aquí.
-                            // En una implementación completa, aquí iría `uploadedImageUrl`.
-        ai_hint_imagen: undefined, // ai_hint_imagen no se maneja en este formulario de agregar
+        ai_hint_imagen: undefined, // ai_hint_imagen no se maneja en este formulario
       };
       await createVehicle(createData);
       toast({
@@ -211,14 +204,15 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
              <FormField
                 control={form.control}
                 name="imagen_archivo"
-                render={({ field }) => (
+                render={({ field: { onChange, value, ...restField } }) => ( // Destructurar para manejar el onChange correctamente para file input
                   <FormItem>
                     <FormLabel>Imagen del Vehículo (Opcional)</FormLabel>
                     <FormControl>
                       <Input
+                        {...restField}
                         type="file"
                         accept={ACCEPTED_IMAGE_TYPES.join(",")}
-                        onChange={(event) => field.onChange(event.target.files ? event.target.files[0] : null)}
+                        onChange={(event) => onChange(event.target.files ? event.target.files[0] : null)}
                         className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
                       />
                     </FormControl>
