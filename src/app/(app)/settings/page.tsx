@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Users, Database, ShieldAlert, Warehouse } from "lucide-react"; // Added Warehouse
-import Link from "next/link"; // Added Link
+import { KeyRound, Users, Database, ShieldAlert, Warehouse } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function SettingsPage() {
@@ -74,8 +74,10 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                <Button variant="outline" className="w-full sm:w-auto justify-start">
+                <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
+                  <Link href="/settings/users">
                     <Users className="mr-2 h-4 w-4" /> Gestionar Usuarios y Roles
+                  </Link>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
                   <Link href="/settings/warehouses">
