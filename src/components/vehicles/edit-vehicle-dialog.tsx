@@ -79,7 +79,23 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
 
   const form = useForm<EditVehicleFormValues>({
     resolver: zodResolver(editVehicleFormSchema),
-    // Default values will be set in useEffect
+    defaultValues: {
+      identificador_interno: "",
+      marca: "",
+      modelo: "",
+      patente: "",
+      tipo_vehiculo: null,
+      estado_vehiculo: "Operativo",
+      ano_fabricacion: null,
+      fecha_adquisicion: "",
+      proxima_mantencion_programada: "",
+      vencimiento_documentacion: "",
+      url_imagen: "",
+      imagen_archivo: null,
+      notas: "",
+      assignedEraIds: [],
+      assignedInventoryItems: [],
+    },
   });
 
   useEffect(() => {
@@ -93,31 +109,38 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
             getAllEraEquipments(),
             getAllInventoryItems()
           ]);
-          const availableEras = eras.filter(era => era.estado_era === 'Disponible' || vehicle.assignedEraIds?.includes(era.id_era)); // Include already assigned ones even if not 'Disponible'
-          const availableItems = items.filter(item => item.cantidad_actual > 0 || vehicle.assignedInventoryItems?.some(ai => ai.id_item === item.id_item));
+          const currentAssignedEraIds = vehicle.assignedEraIds || [];
+          const currentAssignedInventoryItems = vehicle.assignedInventoryItems || [];
+
+          const availableEras = eras.filter(era => era.estado_era === 'Disponible' || currentAssignedEraIds.includes(era.id_era));
+          
+          const availableItems = items.filter(item => {
+            const assignedToThisVehicle = currentAssignedInventoryItems.find(ai => ai.id_item === item.id_item);
+            return item.cantidad_actual > 0 || !!assignedToThisVehicle;
+          });
 
           setAllEraEquipments(availableEras);
           setAllInventoryItems(availableItems);
-
-          // Prepare inventory items for form, pre-selecting and setting quantities for already assigned items
+          
           const initialInventoryItemsForForm = availableItems.map(item => {
-            const assignedItem = vehicle.assignedInventoryItems?.find(ai => ai.id_item === item.id_item);
+            const assignedItem = currentAssignedInventoryItems.find(ai => ai.id_item === item.id_item);
+            const stockConsideringAssignment = item.cantidad_actual + (assignedItem ? assignedItem.cantidad : 0);
             return {
               id_item: item.id_item,
               nombre_item: `${item.nombre_item} (${item.codigo_item}) - Disp: ${item.cantidad_actual} ${item.unidad_medida}`,
               cantidad: assignedItem ? assignedItem.cantidad : 1,
               selected: !!assignedItem,
-              max_cantidad: item.cantidad_actual + (assignedItem ? assignedItem.cantidad : 0) // Max is current stock + already assigned to this vehicle
+              max_cantidad: stockConsideringAssignment > 0 ? stockConsideringAssignment : 1 // Ensure max_cantidad is at least 1 if it's assignable
             };
           });
 
           form.reset({
             identificador_interno: vehicle.identificador_interno || "",
-            marca: vehicle.marca,
-            modelo: vehicle.modelo,
+            marca: vehicle.marca || "", // Ensure string
+            modelo: vehicle.modelo || "", // Ensure string
             patente: vehicle.patente || "",
             tipo_vehiculo: vehicle.tipo_vehiculo || null,
-            estado_vehiculo: vehicle.estado_vehiculo,
+            estado_vehiculo: vehicle.estado_vehiculo || "Operativo",
             ano_fabricacion: vehicle.ano_fabricacion ?? null,
             fecha_adquisicion: vehicle.fecha_adquisicion || "",
             proxima_mantencion_programada: vehicle.proxima_mantencion_programada || "",
@@ -125,7 +148,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
             url_imagen: vehicle.url_imagen || "",
             imagen_archivo: null,
             notas: vehicle.notas || "",
-            assignedEraIds: vehicle.assignedEraIds || [],
+            assignedEraIds: currentAssignedEraIds,
             assignedInventoryItems: initialInventoryItemsForForm,
           });
         } catch (error) {
@@ -140,12 +163,9 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         }
       }
     }
-    // For edit dialog, assume vehicle.assignedEraIds and vehicle.assignedInventoryItems
-    // would be populated by getVehicleById if backend supports it.
-    // For now, they will be empty arrays if not provided.
-    if (!vehicle?.assignedEraIds) vehicle.assignedEraIds = [];
-    if (!vehicle?.assignedInventoryItems) vehicle.assignedInventoryItems = [];
-    loadInitialData();
+    if (open && vehicle) {
+        loadInitialData();
+    }
   }, [vehicle, open, form, toast]);
 
 
@@ -168,10 +188,10 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
 
     try {
       const updateData: VehicleUpdateInput = {
-        identificador_interno: values.identificador_interno,
+        identificador_interno: values.identificador_interno || null,
         marca: values.marca,
         modelo: values.modelo,
-        patente: values.patente,
+        patente: values.patente || null,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
         estado_vehiculo: values.estado_vehiculo,
         ano_fabricacion: values.ano_fabricacion || null,
@@ -208,8 +228,8 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     if (!eraSearchTerm) return allEraEquipments;
     return allEraEquipments.filter(era => 
       era.codigo_era.toLowerCase().includes(eraSearchTerm.toLowerCase()) ||
-      era.marca?.toLowerCase().includes(eraSearchTerm.toLowerCase()) ||
-      era.modelo?.toLowerCase().includes(eraSearchTerm.toLowerCase())
+      (era.marca && era.marca.toLowerCase().includes(eraSearchTerm.toLowerCase())) ||
+      (era.modelo && era.modelo.toLowerCase().includes(eraSearchTerm.toLowerCase()))
     );
   }, [allEraEquipments, eraSearchTerm]);
 
@@ -233,13 +253,12 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-2 max-h-[80vh] overflow-y-auto pr-2">
-             {/* Campos básicos del vehículo (igual que en AddVehicleDialog) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField control={form.control} name="marca" render={({ field }) => (
-                <FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Marca</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
               <FormField control={form.control} name="modelo" render={({ field }) => (
-                <FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Modelo</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -269,7 +288,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                 )} />
                 <FormField control={form.control} name="estado_vehiculo" render={({ field }) => (
                     <FormItem><FormLabel>Estado</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || "Operativo"}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl>
                         <SelectContent>{ALL_VEHICLE_STATUSES.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -316,7 +335,6 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
             )} />
 
-            {/* Sección para asignar Equipos ERA */}
             <div className="space-y-2 pt-4 border-t">
               <h3 className="text-lg font-medium flex items-center"><ShieldAlert className="mr-2 h-5 w-5 text-primary" />Asignar Equipos ERA</h3>
               <div className="relative mb-2">
@@ -335,14 +353,14 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                       <FormField
                         control={form.control}
                         name="assignedEraIds"
-                        render={() => ( // No usamos field aquí directamente para el grupo
+                        render={() => (
                           <FormItem>
                             {filteredEraEquipments.map((era) => (
                               <FormField
                                 key={era.id_era}
                                 control={form.control}
                                 name="assignedEraIds"
-                                render={({ field: itemField }) => { // field para el array completo
+                                render={({ field: itemField }) => {
                                   return (
                                     <FormItem className="flex flex-row items-center space-x-3 space-y-0 py-1">
                                       <FormControl>
@@ -377,7 +395,6 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
               }
             </div>
 
-            {/* Sección para asignar Ítems de Inventario */}
             <div className="space-y-2 pt-4 border-t">
               <h3 className="text-lg font-medium flex items-center"><Package className="mr-2 h-5 w-5 text-primary" />Asignar Ítems de Inventario</h3>
                <div className="relative mb-2">
@@ -394,12 +411,12 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                   <ScrollArea className="h-48 rounded-md border p-2">
                     <div className="space-y-3">
                     {filteredInventoryItemsForDisplay.length > 0 ? (
-                      filteredInventoryItemsForDisplay.map((item, index) => {
-                        const originalIndex = form.getValues('assignedInventoryItems')?.findIndex(fi => fi.id_item === item.id_item);
+                      filteredInventoryItemsForDisplay.map((itemInForm, index) => {
+                        const originalIndex = form.getValues('assignedInventoryItems')?.findIndex(fi => fi.id_item === itemInForm.id_item);
                         if (originalIndex === undefined || originalIndex === -1) return null;
 
                         return (
-                          <div key={item.id_item} className="flex items-center justify-between gap-3 p-2 border rounded-md">
+                          <div key={itemInForm.id_item} className="flex items-center justify-between gap-3 p-2 border rounded-md">
                             <FormField
                               control={form.control}
                               name={`assignedInventoryItems.${originalIndex}.selected`}
@@ -407,7 +424,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                                 <FormItem className="flex items-center space-x-2 flex-grow">
                                   <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                   <FormLabel htmlFor={`assignedInventoryItems.${originalIndex}.selected`} className="font-normal text-sm flex-grow min-w-0">
-                                    <span className="truncate block">{item.nombre_item}</span>
+                                    <span className="truncate block">{itemInForm.nombre_item}</span>
                                   </FormLabel>
                                 </FormItem>
                               )}
@@ -422,16 +439,18 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                                       type="number"
                                       placeholder="Cant."
                                       {...field}
+                                      value={field.value ?? 1} // Ensure controlled with a default if somehow null/undefined
                                       min={1}
-                                      max={item.max_cantidad}
+                                      max={itemInForm.max_cantidad}
                                       disabled={!form.watch(`assignedInventoryItems.${originalIndex}.selected`)}
                                       className="h-8"
                                       onChange={(e) => {
                                           const val = parseInt(e.target.value, 10);
+                                          const maxVal = itemInForm.max_cantidad ?? Infinity;
                                           if (isNaN(val)) {
                                               field.onChange(1);
-                                          } else if (val > (item.max_cantidad ?? Infinity)) {
-                                              field.onChange(item.max_cantidad);
+                                          } else if (val > maxVal) {
+                                              field.onChange(maxVal);
                                           } else if (val < 1) {
                                               field.onChange(1);
                                           } else {
@@ -466,3 +485,5 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     </Dialog>
   );
 }
+
+    
