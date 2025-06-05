@@ -105,7 +105,9 @@ export function LoginForm() {
           </form>
         </div>
       </main>
-      {/* Footer removido */}
+      <footer className="py-6 text-center text-xs text-slate-500">
+        <p>Creado con ❤️ por Rodrigo Droguett Stahr</p>
+      </footer>
     </div>
   );
 }
