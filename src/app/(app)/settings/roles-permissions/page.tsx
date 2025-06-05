@@ -85,33 +85,33 @@ const initialRolesData: Role[] = [
   },
 ];
 
-// Generar una lista de todos los permisos únicos disponibles
-const allAvailablePermissions = useMemo(() => {
-  const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
-  initialRolesData.forEach(role => {
-    role.permissions.forEach(perm => {
-      if (!permissionMap.has(perm.id)) {
-        // Simple-minded module grouping based on perm.id
-        let module = "General";
-        if (perm.id.includes("vehicle")) module = "Vehículos";
-        else if (perm.id.includes("equipment") || perm.id.includes("era")) module = "Equipos ERA";
-        else if (perm.id.includes("maintenance")) module = "Mantenciones";
-        else if (perm.id.includes("inventory")) module = "Inventario";
-        else if (perm.id.includes("task")) module = "Tareas";
-        else if (perm.id.includes("personnel")) module = "Personal";
-        else if (perm.id.includes("setting") || perm.id.includes("role") || perm.id.includes("warehouse")) module = "Configuración";
-        
-        permissionMap.set(perm.id, { id: perm.id, label: perm.label, module });
-      }
-    });
-  });
-  return Array.from(permissionMap.values());
-}, []);
-
 
 export default function RolesPermissionsPage() {
   const [rolesData, setRolesData] = useState<Role[]>(initialRolesData);
   const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
+
+  // Generar una lista de todos los permisos únicos disponibles
+  const allAvailablePermissions = useMemo(() => {
+    const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
+    initialRolesData.forEach(role => {
+      role.permissions.forEach(perm => {
+        if (!permissionMap.has(perm.id)) {
+          // Simple-minded module grouping based on perm.id
+          let module = "General";
+          if (perm.id.includes("vehicle")) module = "Vehículos";
+          else if (perm.id.includes("equipment") || perm.id.includes("era")) module = "Equipos ERA";
+          else if (perm.id.includes("maintenance")) module = "Mantenciones";
+          else if (perm.id.includes("inventory")) module = "Inventario";
+          else if (perm.id.includes("task")) module = "Tareas";
+          else if (perm.id.includes("personnel")) module = "Personal";
+          else if (perm.id.includes("setting") || perm.id.includes("role") || perm.id.includes("warehouse")) module = "Configuración";
+          
+          permissionMap.set(perm.id, { id: perm.id, label: perm.label, module });
+        }
+      });
+    });
+    return Array.from(permissionMap.values());
+  }, []); // initialRolesData is stable within the module scope
 
   const handleRoleAdded = (newRole: Omit<Role, 'id' | 'icon' | 'isSystemRole'> & { selectedPermissions: string[] }) => {
     const newFullRole: Role = {
