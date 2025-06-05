@@ -117,9 +117,11 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
   const {
     identificador_interno, marca, modelo, patente, tipo_vehiculo, estado_vehiculo,
     ano_fabricacion, fecha_adquisicion, proxima_mantencion_programada,
-    vencimiento_documentacion, url_imagen, ai_hint_imagen, notas
+    vencimiento_documentacion, url_imagen, ai_hint_imagen, notas,
+    assignedEraIds, assignedInventoryItems // Nuevos campos
   } = data;
 
+  // Lógica para insertar en la tabla Vehiculos (sin cambios aquí por ahora)
   const sql = `
     INSERT INTO Vehiculos (
       identificador_interno, marca, modelo, patente, tipo_vehiculo, estado_vehiculo,
@@ -135,8 +137,25 @@ export async function createVehicle(data: VehicleCreateInput): Promise<Vehicle |
 
   try {
     const result = await query(sql, params) as ResultSetHeader;
-    if (result.insertId) {
-      return getVehicleById(result.insertId);
+    const newVehicleId = result.insertId;
+
+    if (newVehicleId) {
+      // Aquí es donde, en el backend real, manejarías la inserción en las tablas de unión
+      // para assignedEraIds y assignedInventoryItems usando newVehicleId.
+      // Por ejemplo:
+      if (assignedEraIds && assignedEraIds.length > 0) {
+        console.log(`Vehículo ${newVehicleId} creado. ERAs para asignar (backend):`, assignedEraIds);
+        // for (const eraId of assignedEraIds) {
+        //   await query('INSERT INTO Vehiculos_ERA (id_vehiculo, id_era) VALUES (?, ?)', [newVehicleId, eraId]);
+        // }
+      }
+      if (assignedInventoryItems && assignedInventoryItems.length > 0) {
+        console.log(`Vehículo ${newVehicleId} creado. Ítems de inventario para asignar (backend):`, assignedInventoryItems);
+        // for (const item of assignedInventoryItems) {
+        //   await query('INSERT INTO Vehiculos_Inventario_Items (id_vehiculo, id_item, cantidad) VALUES (?, ?, ?)', [newVehicleId, item.id_item, item.cantidad]);
+        // }
+      }
+      return getVehicleById(newVehicleId);
     }
     return null;
   } catch (error) {
@@ -259,4 +278,3 @@ export async function deleteVehicle(id_vehiculo: number): Promise<boolean> {
     throw error;
   }
 }
-
