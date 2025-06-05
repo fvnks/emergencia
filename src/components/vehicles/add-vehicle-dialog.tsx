@@ -34,6 +34,14 @@ const addVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().optional().nullable().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
+  url_imagen: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().url("URL de imagen inválida. Asegúrate que incluya http:// o https://").optional().nullable()
+  ),
+  ai_hint_imagen: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().max(50, "Máximo 50 caracteres para pista AI.").optional().nullable()
+  ),
   notas: z.string().optional(),
 });
 
@@ -58,10 +66,12 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       patente: "",
       tipo_vehiculo: null,
       estado_vehiculo: "Operativo",
-      ano_fabricacion: null, // Changed from undefined
+      ano_fabricacion: null,
       fecha_adquisicion: "",
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
+      url_imagen: "",
+      ai_hint_imagen: "",
       notas: "",
     },
   });
@@ -75,10 +85,12 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         patente: "",
         tipo_vehiculo: null,
         estado_vehiculo: "Operativo",
-        ano_fabricacion: null, // Changed from undefined
+        ano_fabricacion: null,
         fecha_adquisicion: "",
         proxima_mantencion_programada: "",
         vencimiento_documentacion: "",
+        url_imagen: "",
+        ai_hint_imagen: "",
         notas: "",
       });
     }
@@ -90,10 +102,12 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       const createData: VehicleCreateInput = {
         ...values,
         tipo_vehiculo: values.tipo_vehiculo === NULL_VEHICLE_TYPE_VALUE ? null : values.tipo_vehiculo,
-        ano_fabricacion: values.ano_fabricacion || undefined, // Service expects undefined if null
+        ano_fabricacion: values.ano_fabricacion || undefined,
         fecha_adquisicion: values.fecha_adquisicion || undefined,
         proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
         vencimiento_documentacion: values.vencimiento_documentacion || undefined,
+        url_imagen: values.url_imagen || undefined,
+        ai_hint_imagen: values.ai_hint_imagen || undefined,
       };
       await createVehicle(createData);
       toast({
@@ -153,7 +167,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                     >
                         <FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl>
                         <SelectContent>
-                        <SelectItem value={NULL_VEHICLE_TYPE_VALUE}>N/A</SelectItem>
+                        <SelectItem value={NULL_VEHICLE_TYPE_VALUE}>N/A (No especificado)</SelectItem>
                         {ALL_VEHICLE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
                         </SelectContent>
                     </Select><FormMessage /></FormItem>
@@ -177,6 +191,16 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="url_imagen" render={({ field }) => (
+                    <FormItem><FormLabel>URL Imagen (Opcional)</FormLabel><FormControl><Input placeholder="https://ejemplo.com/imagen.png" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormDescription>Pega la URL de una imagen para el vehículo.</FormDescription><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="ai_hint_imagen" render={({ field }) => (
+                    <FormItem><FormLabel>Pista AI Imagen (Opcional)</FormLabel><FormControl><Input placeholder="Ej: camion rojo" {...field} value={field.value ?? ''} /></FormControl>
+                    <FormDescription>1-2 palabras para placeholder de IA (ej: 'camion bomberos', 'ambulancia').</FormDescription><FormMessage /></FormItem>
+                )} />
+            </div>
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -192,3 +216,5 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
     </Dialog>
   );
 }
+
+    
