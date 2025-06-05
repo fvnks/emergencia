@@ -112,10 +112,10 @@ export default function DashboardPage() {
         // Process Recent Activity
         const activities: ActivityItem[] = [];
 
-        // Recent Tasks (last 5 updated/created)
+        // Recent Tasks (last 3 updated/created)
         tasksData
           .sort((a, b) => new Date(b.fecha_actualizacion).getTime() - new Date(a.fecha_actualizacion).getTime())
-          .slice(0, 3) // Take top 3 recent tasks
+          .slice(0, 3)
           .forEach(task => {
             let taskDesc = `Tarea T-${task.id_tarea.toString().padStart(3,'0')}`;
             if (task.fecha_actualizacion !== task.fecha_creacion && task.estado_tarea === 'Completada') {
@@ -127,7 +127,7 @@ export default function DashboardPage() {
             }
             activities.push({
               id: `task-${task.id_tarea}`,
-              date: parseISO(task.fecha_actualizacion),
+              date: new Date(task.fecha_actualizacion), // Changed from parseISO
               description: taskDesc,
               icon: Activity,
               iconClassName: "text-blue-500",
@@ -138,23 +138,29 @@ export default function DashboardPage() {
         // Recent Maintenance (last 2 scheduled/completed)
         maintenanceData
           .sort((a, b) => {
-            const dateA = a.fecha_completada ? parseISO(a.fecha_completada) : (a.fecha_programada ? parseISO(a.fecha_programada) : parseISO(a.fecha_actualizacion));
-            const dateB = b.fecha_completada ? parseISO(b.fecha_completada) : (b.fecha_programada ? parseISO(b.fecha_programada) : parseISO(b.fecha_actualizacion));
-            return dateB.getTime() - dateA.getTime();
+            // Prioritize completada, then programada, then actualizacion for sorting
+            const dateAValue = a.fecha_completada || a.fecha_programada || a.fecha_actualizacion;
+            const dateBValue = b.fecha_completada || b.fecha_programada || b.fecha_actualizacion;
+            return new Date(dateBValue).getTime() - new Date(dateAValue).getTime();
           })
-          .slice(0, 2) // Take top 2 recent maintenances
+          .slice(0, 2)
           .forEach(maint => {
             let maintDesc = `Mantención para "${maint.nombre_item_mantenimiento.substring(0,20)}..."`;
+            let activityDate: Date;
+
             if (maint.estado_mantencion === 'Completada' && maint.fecha_completada) {
               maintDesc += ` completada.`;
+              activityDate = parseISO(maint.fecha_completada); // parseISO for YYYY-MM-DD strings
             } else if (maint.fecha_programada) {
               maintDesc += ` programada.`;
+              activityDate = parseISO(maint.fecha_programada); // parseISO for YYYY-MM-DD strings
             } else {
               maintDesc += ` registrada.`;
+              activityDate = new Date(maint.fecha_actualizacion); // Changed from parseISO
             }
             activities.push({
               id: `maint-${maint.id_mantencion}`,
-              date: maint.fecha_completada ? parseISO(maint.fecha_completada) : (maint.fecha_programada ? parseISO(maint.fecha_programada) : parseISO(maint.fecha_actualizacion)),
+              date: activityDate,
               description: maintDesc,
               icon: Wrench,
               iconClassName: "text-yellow-600",
@@ -169,7 +175,7 @@ export default function DashboardPage() {
             .forEach(vehicle => {
                 activities.push({
                     id: `vehicle-${vehicle.id_vehiculo}`,
-                    date: parseISO(vehicle.fecha_creacion),
+                    date: new Date(vehicle.fecha_creacion), // Changed from parseISO
                     description: `Nuevo vehículo ${vehicle.marca} ${vehicle.modelo} (ID: ${vehicle.identificador_interno || vehicle.patente || vehicle.id_vehiculo}) agregado.`,
                     icon: Truck,
                     iconClassName: "text-green-500",
