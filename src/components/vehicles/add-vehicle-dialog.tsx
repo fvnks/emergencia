@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import type { VehicleCreateInput, VehicleStatus, VehicleType } from "@/types/veh
 import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes";
 import { getAllEraEquipments, type EraEquipment } from "@/services/eraService";
 import { getAllInventoryItems, type InventoryItem } from "@/services/inventoryService";
-import { Loader2, Package, ShieldAlert } from "lucide-react";
+import { Loader2, Package, ShieldAlert, Search } from "lucide-react";
 
 const NULL_VEHICLE_TYPE_VALUE = "__NULL_VEHICLE_TYPE__";
 const MAX_FILE_SIZE_MB = 5;
@@ -51,9 +51,10 @@ const addVehicleFormSchema = z.object({
   assignedEraIds: z.array(z.number()).optional(),
   assignedInventoryItems: z.array(z.object({
     id_item: z.number(),
-    nombre_item: z.string(), // Para mostrar en el formulario
-    cantidad: z.coerce.number().min(1, "La cantidad debe ser al menos 1").max(z.number().optional()), // max se llenará dinámicamente
-    selected: z.boolean().optional() // Para el checkbox
+    nombre_item: z.string(), 
+    cantidad: z.coerce.number().min(1, "La cantidad debe ser al menos 1").max(z.number().optional()), 
+    selected: z.boolean().optional(),
+    max_cantidad: z.number().optional(), // Añadido para validación dinámica
   })).optional(),
 });
 
@@ -68,9 +69,12 @@ interface AddVehicleDialogProps {
 export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehicleDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [eraEquipments, setEraEquipments] = useState<EraEquipment[]>([]);
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [allEraEquipments, setAllEraEquipments] = useState<EraEquipment[]>([]);
+  const [allInventoryItems, setAllInventoryItems] = useState<InventoryItem[]>([]);
   const [loadingRelatedData, setLoadingRelatedData] = useState(false);
+
+  const [eraSearchTerm, setEraSearchTerm] = useState("");
+  const [inventorySearchTerm, setInventorySearchTerm] = useState("");
 
   const form = useForm<AddVehicleFormValues>({
     resolver: zodResolver(addVehicleFormSchema),
@@ -96,15 +100,18 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
     async function loadData() {
       if (open) {
         setLoadingRelatedData(true);
+        setEraSearchTerm("");
+        setInventorySearchTerm("");
         try {
           const [eras, items] = await Promise.all([
             getAllEraEquipments(),
             getAllInventoryItems()
           ]);
-          setEraEquipments(eras.filter(era => era.estado_era === 'Disponible')); // Solo ERAs disponibles
+          setAllEraEquipments(eras.filter(era => era.estado_era === 'Disponible'));
+          setAllInventoryItems(items.filter(item => item.cantidad_actual > 0));
           
-          const initialInventoryItems = items
-            .filter(item => item.cantidad_actual > 0) // Solo items con stock
+          const initialInventoryItemsForForm = items
+            .filter(item => item.cantidad_actual > 0)
             .map(item => ({
               id_item: item.id_item,
               nombre_item: `${item.nombre_item} (${item.codigo_item}) - Disp: ${item.cantidad_actual} ${item.unidad_medida}`,
@@ -127,7 +134,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
             imagen_archivo: null,
             notas: "",
             assignedEraIds: [],
-            assignedInventoryItems: initialInventoryItems,
+            assignedInventoryItems: initialInventoryItemsForForm,
           });
         } catch (error) {
           console.error("Error loading ERA or Inventory Items for vehicle creation:", error);
@@ -170,6 +177,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         vencimiento_documentacion: otherFormValues.vencimiento_documentacion || undefined,
         url_imagen: null, 
         ai_hint_imagen: undefined,
+        notas: values.notas || undefined,
         assignedEraIds: values.assignedEraIds,
         assignedInventoryItems: finalAssignedInventoryItems,
       };
@@ -193,6 +201,25 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       setIsSubmitting(false);
     }
   }
+
+  const filteredEraEquipments = useMemo(() => {
+    if (!eraSearchTerm) return allEraEquipments;
+    return allEraEquipments.filter(era => 
+      era.codigo_era.toLowerCase().includes(eraSearchTerm.toLowerCase()) ||
+      era.marca?.toLowerCase().includes(eraSearchTerm.toLowerCase()) ||
+      era.modelo?.toLowerCase().includes(eraSearchTerm.toLowerCase())
+    );
+  }, [allEraEquipments, eraSearchTerm]);
+
+  const currentInventoryItemsInForm = form.watch('assignedInventoryItems') || [];
+
+  const filteredInventoryItemsForDisplay = useMemo(() => {
+    if (!inventorySearchTerm) return currentInventoryItemsInForm;
+    return currentInventoryItemsInForm.filter(item =>
+      item.nombre_item.toLowerCase().includes(inventorySearchTerm.toLowerCase())
+    );
+  }, [currentInventoryItemsInForm, inventorySearchTerm]);
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -287,48 +314,59 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
             {/* Sección para asignar Equipos ERA */}
             <div className="space-y-2 pt-4 border-t">
               <h3 className="text-lg font-medium flex items-center"><ShieldAlert className="mr-2 h-5 w-5 text-primary" />Asignar Equipos ERA (Opcional)</h3>
+              <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar ERA por código, marca, modelo..."
+                  value={eraSearchTerm}
+                  onChange={(e) => setEraSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
               {loadingRelatedData ? <Loader2 className="h-5 w-5 animate-spin" /> :
-                eraEquipments.length > 0 ? (
+                allEraEquipments.length > 0 ? (
                   <ScrollArea className="h-40 rounded-md border p-2">
-                    <FormField
-                      control={form.control}
-                      name="assignedEraIds"
-                      render={({ field }) => (
-                        <FormItem>
-                          {eraEquipments.map((era) => (
-                            <FormField
-                              key={era.id_era}
-                              control={form.control}
-                              name="assignedEraIds"
-                              render={({ field: itemField }) => {
-                                return (
-                                  <FormItem className="flex flex-row items-center space-x-3 space-y-0 py-1">
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={itemField.value?.includes(era.id_era)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? itemField.onChange([...(itemField.value || []), era.id_era])
-                                            : itemField.onChange(
-                                                (itemField.value || []).filter(
-                                                  (id) => id !== era.id_era
-                                                )
-                                              );
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="font-normal text-sm">
-                                      {era.codigo_era} - {era.marca} {era.modelo || ''} (S/N: {era.numero_serie || 'N/A'})
-                                    </FormLabel>
-                                  </FormItem>
-                                );
-                              }}
-                            />
-                          ))}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {filteredEraEquipments.length > 0 ? (
+                      <FormField
+                        control={form.control}
+                        name="assignedEraIds"
+                        render={({ field }) => (
+                          <FormItem>
+                            {filteredEraEquipments.map((era) => (
+                              <FormField
+                                key={era.id_era}
+                                control={form.control}
+                                name="assignedEraIds"
+                                render={({ field: itemField }) => {
+                                  return (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 py-1">
+                                      <FormControl>
+                                        <Checkbox
+                                          checked={itemField.value?.includes(era.id_era)}
+                                          onCheckedChange={(checked) => {
+                                            return checked
+                                              ? itemField.onChange([...(itemField.value || []), era.id_era])
+                                              : itemField.onChange(
+                                                  (itemField.value || []).filter(
+                                                    (id) => id !== era.id_era
+                                                  )
+                                                );
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormLabel className="font-normal text-sm">
+                                        {era.codigo_era} - {era.marca} {era.modelo || ''} (S/N: {era.numero_serie || 'N/A'})
+                                      </FormLabel>
+                                    </FormItem>
+                                  );
+                                }}
+                              />
+                            ))}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : <p className="text-sm text-muted-foreground p-2">No hay equipos ERA que coincidan con la búsqueda.</p>}
                   </ScrollArea>
                 ) : <p className="text-sm text-muted-foreground">No hay equipos ERA disponibles para asignar.</p>
               }
@@ -337,44 +375,76 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
             {/* Sección para asignar Ítems de Inventario */}
             <div className="space-y-2 pt-4 border-t">
               <h3 className="text-lg font-medium flex items-center"><Package className="mr-2 h-5 w-5 text-primary" />Asignar Ítems de Inventario (Opcional)</h3>
+               <div className="relative mb-2">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Buscar ítem por nombre, código..."
+                  value={inventorySearchTerm}
+                  onChange={(e) => setInventorySearchTerm(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
               {loadingRelatedData ? <Loader2 className="h-5 w-5 animate-spin" /> :
-                form.getValues('assignedInventoryItems') && form.getValues('assignedInventoryItems')!.length > 0 ? (
+                allInventoryItems.length > 0 ? (
                   <ScrollArea className="h-48 rounded-md border p-2">
                     <div className="space-y-3">
-                    {(form.getValues('assignedInventoryItems') || []).map((item, index) => (
-                      <div key={item.id_item} className="flex items-center justify-between gap-3 p-2 border rounded-md">
-                        <FormField
-                          control={form.control}
-                          name={`assignedInventoryItems.${index}.selected`}
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-2">
-                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                              <FormLabel htmlFor={`assignedInventoryItems.${index}.selected`} className="font-normal text-sm flex-grow">{item.nombre_item}</FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                         <FormField
-                          control={form.control}
-                          name={`assignedInventoryItems.${index}.cantidad`}
-                          render={({ field }) => (
-                            <FormItem className="w-28">
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  placeholder="Cant."
-                                  {...field}
-                                  min={1}
-                                  max={ (form.getValues('assignedInventoryItems')![index] as any).max_cantidad }
-                                  disabled={!form.watch(`assignedInventoryItems.${index}.selected`)}
-                                  className="h-8"
-                                />
-                              </FormControl>
-                              <FormMessage className="text-xs" />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    ))}
+                    {filteredInventoryItemsForDisplay.length > 0 ? (
+                      filteredInventoryItemsForDisplay.map((item, index) => {
+                        // Encontrar el índice original del ítem en el array completo del formulario
+                        // para asegurar que estamos actualizando el ítem correcto.
+                        const originalIndex = form.getValues('assignedInventoryItems')?.findIndex(fi => fi.id_item === item.id_item);
+                        if (originalIndex === undefined || originalIndex === -1) return null; // Ítem no encontrado en el form (no debería pasar)
+
+                        return (
+                          <div key={item.id_item} className="flex items-center justify-between gap-3 p-2 border rounded-md">
+                            <FormField
+                              control={form.control}
+                              name={`assignedInventoryItems.${originalIndex}.selected`}
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2 flex-grow">
+                                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                  <FormLabel htmlFor={`assignedInventoryItems.${originalIndex}.selected`} className="font-normal text-sm flex-grow min-w-0">
+                                    <span className="truncate block">{item.nombre_item}</span>
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name={`assignedInventoryItems.${originalIndex}.cantidad`}
+                              render={({ field }) => (
+                                <FormItem className="w-28 flex-shrink-0">
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="Cant."
+                                      {...field}
+                                      min={1}
+                                      max={item.max_cantidad}
+                                      disabled={!form.watch(`assignedInventoryItems.${originalIndex}.selected`)}
+                                      className="h-8"
+                                      onChange={(e) => {
+                                          const val = parseInt(e.target.value, 10);
+                                          if (isNaN(val)) {
+                                              field.onChange(1); // o algún valor por defecto si se borra
+                                          } else if (val > (item.max_cantidad ?? Infinity)) {
+                                              field.onChange(item.max_cantidad);
+                                          } else if (val < 1) {
+                                              field.onChange(1);
+                                          } else {
+                                              field.onChange(val);
+                                          }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="text-xs" />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        );
+                      })
+                    ) : <p className="text-sm text-muted-foreground p-2">No hay ítems de inventario que coincidan con la búsqueda.</p>}
                     </div>
                   </ScrollArea>
                 ) : <p className="text-sm text-muted-foreground">No hay ítems de inventario con stock disponibles para asignar.</p>
@@ -394,3 +464,4 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
     </Dialog>
   );
 }
+
