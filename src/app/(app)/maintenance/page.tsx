@@ -3,24 +3,27 @@
 
 import type { MaintenanceTask, MaintenanceStatus } from "@/types/maintenanceTypes";
 import type { User } from "@/services/userService";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { getAllMaintenanceTasks } from "@/services/maintenanceService";
 import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, CheckSquare, Clock, Loader2, AlertTriangle, PackageSearch, Eye } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { PlusCircle, Edit, Trash2, CheckSquare, Eye, Loader2, AlertTriangle, PackageSearch, CalendarIcon, FilterX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
 import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog";
-import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog"; // Importar View Dialog
-import { format, parseISO, isValid, isPast, differenceInDays } from 'date-fns';
+import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog";
+import { format, parseISO, isValid, isPast, differenceInDays, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { cn } from "@/lib/utils";
 
 export default function MaintenancePage() {
-  const [maintenanceTasks, setMaintenanceTasks] = useState<MaintenanceTask[]>([]);
+  const [allMaintenanceTasks, setAllMaintenanceTasks] = useState<MaintenanceTask[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +33,10 @@ export default function MaintenancePage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null); // Estado para View Dialog
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // Estado para View Dialog
+  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -41,15 +46,7 @@ export default function MaintenancePage() {
         getAllMaintenanceTasks(),
         getAllUsers()
       ]);
-      setMaintenanceTasks(tasks.map(task => {
-        if (task.estado_mantencion !== 'Completada' && task.estado_mantencion !== 'Cancelada' && task.fecha_programada) {
-            const dueDate = parseISO(task.fecha_programada + "T00:00:00"); 
-            if (isValid(dueDate) && isPast(dueDate) && differenceInDays(new Date(), dueDate) > 0) {
-                 return { ...task, estado_mantencion: 'Atrasada' as MaintenanceStatus };
-            }
-        }
-        return task;
-      }));
+      setAllMaintenanceTasks(tasks);
       setUsers(fetchedUsers);
     } catch (err) {
       console.error("Error fetching maintenance tasks or users:", err);
@@ -62,6 +59,40 @@ export default function MaintenancePage() {
   useEffect(() => {
     fetchPageData();
   }, [fetchPageData]);
+  
+  const filteredMaintenanceTasks = useMemo(() => {
+    return allMaintenanceTasks
+      .map(task => {
+        if (task.estado_mantencion !== 'Completada' && task.estado_mantencion !== 'Cancelada' && task.fecha_programada) {
+            const dueDate = parseISO(task.fecha_programada); 
+            if (isValid(dueDate) && isPast(dueDate) && differenceInDays(new Date(), dueDate) > 0) {
+                 return { ...task, estado_mantencion: 'Atrasada' as MaintenanceStatus };
+            }
+        }
+        return task;
+      })
+      .filter(task => {
+        if (!dateRange.from && !dateRange.to) return true;
+        if (!task.fecha_programada) return false; // Tasks without a programmed date are hidden if a date filter is active
+
+        let taskDate: Date;
+        try {
+            taskDate = parseISO(task.fecha_programada);
+            if (!isValid(taskDate)) return false;
+        } catch (e) {
+            return false;
+        }
+
+        if (dateRange.from && isBefore(taskDate, startOfDay(dateRange.from))) {
+            return false;
+        }
+        if (dateRange.to && isAfter(taskDate, endOfDay(dateRange.to))) {
+            return false;
+        }
+        return true;
+      });
+  }, [allMaintenanceTasks, dateRange]);
+
 
   const handleTaskAddedOrUpdatedOrDeleted = () => {
     fetchPageData();
@@ -77,12 +108,12 @@ export default function MaintenancePage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const openViewDialog = (task: MaintenanceTask) => { // Función para abrir View Dialog
+  const openViewDialog = (task: MaintenanceTask) => {
     setSelectedTaskForView(task);
     setIsViewDialogOpen(true);
   };
 
-  const formatDate = (dateString?: string | null) => {
+  const formatDateTable = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
@@ -116,7 +147,7 @@ export default function MaintenancePage() {
     }
   };
   
-  if (loading && maintenanceTasks.length === 0) {
+  if (loading && allMaintenanceTasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -143,33 +174,101 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-headline font-bold">Mantención de Equipos</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <PlusCircle className="mr-2 h-5 w-5" /> Programar Nueva Mantención
         </Button>
       </div>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-headline">Filtros</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full sm:w-[240px] justify-start text-left font-normal",
+                  !dateRange.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.from ? format(dateRange.from, "dd/MM/yyyy", { locale: es }) : <span>Fecha Desde</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateRange.from}
+                onSelect={(date) => setDateRange(prev => ({ ...prev, from: date }))}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full sm:w-[240px] justify-start text-left font-normal",
+                  !dateRange.to && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.to ? format(dateRange.to, "dd/MM/yyyy", { locale: es }) : <span>Fecha Hasta</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateRange.to}
+                onSelect={(date) => setDateRange(prev => ({ ...prev, to: date }))}
+                disabled={(date) => dateRange.from && isBefore(date, dateRange.from)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Button 
+            variant="ghost" 
+            onClick={() => setDateRange({})} 
+            className="w-full sm:w-auto"
+            disabled={!dateRange.from && !dateRange.to}
+          >
+            <FilterX className="mr-2 h-4 w-4" /> Limpiar Filtros
+          </Button>
+        </CardContent>
+      </Card>
       
-      {maintenanceTasks.length === 0 && !loading && (
+      {filteredMaintenanceTasks.length === 0 && !loading && (
          <Card className="shadow-md text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <PackageSearch className="h-10 w-10" />
             </div>
-            <CardTitle className="mt-4">No hay Mantenciones Programadas</CardTitle>
+            <CardTitle className="mt-4">
+                {allMaintenanceTasks.length === 0 ? "No hay Mantenciones Programadas" : "No hay Mantenciones para este filtro"}
+            </CardTitle>
             <CardDescription>
-              No hay tareas de mantención registradas en el sistema. Comienza programando una.
+              {allMaintenanceTasks.length === 0
+                ? "No hay tareas de mantención registradas en el sistema. Comienza programando una."
+                : "Intenta ajustar los filtros de fecha o crea nuevas tareas de mantención."
+              }
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          {allMaintenanceTasks.length === 0 && (
+            <CardContent>
              <Button onClick={() => setIsAddDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-5 w-5" /> Programar Nueva Mantención
             </Button>
           </CardContent>
+          )}
         </Card>
       )}
 
-      {maintenanceTasks.length > 0 && (
+      {filteredMaintenanceTasks.length > 0 && (
         <Card className="shadow-md">
           <CardContent className="p-0">
             <Table>
@@ -184,13 +283,13 @@ export default function MaintenancePage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {maintenanceTasks.map((task) => (
+                {filteredMaintenanceTasks.map((task) => (
                   <TableRow key={task.id_mantencion}>
                     <TableCell>
                       <div>{task.nombre_item_mantenimiento}</div>
                       <div className="text-xs text-muted-foreground">{task.tipo_item}</div>
                     </TableCell>
-                    <TableCell>{formatDate(task.fecha_programada)}</TableCell>
+                    <TableCell>{formatDateTable(task.fecha_programada)}</TableCell>
                     <TableCell>{task.nombre_usuario_responsable || "N/A"}</TableCell>
                     <TableCell>
                       <Badge 
@@ -200,19 +299,26 @@ export default function MaintenancePage() {
                         {task.estado_mantencion}
                       </Badge>
                     </TableCell>
-                    <TableCell>{formatDate(task.fecha_ultima_realizada)}</TableCell>
+                    <TableCell>{formatDateTable(task.fecha_ultima_realizada)}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button 
                         variant="outline" 
                         size="icon" 
                         className="h-8 w-8" 
-                        title={task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? "Ver Detalles" : "Marcar Completada / Actualizar"}
-                        onClick={() => task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? openViewDialog(task) : openEditDialog(task)}
+                        title="Ver Detalles"
+                        onClick={() => openViewDialog(task)}
                       >
-                        {task.estado_mantencion === "Completada" || task.estado_mantencion === "Cancelada" ? <Eye className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                        <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => openEditDialog(task)} title="Editar Tarea">
-                        <Edit className="h-4 w-4" />
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => openEditDialog(task)} 
+                        title="Editar / Completar Tarea"
+                        disabled={task.estado_mantencion === 'Cancelada'}
+                      >
+                        {task.estado_mantencion === 'Completada' || task.estado_mantencion === 'Cancelada' ? <Edit className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
                       </Button>
                       <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => openDeleteDialog(task)} title="Eliminar Tarea">
                         <Trash2 className="h-4 w-4" />

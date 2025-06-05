@@ -36,7 +36,7 @@ const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactN
 export function ViewMaintenanceDialog({ task, open, onOpenChange }: ViewMaintenanceDialogProps) {
   if (!task) return null;
 
-  const formatDate = (dateInput?: string | null | Date): string | null => {
+  const formatDateDisplay = (dateInput?: string | null | Date): string | null => {
     if (!dateInput) return null;
     let dateToFormat: Date;
     if (dateInput instanceof Date) {
@@ -44,18 +44,19 @@ export function ViewMaintenanceDialog({ task, open, onOpenChange }: ViewMaintena
       dateToFormat = dateInput;
     } else if (typeof dateInput === 'string') {
       try {
+        // Handle YYYY-MM-DD or full ISO strings
         let isoCompliantString = dateInput;
         if (dateInput.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
-          isoCompliantString = `${dateInput}T00:00:00`;
+          isoCompliantString = `${dateInput}T00:00:00`; // Assume local time if only date part
         } else if (dateInput.includes(' ') && !dateInput.includes('T')) {
-           isoCompliantString = dateInput.replace(' ', 'T');
+           isoCompliantString = dateInput.replace(' ', 'T'); // Make more ISO-like
         }
         dateToFormat = parseISO(isoCompliantString);
         if (!isValid(dateToFormat)) return "Fecha inválida";
-      } catch (e) { return "Error al parsear"; }
-    } else { return "Tipo no soportado"; }
-    try { return format(dateToFormat, "PPP", { locale: es }); }
-    catch (e) { return "Error al formatear"; }
+      } catch (e) { return "Error al parsear fecha"; }
+    } else { return "Tipo de fecha no soportado"; }
+    try { return format(dateToFormat, "PPP", { locale: es }); } // "d 'de' LLLL 'de' yyyy"
+    catch (e) { return "Error al formatear fecha"; }
   };
 
   const getStatusBadgeVariant = (status: MaintenanceTask["estado_mantencion"]): "default" | "secondary" | "outline" | "destructive" => {
@@ -92,10 +93,11 @@ export function ViewMaintenanceDialog({ task, open, onOpenChange }: ViewMaintena
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-1 py-4 max-h-[65vh] overflow-y-auto pr-3">
+          <DetailItem label="ID Mantención" value={`M-${task.id_mantencion.toString().padStart(3,'0')}`} />
           <DetailItem label="Ítem" value={task.nombre_item_mantenimiento} />
           <DetailItem label="Tipo Ítem" value={task.tipo_item} />
           <DetailItem label="Estado" value={
-            <Badge 
+            <Badge
               variant={getStatusBadgeVariant(task.estado_mantencion)}
               className={getStatusBadgeClassName(task.estado_mantencion)}
             >
@@ -103,16 +105,16 @@ export function ViewMaintenanceDialog({ task, open, onOpenChange }: ViewMaintena
             </Badge>
           } />
           <DetailItem label="Desc. Mantención" value={<p className="whitespace-pre-wrap text-sm">{task.descripcion_mantencion}</p>} fullWidthValue />
-          <DetailItem label="Fecha Programada" value={formatDate(task.fecha_programada)} />
+          <DetailItem label="Fecha Programada" value={formatDateDisplay(task.fecha_programada)} />
           <DetailItem label="Responsable" value={task.nombre_usuario_responsable} />
-          <DetailItem label="Última Realizada" value={formatDate(task.fecha_ultima_realizada)} />
+          <DetailItem label="Última Realizada" value={formatDateDisplay(task.fecha_ultima_realizada)} />
           {task.estado_mantencion === 'Completada' && (
-            <DetailItem label="Fecha Completada" value={formatDate(task.fecha_completada)} />
+            <DetailItem label="Fecha Completada" value={formatDateDisplay(task.fecha_completada)} />
           )}
-          <DetailItem label="Registro Tarea" value={<p className="whitespace-pre-wrap text-sm">{task.notas_mantencion}</p>} fullWidthValue />
+          <DetailItem label="Registro Tarea / Notas" value={<p className="whitespace-pre-wrap text-sm">{task.notas_mantencion}</p>} fullWidthValue />
           <DetailItem label="Creado Por" value={task.nombre_usuario_creador} />
-          <DetailItem label="Fecha Creación" value={formatDate(task.fecha_creacion)} />
-          <DetailItem label="Últ. Actualización" value={formatDate(task.fecha_actualizacion)} />
+          <DetailItem label="Fecha Creación" value={formatDateDisplay(task.fecha_creacion)} />
+          <DetailItem label="Últ. Actualización" value={formatDateDisplay(task.fecha_actualizacion)} />
         </div>
         <DialogFooter className="pt-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
