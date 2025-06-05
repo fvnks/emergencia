@@ -6,7 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { getVehicleById } from "@/services/vehicleService";
-import type { Vehicle } from "@/types/vehicleTypes";
+import type { Vehicle, VehicleAssignedInventoryItem } from "@/types/vehicleTypes";
+import type { EraEquipment } from "@/components/equipment/era-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +16,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { ManageVehicleEraDialog } from "@/components/vehicles/manage-vehicle-era-dialog";
-import { ManageVehicleInventoryDialog } from "@/components/vehicles/manage-vehicle-inventory-dialog"; // Importar el nuevo diálogo
+import { ManageVehicleInventoryDialog } from "@/components/vehicles/manage-vehicle-inventory-dialog";
 
 type LucideIcon = typeof Loader2;
 
@@ -223,12 +224,13 @@ export default function VehicleDetailPage() {
               </h2>
               <Button variant="outline" size="sm" onClick={handleManageEra}>Gestionar ERA</Button>
             </div>
-            {(vehicle.assignedEraIds && vehicle.assignedEraIds.length > 0) ? (
-              <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
-                {vehicle.assignedEraIds.map(eraId => (
-                  // Idealmente, aquí tendrías el nombre/código del ERA, no solo el ID.
-                  // Esto requiere que getVehicleById devuelva los detalles de los ERAs asignados.
-                  <li key={eraId}>Equipo ERA ID: {eraId} (Se requiere backend para mostrar detalles)</li>
+            {(vehicle.assignedEras && vehicle.assignedEras.length > 0) ? (
+              <ul className="list-disc list-inside space-y-1.5 pl-1 text-sm">
+                {vehicle.assignedEras.map((era: EraEquipment) => (
+                  <li key={era.id_era} className="ml-4 p-1 border-b border-border/50 last:border-b-0">
+                    <strong>{era.codigo_era}</strong> - {era.marca} {era.modelo || ''}
+                    <span className="block text-xs text-muted-foreground">S/N: {era.numero_serie || 'N/A'}</span>
+                  </li>
                 ))}
               </ul>
             ) : (
@@ -244,12 +246,13 @@ export default function VehicleDetailPage() {
               <Button variant="outline" size="sm" onClick={handleManageInventory}>Gestionar Inventario</Button>
             </div>
             {(vehicle.assignedInventoryItems && vehicle.assignedInventoryItems.length > 0) ? (
-              <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
-                {vehicle.assignedInventoryItems.map(item => (
-                  // Idealmente, aquí tendrías el nombre del ítem, no solo el ID.
-                  // Esto requiere que getVehicleById devuelva los detalles de los ítems asignados.
-                  <li key={item.id_item}>
-                    Ítem ID: {item.id_item} - Cantidad: {item.cantidad} (Se requiere backend para mostrar detalles)
+              <ul className="list-disc list-inside space-y-1.5 pl-1 text-sm">
+                {vehicle.assignedInventoryItems.map((assignedItem: VehicleAssignedInventoryItem) => (
+                  <li key={assignedItem.itemDetails.id_item} className="ml-4 p-1 border-b border-border/50 last:border-b-0">
+                    <strong>{assignedItem.itemDetails.nombre_item}</strong> ({assignedItem.itemDetails.codigo_item || 'S/C'})
+                    <span className="block text-xs text-muted-foreground">
+                      Cantidad: {assignedItem.cantidad} {assignedItem.itemDetails.unidad_medida}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -1,9 +1,17 @@
 
+import type { EraEquipment } from "@/components/equipment/era-types";
+import type { InventoryItem } from "./inventoryService";
+
 export type VehicleStatus = 'Operativo' | 'En Mantención' | 'Fuera de Servicio';
 export const ALL_VEHICLE_STATUSES: VehicleStatus[] = ['Operativo', 'En Mantención', 'Fuera de Servicio'];
 
 export type VehicleType = 'Bomba' | 'Escala' | 'Rescate' | 'Ambulancia' | 'HazMat' | 'Forestal' | 'Utilitario' | 'Transporte Personal' | 'Otro';
 export const ALL_VEHICLE_TYPES: VehicleType[] = ['Bomba', 'Escala', 'Rescate', 'Ambulancia', 'HazMat', 'Forestal', 'Utilitario', 'Transporte Personal', 'Otro'];
+
+export interface VehicleAssignedInventoryItem {
+  itemDetails: InventoryItem; // Asumiendo que InventoryItem tiene id_item, nombre_item, codigo_item, etc.
+  cantidad: number;
+}
 
 export interface Vehicle {
   id_vehiculo: number;
@@ -23,9 +31,13 @@ export interface Vehicle {
   fecha_creacion: string;
   fecha_actualizacion: string;
 
-  // Campos para asignaciones (idealmente, el backend devolvería objetos más detallados)
+  // Campos para asignaciones (ahora con detalles)
+  assignedEras?: EraEquipment[]; // Lista de objetos EraEquipment completos
+  assignedInventoryItems?: VehicleAssignedInventoryItem[]; // Lista de objetos con detalles del ítem y cantidad
+
+  // Campos antiguos, mantener por si el backend aún no está completamente actualizado
+  // o para compatibilidad durante la transición
   assignedEraIds?: number[];
-  assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
 
 export interface VehicleCreateInput {
@@ -63,3 +75,4 @@ export interface VehicleUpdateInput {
   assignedEraIds?: number[];
   assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
+
