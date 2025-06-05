@@ -38,10 +38,6 @@ const addVehicleFormSchema = z.object({
     (val) => (val === "" ? undefined : val),
     z.string().url("URL de imagen inválida. Asegúrate que incluya http:// o https://").optional().nullable()
   ),
-  ai_hint_imagen: z.preprocess(
-    (val) => (val === "" ? undefined : val),
-    z.string().max(50, "Máximo 50 caracteres para pista AI.").optional().nullable()
-  ),
   notas: z.string().optional(),
 });
 
@@ -71,7 +67,6 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
       url_imagen: "",
-      ai_hint_imagen: "",
       notas: "",
     },
   });
@@ -90,7 +85,6 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         proxima_mantencion_programada: "",
         vencimiento_documentacion: "",
         url_imagen: "",
-        ai_hint_imagen: "",
         notas: "",
       });
     }
@@ -107,7 +101,7 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
         proxima_mantencion_programada: values.proxima_mantencion_programada || undefined,
         vencimiento_documentacion: values.vencimiento_documentacion || undefined,
         url_imagen: values.url_imagen || undefined,
-        ai_hint_imagen: values.ai_hint_imagen || undefined,
+        // ai_hint_imagen ya no se incluye aquí
       };
       await createVehicle(createData);
       toast({
@@ -191,16 +185,10 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>URL Imagen (Opcional)</FormLabel><FormControl><Input placeholder="https://ejemplo.com/imagen.png" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormDescription>Pega la URL de una imagen para el vehículo.</FormDescription><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="ai_hint_imagen" render={({ field }) => (
-                    <FormItem><FormLabel>Pista AI Imagen (Opcional)</FormLabel><FormControl><Input placeholder="Ej: camion rojo" {...field} value={field.value ?? ''} /></FormControl>
-                    <FormDescription>1-2 palabras para placeholder de IA (ej: 'camion bomberos', 'ambulancia').</FormDescription><FormMessage /></FormItem>
-                )} />
-            </div>
+            <FormField control={form.control} name="url_imagen" render={({ field }) => (
+                <FormItem><FormLabel>URL Imagen (Opcional)</FormLabel><FormControl><Input placeholder="https://ejemplo.com/imagen.png" {...field} value={field.value ?? ''} /></FormControl>
+                <FormDescription>Pega la URL de una imagen para el vehículo.</FormDescription><FormMessage /></FormItem>
+            )} />
             <FormField control={form.control} name="notas" render={({ field }) => (
               <FormItem><FormLabel>Notas (Opcional)</FormLabel><FormControl><Textarea placeholder="Observaciones sobre el vehículo..." {...field} /></FormControl><FormMessage /></FormItem>
             )} />
@@ -216,5 +204,6 @@ export function AddVehicleDialog({ open, onOpenChange, onVehicleAdded }: AddVehi
     </Dialog>
   );
 }
+    
 
     
