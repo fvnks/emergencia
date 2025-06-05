@@ -3,15 +3,16 @@
 
 import type { User } from "@/services/userService"; 
 import type { EppAssignment } from "@/services/eppAssignmentService";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react"; // Added useMemo
 import { getAllUsers } from "@/services/userService";
 import { getEppAssignedToUser } from "@/services/eppAssignmentService";
 import { getActiveTasksForUser, type Task } from "@/services/taskService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle } from "lucide-react";
+import { Edit, Trash2, ShieldCheck, ClipboardList, Mail, Phone, Loader2, AlertTriangle, Search, UserX } from "lucide-react"; // Added Search, UserX
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input"; // Added Input
 import { AddPersonnelDialog } from "@/components/personnel/add-personnel-dialog";
 import { DeletePersonnelDialog } from "@/components/personnel/delete-personnel-dialog";
 import { EditPersonnelDialog } from "@/components/personnel/edit-personnel-dialog";
@@ -32,6 +33,8 @@ export default function PersonnelPage() {
   
   const [selectedPersonForEdit, setSelectedPersonForEdit] = useState<User | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const [searchTerm, setSearchTerm] = useState<string>(""); // State for search term
 
   const { user: currentUser } = useAuth();
 
@@ -58,7 +61,6 @@ export default function PersonnelPage() {
         setEppLoading(initialEppLoadingState);
         setTasksLoading(initialTasksLoadingState);
 
-        // Fetch EPP and Tasks for each user
         for (const person of users) {
           getEppAssignedToUser(person.id_usuario)
             .then(eppItems => {
@@ -66,7 +68,7 @@ export default function PersonnelPage() {
             })
             .catch(eppError => {
               console.error(`Error fetching EPP for user ${person.id_usuario}:`, eppError);
-              setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty on error
+              setAssignedEpp(prev => ({ ...prev, [person.id_usuario]: [] })); 
             })
             .finally(() => {
               setEppLoading(prev => ({ ...prev, [person.id_usuario]: false }));
@@ -78,7 +80,7 @@ export default function PersonnelPage() {
             })
             .catch(taskError => {
               console.error(`Error fetching tasks for user ${person.id_usuario}:`, taskError);
-              setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: [] })); // Set empty on error
+              setAssignedTasks(prev => ({ ...prev, [person.id_usuario]: [] })); 
             })
             .finally(() => {
               setTasksLoading(prev => ({ ...prev, [person.id_usuario]: false }));
@@ -127,6 +129,20 @@ export default function PersonnelPage() {
     return name.substring(0, 2).toUpperCase();
   }
 
+  const filteredPersonnel = useMemo(() => {
+    if (!searchTerm) {
+      return personnel;
+    }
+    const lowercasedFilter = searchTerm.toLowerCase();
+    return personnel.filter((person) => {
+      return (
+        person.nombre_completo.toLowerCase().includes(lowercasedFilter) ||
+        person.email.toLowerCase().includes(lowercasedFilter) ||
+        (person.rol && person.rol.toLowerCase().includes(lowercasedFilter))
+      );
+    });
+  }, [personnel, searchTerm]);
+
   if (loading && personnel.length === 0) { 
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
@@ -151,24 +167,48 @@ export default function PersonnelPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-headline font-bold">Directorio de Personal</h1>
-        <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdatedOrDeleted} />
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="Buscar por nombre, email, rol..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-[280px] bg-card"
+                />
+            </div>
+            <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdatedOrDeleted} />
+        </div>
       </div>
 
-      {personnel.length === 0 && !loading && (
+      {filteredPersonnel.length === 0 && !loading && (
         <Card className="shadow-md">
           <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No hay personal registrado en el sistema.</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Intenta agregar nuevo personal.
+             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
+                <UserX className="h-10 w-10" />
+            </div>
+            <p className="text-lg font-semibold">
+              {searchTerm ? "No se encontraron coincidencias" : "No hay personal registrado"}
             </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {searchTerm
+                ? `Intenta con otro término de búsqueda o revisa la lista completa.`
+                : "Comienza agregando nuevo personal."}
+            </p>
+            {searchTerm && (
+                 <Button variant="outline" size="sm" onClick={() => setSearchTerm("")} className="mt-4">
+                    Limpiar Búsqueda
+                </Button>
+            )}
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {personnel.map((person) => (
+        {filteredPersonnel.map((person) => (
           <Card key={person.id_usuario} className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col">
             <CardHeader className="items-center text-center">
               <Avatar className="h-24 w-24 mb-3">
@@ -263,3 +303,4 @@ export default function PersonnelPage() {
     </div>
   );
 }
+
