@@ -1,11 +1,14 @@
+
 "use client";
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
-
+import { useEffect, useState } from "react";
+import { getAllVehicles, type Vehicle } from "@/services/vehicleService";
+import { getAllUsers, type User } from "@/services/userService";
 
 const dailyOpsData = [
   { name: 'Lun', ops: 4, maint: 2 },
@@ -28,44 +31,102 @@ const chartConfig = {
   },
 } satisfies import("@/components/ui/chart").ChartConfig;
 
-
 export default function DashboardPage() {
+  const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
+  const [totalVehicles, setTotalVehicles] = useState<number | string>("N/A");
+  const [personnelCount, setPersonnelCount] = useState<number | string>("N/A");
+  const [totalPersonnel, setTotalPersonnel] = useState<number | string>("N/A");
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [vehiclesData, usersData] = await Promise.all([
+          getAllVehicles(),
+          getAllUsers()
+        ]);
+
+        // Process vehicle data
+        const operative = vehiclesData.filter(v => v.estado_vehiculo === 'Operativo').length;
+        setOperativeVehicles(operative);
+        setTotalVehicles(vehiclesData.length);
+
+        // Process personnel data
+        setPersonnelCount(usersData.length);
+        setTotalPersonnel(usersData.length); // Assuming all registered users are "total personnel"
+
+      } catch (err) {
+        console.error("Error fetching dashboard data:", err);
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los datos del panel.");
+        setOperativeVehicles("Error");
+        setTotalVehicles("Error");
+        setPersonnelCount("Error");
+        setTotalPersonnel("Error");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        Cargando datos del panel...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64 text-destructive">
+        <AlertTriangle className="h-8 w-8 mr-2" />
+        Error al cargar el panel: {error}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           title="Vehículos Operativos"
-          value="8"
+          value={operativeVehicles.toString()}
           icon={Truck}
-          description="De 10 en total"
+          description={totalVehicles !== "N/A" && totalVehicles !== "Error" ? `De ${totalVehicles} en total` : ""}
           iconClassName="text-green-500"
         />
         <StatCard
           title="Tareas Activas"
-          value="12"
+          value="12" // Placeholder - to be dynamic later
           icon={Activity}
-          description="3 atrasadas"
+          description="3 atrasadas" // Placeholder
           iconClassName="text-blue-500"
         />
         <StatCard
           title="Personal Disponible"
-          value="9"
+          value={personnelCount.toString()}
           icon={Users}
-          description="De 11 en total"
+          description={totalPersonnel !== "N/A" && totalPersonnel !== "Error" ? `${totalPersonnel} miembros registrados` : ""}
           iconClassName="text-green-500"
         />
         <StatCard
           title="Equipos Listos"
-          value="45"
+          value="45" // Placeholder
           icon={ShieldCheck}
-          description="ERA y Extintores"
+          description="ERA y Extintores" // Placeholder
           iconClassName="text-teal-500"
         />
         <StatCard
           title="Alertas Activas"
-          value="2"
+          value="2" // Placeholder
           icon={AlertTriangle}
-          description="Requieren atención inmediata"
+          description="Requieren atención inmediata" // Placeholder
           iconClassName="text-red-500"
         />
       </div>
@@ -125,3 +186,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
