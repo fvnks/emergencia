@@ -6,28 +6,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2 } from "lucide-react";
+import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2 } from "lucide-react"; // Added Settings2 for generic role
+import { useState, useMemo } from "react";
+import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
 
-interface Permission {
+export interface Permission {
   id: string;
   label: string;
-  granted: boolean;
+  granted: boolean; // En el contexto de un rol específico
 }
 
-interface Role {
+export interface AvailablePermission {
+  id: string;
+  label: string;
+  module: string; // Para agrupar en el diálogo
+}
+
+export interface Role {
   id: string;
   name: string;
   description: string;
   icon: React.ElementType;
   permissions: Permission[];
+  isSystemRole?: boolean; // Para diferenciar roles predefinidos de los creados por el usuario
 }
 
-const rolesData: Role[] = [
+const initialRolesData: Role[] = [
   {
     id: "admin",
     name: "Administrador",
     description: "Acceso completo a todas las funcionalidades del sistema.",
     icon: ShieldCheck,
+    isSystemRole: true,
     permissions: [
       { id: "view_dashboard", label: "Ver Panel Principal", granted: true },
       { id: "manage_vehicles", label: "Gestionar Vehículos (Crear, Editar, Eliminar)", granted: true },
@@ -46,6 +56,7 @@ const rolesData: Role[] = [
     name: "Usuario Estándar",
     description: "Acceso a funcionalidades operativas básicas.",
     icon: UserCircle2,
+    isSystemRole: true,
     permissions: [
       { id: "view_dashboard", label: "Ver Panel Principal", granted: true },
       { id: "view_vehicles", label: "Ver Vehículos y sus detalles", granted: true },
@@ -60,11 +71,63 @@ const rolesData: Role[] = [
       { id: "complete_tasks_assigned", label: "Completar tareas asignadas", granted: true },
       { id: "view_personnel_directory", label: "Ver Directorio de Personal", granted: true },
       { id: "view_own_settings", label: "Ver y modificar su propia configuración de cuenta", granted: true },
+      // Faltantes para el usuario estándar
+      { id: "manage_vehicles", label: "Gestionar Vehículos (Crear, Editar, Eliminar)", granted: false },
+      { id: "manage_equipment", label: "Gestionar Equipos ERA (Crear, Editar, Eliminar, Asignar)", granted: false },
+      { id: "manage_maintenance", label: "Gestionar Mantenciones (Crear, Editar, Eliminar)", granted: false },
+      { id: "manage_inventory", label: "Gestionar Inventario (Crear, Editar, Eliminar, Asignar EPP)", granted: false },
+      { id: "manage_tasks", label: "Gestionar Tareas (Crear, Editar, Eliminar, Asignar)", granted: false },
+      { id: "manage_personnel", label: "Gestionar Personal (Crear, Editar, Eliminar)", granted: false },
+      { id: "manage_settings", label: "Acceder y Modificar Configuración del Sistema", granted: false },
+      { id: "manage_roles", label: "Gestionar Roles y Permisos", granted: false },
+      { id: "manage_warehouses", label: "Gestionar Bodegas", granted: false },
     ],
   },
 ];
 
+// Generar una lista de todos los permisos únicos disponibles
+const allAvailablePermissions = useMemo(() => {
+  const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
+  initialRolesData.forEach(role => {
+    role.permissions.forEach(perm => {
+      if (!permissionMap.has(perm.id)) {
+        // Simple-minded module grouping based on perm.id
+        let module = "General";
+        if (perm.id.includes("vehicle")) module = "Vehículos";
+        else if (perm.id.includes("equipment") || perm.id.includes("era")) module = "Equipos ERA";
+        else if (perm.id.includes("maintenance")) module = "Mantenciones";
+        else if (perm.id.includes("inventory")) module = "Inventario";
+        else if (perm.id.includes("task")) module = "Tareas";
+        else if (perm.id.includes("personnel")) module = "Personal";
+        else if (perm.id.includes("setting") || perm.id.includes("role") || perm.id.includes("warehouse")) module = "Configuración";
+        
+        permissionMap.set(perm.id, { id: perm.id, label: perm.label, module });
+      }
+    });
+  });
+  return Array.from(permissionMap.values());
+}, []);
+
+
 export default function RolesPermissionsPage() {
+  const [rolesData, setRolesData] = useState<Role[]>(initialRolesData);
+  const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
+
+  const handleRoleAdded = (newRole: Omit<Role, 'id' | 'icon' | 'isSystemRole'> & { selectedPermissions: string[] }) => {
+    const newFullRole: Role = {
+      ...newRole,
+      id: newRole.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(), // Simple unique ID
+      icon: Settings2, // Generic icon for custom roles
+      isSystemRole: false,
+      permissions: allAvailablePermissions.map(availPerm => ({
+        id: availPerm.id,
+        label: availPerm.label,
+        granted: newRole.selectedPermissions.includes(availPerm.id),
+      })),
+    };
+    setRolesData(prevRoles => [...prevRoles, newFullRole]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -77,13 +140,13 @@ export default function RolesPermissionsPage() {
             Gestión de Roles y Permisos
           </h1>
         </div>
-        <Button disabled>
+        <Button onClick={() => setIsAddRoleDialogOpen(true)}>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
         </Button> 
       </div>
       <p className="text-muted-foreground">
-        Aquí se podrían definir roles personalizados y asignar permisos específicos a cada módulo.
-        Actualmente, el sistema opera con los roles predefinidos mostrados abajo. La creación de nuevos roles y asignación granular de permisos es una funcionalidad avanzada en desarrollo.
+        Define roles personalizados y asigna permisos específicos a cada módulo.
+        Los roles creados aquí son para simulación y se perderán al recargar la página.
       </p>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -99,14 +162,14 @@ export default function RolesPermissionsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <h4 className="text-md font-semibold text-muted-foreground">Permisos Asignados (Conceptual):</h4>
+              <h4 className="text-md font-semibold text-muted-foreground">Permisos Asignados:</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {role.permissions.map((perm) => (
                   <div key={perm.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`${role.id}-${perm.id}`}
                       checked={perm.granted}
-                      disabled // Todos los checkboxes deshabilitados en esta maqueta
+                      disabled // Todos los checkboxes deshabilitados en esta maqueta visual de roles existentes
                       aria-label={`${perm.label} para ${role.name}`}
                     />
                     <Label htmlFor={`${role.id}-${perm.id}`} className="text-sm font-normal text-foreground peer-disabled:opacity-100">
@@ -115,6 +178,11 @@ export default function RolesPermissionsPage() {
                   </div>
                 ))}
               </div>
+              {!role.isSystemRole && (
+                <div className="pt-2 text-xs text-muted-foreground">
+                  (Rol personalizado)
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -131,18 +199,24 @@ export default function RolesPermissionsPage() {
                 <li>Desarrollo de servicios de backend (API endpoints) para:
                     <ul className="list-circle list-outside pl-5">
                         <li>Crear, leer, actualizar y eliminar roles.</li>
-                        <li>Listar todos los permisos disponibles en el sistema.</li>
+                        <li>Listar todos los permisos disponibles en el sistema (o definirlos en una tabla de permisos).</li>
                         <li>Asignar y revocar permisos a los roles.</li>
                         <li>Asignar roles a los usuarios.</li>
                     </ul>
                 </li>
-                <li>Lógica en el frontend para interactuar con estos servicios (habilitar el botón "Agregar Nuevo Rol", formularios de edición, etc.).</li>
+                <li>Lógica en el frontend para interactuar con estos servicios (persistir roles, editar roles, etc.).</li>
                 <li>Integración de la verificación de permisos en todo el sistema (tanto en frontend para mostrar/ocultar UI, como en backend para proteger acciones).</li>
             </ul>
         </CardContent>
        </Card>
 
+       <AddRoleDialog
+        open={isAddRoleDialogOpen}
+        onOpenChange={setIsAddRoleDialogOpen}
+        onRoleAdded={handleRoleAdded}
+        availablePermissions={allAvailablePermissions}
+       />
+
     </div>
   );
 }
-
