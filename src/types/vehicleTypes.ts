@@ -36,7 +36,7 @@ export interface VehicleCreateInput {
   proxima_mantencion_programada?: string; // YYYY-MM-DD
   vencimiento_documentacion?: string; // YYYY-MM-DD
   url_imagen?: string | null; // Puede ser null si se sube un archivo
-  ai_hint_imagen?: string; // Mantener por si se usa, aunque fue eliminado de algunos formularios
+  ai_hint_imagen?: string;
   notas?: string;
   assignedEraIds?: number[];
   assignedInventoryItems?: { id_item: number; cantidad: number }[];
@@ -56,4 +56,7 @@ export interface VehicleUpdateInput {
   url_imagen?: string | null;
   ai_hint_imagen?: string | null;
   notas?: string | null;
+  assignedEraIds?: number[];
+  assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
+
