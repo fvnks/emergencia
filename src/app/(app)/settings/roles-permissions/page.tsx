@@ -6,20 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon } from "lucide-react";
+import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
+import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog"; // Importar el nuevo diálogo
 
 export interface Permission {
   id: string;
   label: string;
-  granted: boolean; 
+  granted: boolean;
 }
 
 export interface AvailablePermission {
   id: string;
   label: string;
-  module: string; 
+  module: string;
 }
 
 export interface Role {
@@ -28,10 +29,10 @@ export interface Role {
   description: string;
   icon: React.ElementType;
   permissions: Permission[];
-  isSystemRole?: boolean; 
+  isSystemRole?: boolean;
 }
 
-const initialRolesData: Role[] = [
+const initialSystemRoles: Role[] = [
   {
     id: "admin",
     name: "Administrador",
@@ -86,14 +87,17 @@ const initialRolesData: Role[] = [
 
 
 export default function RolesPermissionsPage() {
-  const [rolesData, setRolesData] = useState<Role[]>(initialRolesData);
-  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [rolesData, setRolesData] = useState<Role[]>(initialSystemRoles);
+  const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null);
 
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+
   const allAvailablePermissions = useMemo(() => {
     const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
-    initialRolesData.forEach(role => {
+    initialSystemRoles.forEach(role => {
       role.permissions.forEach(perm => {
         if (!permissionMap.has(perm.id)) {
           let module = "General";
@@ -104,7 +108,7 @@ export default function RolesPermissionsPage() {
           else if (perm.id.includes("task")) module = "Tareas";
           else if (perm.id.includes("personnel")) module = "Personal";
           else if (perm.id.includes("setting") || perm.id.includes("role") || perm.id.includes("warehouse")) module = "Configuración";
-          
+
           permissionMap.set(perm.id, { id: perm.id, label: perm.label, module });
         }
       });
@@ -123,7 +127,6 @@ export default function RolesPermissionsPage() {
     }));
 
     if (existingRoleId) {
-      // Edit existing role
       setRolesData(prevRoles =>
         prevRoles.map(role =>
           role.id === existingRoleId
@@ -132,11 +135,10 @@ export default function RolesPermissionsPage() {
         )
       );
     } else {
-      // Add new role
       const newFullRole: Role = {
         ...roleData,
-        id: roleData.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(), 
-        icon: Settings2, 
+        id: roleData.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(),
+        icon: Settings2,
         isSystemRole: false,
         permissions: newPermissions,
       };
@@ -147,13 +149,27 @@ export default function RolesPermissionsPage() {
   const openAddDialog = () => {
     setIsEditMode(false);
     setCurrentEditingRole(null);
-    setIsRoleDialogOpen(true);
+    setIsAddRoleDialogOpen(true);
   };
 
   const openEditDialog = (role: Role) => {
     setIsEditMode(true);
     setCurrentEditingRole(role);
-    setIsRoleDialogOpen(true);
+    setIsAddRoleDialogOpen(true);
+  };
+
+  const openDeleteDialog = (role: Role) => {
+    setRoleToDelete(role);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const handleConfirmDeleteRole = () => {
+    if (roleToDelete) {
+      setRolesData(prevRoles => prevRoles.filter(role => role.id !== roleToDelete.id));
+      // Aquí podrías añadir un toast de éxito
+    }
+    setRoleToDelete(null);
+    setIsDeleteAlertOpen(false);
   };
 
 
@@ -171,7 +187,7 @@ export default function RolesPermissionsPage() {
         </div>
         <Button onClick={openAddDialog}>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
-        </Button> 
+        </Button>
       </div>
       <p className="text-muted-foreground">
         Define roles personalizados y asigna permisos específicos a cada módulo.
@@ -191,9 +207,14 @@ export default function RolesPermissionsPage() {
                     </div>
                 </div>
                 {!role.isSystemRole && (
-                  <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
-                    <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
+                      <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -205,7 +226,7 @@ export default function RolesPermissionsPage() {
                     <Checkbox
                       id={`${role.id}-${perm.id}`}
                       checked={perm.granted}
-                      disabled 
+                      disabled
                       aria-label={`${perm.label} para ${role.name}`}
                     />
                     <Label htmlFor={`${role.id}-${perm.id}`} className="text-sm font-normal text-foreground peer-disabled:opacity-100">
@@ -214,8 +235,12 @@ export default function RolesPermissionsPage() {
                   </div>
                 ))}
               </div>
-              {!role.isSystemRole && (
+              {role.isSystemRole ? (
                 <div className="pt-2 text-xs text-muted-foreground">
+                  (Rol del sistema - no editable/eliminable aquí)
+                </div>
+              ): (
+                 <div className="pt-2 text-xs text-muted-foreground">
                   (Rol personalizado)
                 </div>
               )}
@@ -223,7 +248,7 @@ export default function RolesPermissionsPage() {
           </Card>
         ))}
       </div>
-      
+
        <Card className="mt-8 shadow-sm">
         <CardHeader>
             <CardTitle className="text-lg">Próximos Pasos para Funcionalidad Completa</CardTitle>
@@ -247,15 +272,20 @@ export default function RolesPermissionsPage() {
        </Card>
 
        <AddRoleDialog
-        open={isRoleDialogOpen}
-        onOpenChange={setIsRoleDialogOpen}
+        open={isAddRoleDialogOpen}
+        onOpenChange={setIsAddRoleDialogOpen}
         onSaveRole={handleSaveRole}
         availablePermissions={allAvailablePermissions}
         existingRole={isEditMode ? currentEditingRole : null}
        />
 
+       <DeleteRoleDialog
+        open={isDeleteAlertOpen}
+        onOpenChange={setIsDeleteAlertOpen}
+        role={roleToDelete}
+        onConfirmDelete={handleConfirmDeleteRole}
+       />
+
     </div>
   );
 }
-
-    
