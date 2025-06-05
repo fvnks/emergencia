@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Users, Database, ShieldAlert, Warehouse } from "lucide-react";
+import { KeyRound, Users, Database, ShieldAlert, Warehouse, Fingerprint } from "lucide-react"; // Added Fingerprint for Roles/Permissions
 import Link from "next/link";
 import { useState } from "react";
 
@@ -75,8 +75,13 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
                 <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
-                  <Link href="/settings/users">
-                    <Users className="mr-2 h-4 w-4" /> Gestionar Usuarios y Roles
+                  <Link href="/personnel">
+                    <Users className="mr-2 h-4 w-4" /> Gestionar Usuarios
+                  </Link>
+                </Button>
+                 <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
+                  <Link href="/settings/roles-permissions">
+                    <Fingerprint className="mr-2 h-4 w-4" /> Gestionar Roles y Permisos
                   </Link>
                 </Button>
                 <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
