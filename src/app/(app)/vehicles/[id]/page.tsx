@@ -10,9 +10,12 @@ import type { Vehicle } from "@/types/vehicleTypes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench, Package, ShieldAlert as EraIcon } from "lucide-react";
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from "@/hooks/use-toast";
+
+type LucideIcon = typeof Loader2; // Example, adjust as needed
 
 const DetailItem: React.FC<{ label: string; value?: string | number | null | React.ReactNode; icon?: LucideIcon }> = ({ label, value, icon: Icon }) => (
   <div className="py-2">
@@ -30,6 +33,7 @@ export default function VehicleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { toast } = useToast();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +90,19 @@ export default function VehicleDetailPage() {
     }
   };
 
+  const handleManageEra = () => {
+    toast({
+      title: "Funcionalidad Pendiente",
+      description: "La gestión de equipos ERA asignados aún no está implementada.",
+    });
+  };
+
+  const handleManageInventory = () => {
+    toast({
+      title: "Funcionalidad Pendiente",
+      description: "La gestión de ítems de inventario asignados aún no está implementada.",
+    });
+  };
 
   if (loading) {
     return (
@@ -118,7 +135,7 @@ export default function VehicleDetailPage() {
   }
 
   if (!vehicle) {
-    return ( // Fallback in case vehicle is null after loading and no error state was set (should not happen)
+    return ( 
       <div className="space-y-4">
          <Button variant="outline" onClick={() => router.push('/vehicles')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver a la lista
@@ -194,6 +211,44 @@ export default function VehicleDetailPage() {
                <DetailItem label="Notas" value={<p className="whitespace-pre-wrap text-sm">{vehicle.notas}</p>} icon={Info} />
             </section>
           )}
+
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-xl font-semibold font-headline text-primary flex items-center">
+                <EraIcon className="mr-2 h-5 w-5" /> Equipos ERA Asignados
+              </h2>
+              <Button variant="outline" size="sm" onClick={handleManageEra}>Gestionar ERA</Button>
+            </div>
+            {(vehicle.assignedEraIds && vehicle.assignedEraIds.length > 0) ? (
+              <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
+                {vehicle.assignedEraIds.map(eraId => (
+                  <li key={eraId}>Equipo ERA ID: {eraId} (Nombre y detalles se mostrarán aquí)</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">No hay equipos ERA asignados a este vehículo.</p>
+            )}
+          </section>
+
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-xl font-semibold font-headline text-primary flex items-center">
+                <Package className="mr-2 h-5 w-5" /> Ítems de Inventario Asignados
+              </h2>
+              <Button variant="outline" size="sm" onClick={handleManageInventory}>Gestionar Inventario</Button>
+            </div>
+            {(vehicle.assignedInventoryItems && vehicle.assignedInventoryItems.length > 0) ? (
+              <ul className="list-disc list-inside space-y-1 pl-5 text-sm">
+                {vehicle.assignedInventoryItems.map(item => (
+                  <li key={item.id_item}>
+                    Ítem ID: {item.id_item} - Cantidad: {item.cantidad} (Nombre y detalles se mostrarán aquí)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">No hay ítems de inventario asignados a este vehículo.</p>
+            )}
+          </section>
 
           <section className="text-xs text-muted-foreground pt-4 border-t mt-6">
             <p>ID Vehículo: {vehicle.id_vehiculo}</p>

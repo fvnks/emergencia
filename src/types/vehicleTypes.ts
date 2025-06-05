@@ -22,6 +22,10 @@ export interface Vehicle {
   notas?: string | null;
   fecha_creacion: string;
   fecha_actualizacion: string;
+
+  // Campos para asignaciones (idealmente, el backend devolvería objetos más detallados)
+  assignedEraIds?: number[];
+  assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
 
 export interface VehicleCreateInput {
@@ -59,4 +63,3 @@ export interface VehicleUpdateInput {
   assignedEraIds?: number[];
   assignedInventoryItems?: { id_item: number; cantidad: number }[];
 }
-
