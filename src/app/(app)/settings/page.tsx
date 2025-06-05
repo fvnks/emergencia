@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Users, Database, ShieldAlert, Warehouse, Fingerprint } from "lucide-react"; // Added Fingerprint for Roles/Permissions
+import { KeyRound, Users, Database, ShieldAlert, Warehouse, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -17,6 +17,7 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isBackupLoading, setIsBackupLoading] = useState(false);
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +30,29 @@ export default function SettingsPage() {
       return;
     }
     // Simulate password change
+    console.log("Simulando cambio de contraseña...");
+    // Aquí iría la lógica real para cambiar la contraseña, ej: await changeUserPassword(currentPassword, newPassword);
     toast({ title: "Éxito", description: "Contraseña cambiada con éxito (simulado)." });
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+  };
+
+  const handleBackupSystemData = () => {
+    setIsBackupLoading(true);
+    toast({
+      title: "Iniciando Respaldo",
+      description: "El proceso de respaldo de datos del sistema ha comenzado...",
+    });
+
+    // Simular una operación de respaldo que toma tiempo
+    setTimeout(() => {
+      toast({
+        title: "Respaldo Completado",
+        description: "El respaldo de los datos del sistema se ha completado exitosamente (simulado).",
+      });
+      setIsBackupLoading(false);
+    }, 3000); // Simular 3 segundos de proceso
   };
 
   return (
@@ -89,8 +109,14 @@ export default function SettingsPage() {
                     <Warehouse className="mr-2 h-4 w-4" /> Gestionar Bodegas
                   </Link>
                 </Button>
-                <Button variant="outline" className="w-full sm:w-auto justify-start">
-                    <Database className="mr-2 h-4 w-4" /> Respaldo Datos del Sistema
+                <Button 
+                  variant="outline" 
+                  className="w-full sm:w-auto justify-start"
+                  onClick={handleBackupSystemData}
+                  disabled={isBackupLoading}
+                >
+                    <Database className="mr-2 h-4 w-4" /> 
+                    {isBackupLoading ? "Respaldando..." : "Respaldo Datos del Sistema"}
                 </Button>
             </div>
             <p className="text-xs text-muted-foreground">Opciones administrativas adicionales como registros del sistema, configuración de módulos e importación/exportación de datos aparecerían aquí.</p>
