@@ -3,146 +3,91 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox"; // Keep for potential future direct display
+import { Label } from "@/components/ui/label"; // Keep for potential future direct display
 import Link from "next/link";
-import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2, Users, Loader2, AlertTriangle } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
-import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog"; // Importar el nuevo diálogo
+import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog";
+import { getAllRoles, getAllPermissions, createRole, updateRole, deleteRole, getRoleById, type Role, type Permission } from "@/services/roleService";
+import { useToast } from "@/hooks/use-toast";
 
-export interface Permission {
-  id: string;
-  label: string;
-  granted: boolean;
-}
 
-export interface AvailablePermission {
-  id: string;
-  label: string;
-  module: string;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  permissions: Permission[];
-  isSystemRole?: boolean;
-}
-
-const initialSystemRoles: Role[] = [
-  {
-    id: "admin",
-    name: "Administrador",
-    description: "Acceso completo a todas las funcionalidades del sistema.",
-    icon: ShieldCheck,
-    isSystemRole: true,
-    permissions: [
-      { id: "view_dashboard", label: "Ver Panel Principal", granted: true },
-      { id: "manage_vehicles", label: "Gestionar Vehículos (Crear, Editar, Eliminar)", granted: true },
-      { id: "manage_equipment", label: "Gestionar Equipos ERA (Crear, Editar, Eliminar, Asignar)", granted: true },
-      { id: "manage_maintenance", label: "Gestionar Mantenciones (Crear, Editar, Eliminar)", granted: true },
-      { id: "manage_inventory", label: "Gestionar Inventario (Crear, Editar, Eliminar, Asignar EPP)", granted: true },
-      { id: "manage_tasks", label: "Gestionar Tareas (Crear, Editar, Eliminar, Asignar)", granted: true },
-      { id: "manage_personnel", label: "Gestionar Personal (Crear, Editar, Eliminar)", granted: true },
-      { id: "manage_settings", label: "Acceder y Modificar Configuración del Sistema", granted: true },
-      { id: "manage_roles", label: "Gestionar Roles y Permisos", granted: true },
-      { id: "manage_warehouses", label: "Gestionar Bodegas", granted: true },
-    ],
-  },
-  {
-    id: "usuario",
-    name: "Usuario Estándar",
-    description: "Acceso a funcionalidades operativas básicas.",
-    icon: UserCircle2,
-    isSystemRole: true,
-    permissions: [
-      { id: "view_dashboard", label: "Ver Panel Principal", granted: true },
-      { id: "view_vehicles", label: "Ver Vehículos y sus detalles", granted: true },
-      { id: "edit_own_vehicles", label: "Editar información básica de vehículos (Ej: notas)", granted: false },
-      { id: "view_equipment", label: "Ver Equipos ERA y sus detalles", granted: true },
-      { id: "request_equipment", label: "Solicitar asignación de ERA", granted: true },
-      { id: "view_maintenance", label: "Ver Mantenciones programadas", granted: true },
-      { id: "complete_maintenance_assigned", label: "Completar mantenciones asignadas", granted: true },
-      { id: "view_inventory", label: "Ver Inventario y stock", granted: true },
-      { id: "request_inventory", label: "Solicitar ítems de inventario", granted: true },
-      { id: "view_tasks", label: "Ver Tareas asignadas", granted: true },
-      { id: "complete_tasks_assigned", label: "Completar tareas asignadas", granted: true },
-      { id: "view_personnel_directory", label: "Ver Directorio de Personal", granted: true },
-      { id: "view_own_settings", label: "Ver y modificar su propia configuración de cuenta", granted: true },
-      { id: "manage_vehicles", label: "Gestionar Vehículos (Crear, Editar, Eliminar)", granted: false },
-      { id: "manage_equipment", label: "Gestionar Equipos ERA (Crear, Editar, Eliminar, Asignar)", granted: false },
-      { id: "manage_maintenance", label: "Gestionar Mantenciones (Crear, Editar, Eliminar)", granted: false },
-      { id: "manage_inventory", label: "Gestionar Inventario (Crear, Editar, Eliminar, Asignar EPP)", granted: false },
-      { id: "manage_tasks", label: "Gestionar Tareas (Crear, Editar, Eliminar, Asignar)", granted: false },
-      { id: "manage_personnel", label: "Gestionar Personal (Crear, Editar, Eliminar)", granted: false },
-      { id: "manage_settings", label: "Acceder y Modificar Configuración del Sistema", granted: false },
-      { id: "manage_roles", label: "Gestionar Roles y Permisos", granted: false },
-      { id: "manage_warehouses", label: "Gestionar Bodegas", granted: false },
-    ],
-  },
-];
-
+// Icons mapping based on role name for system roles, or default for custom.
+const roleIcons: Record<string, React.ElementType> = {
+  "Administrador": ShieldCheck,
+  "Usuario Estándar": UserCircle2,
+  "default": Settings2,
+};
 
 export default function RolesPermissionsPage() {
-  const [rolesData, setRolesData] = useState<Role[]>(initialSystemRoles);
+  const [rolesData, setRolesData] = useState<Role[]>([]);
+  const [allAvailablePermissions, setAllAvailablePermissions] = useState<Permission[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
+  const [loadingPermissions, setLoadingPermissions] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
   const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null);
+  const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null); // Will store Role with its permissions for editing
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
 
-  const allAvailablePermissions = useMemo(() => {
-    const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
-    initialSystemRoles.forEach(role => {
-      role.permissions.forEach(perm => {
-        if (!permissionMap.has(perm.id)) {
-          let module = "General";
-          if (perm.id.includes("vehicle")) module = "Vehículos";
-          else if (perm.id.includes("equipment") || perm.id.includes("era")) module = "Equipos ERA";
-          else if (perm.id.includes("maintenance")) module = "Mantenciones";
-          else if (perm.id.includes("inventory")) module = "Inventario";
-          else if (perm.id.includes("task")) module = "Tareas";
-          else if (perm.id.includes("personnel")) module = "Personal";
-          else if (perm.id.includes("setting") || perm.id.includes("role") || perm.id.includes("warehouse")) module = "Configuración";
+  const fetchRolesAndPermissions = useCallback(async () => {
+    setLoadingRoles(true);
+    setLoadingPermissions(true);
+    setError(null);
+    try {
+      const [fetchedRoles, fetchedPermissions] = await Promise.all([
+        getAllRoles(),
+        getAllPermissions(),
+      ]);
+      setRolesData(fetchedRoles);
+      setAllAvailablePermissions(fetchedPermissions);
+    } catch (err) {
+      console.error("Error fetching roles or permissions:", err);
+      const errorMessage = err instanceof Error ? err.message : "No se pudieron cargar los datos de roles y permisos.";
+      setError(errorMessage);
+      toast({ title: "Error de Carga", description: errorMessage, variant: "destructive" });
+    } finally {
+      setLoadingRoles(false);
+      setLoadingPermissions(false);
+    }
+  }, [toast]);
 
-          permissionMap.set(perm.id, { id: perm.id, label: perm.label, module });
-        }
-      });
-    });
-    return Array.from(permissionMap.values());
-  }, []);
+  useEffect(() => {
+    fetchRolesAndPermissions();
+  }, [fetchRolesAndPermissions]);
 
-  const handleSaveRole = (
-    roleData: Omit<Role, 'id' | 'icon' | 'isSystemRole' | 'permissions'> & { selectedPermissions: string[] },
-    existingRoleId?: string
+
+  const handleSaveRole = async (
+    roleData: { name: string; description: string; selectedPermissions: number[] }, // selectedPermissions are IDs
+    existingRoleId?: number
   ) => {
-    const newPermissions: Permission[] = allAvailablePermissions.map(availPerm => ({
-      id: availPerm.id,
-      label: availPerm.label,
-      granted: roleData.selectedPermissions.includes(availPerm.id),
-    }));
-
-    if (existingRoleId) {
-      setRolesData(prevRoles =>
-        prevRoles.map(role =>
-          role.id === existingRoleId
-            ? { ...role, name: roleData.name, description: roleData.description, permissions: newPermissions }
-            : role
-        )
-      );
-    } else {
-      const newFullRole: Role = {
-        ...roleData,
-        id: roleData.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(),
-        icon: Settings2,
-        isSystemRole: false,
-        permissions: newPermissions,
-      };
-      setRolesData(prevRoles => [...prevRoles, newFullRole]);
+    try {
+      if (existingRoleId) {
+        await updateRole(existingRoleId, {
+          nombre_rol: roleData.name,
+          descripcion_rol: roleData.description,
+          permission_ids: roleData.selectedPermissions,
+        });
+        toast({ title: "Rol Actualizado", description: `El rol "${roleData.name}" ha sido actualizado.` });
+      } else {
+        await createRole({
+          nombre_rol: roleData.name,
+          descripcion_rol: roleData.description,
+          permission_ids: roleData.selectedPermissions,
+        });
+        toast({ title: "Rol Creado", description: `El rol "${roleData.name}" ha sido creado.` });
+      }
+      fetchRolesAndPermissions(); // Re-fetch all data to reflect changes
+      setIsAddRoleDialogOpen(false);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Ocurrió un error al guardar el rol.";
+      toast({ title: "Error al Guardar Rol", description: errorMessage, variant: "destructive" });
     }
   };
 
@@ -152,26 +97,77 @@ export default function RolesPermissionsPage() {
     setIsAddRoleDialogOpen(true);
   };
 
-  const openEditDialog = (role: Role) => {
-    setIsEditMode(true);
-    setCurrentEditingRole(role);
-    setIsAddRoleDialogOpen(true);
+  const openEditDialog = async (role: Role) => {
+    if (role.es_rol_sistema) {
+        toast({title: "Acción no permitida", description: "Los roles del sistema no pueden ser editados.", variant: "destructive"});
+        return;
+    }
+    try {
+        setLoadingRoles(true); // Indicate loading while fetching full role details
+        const fullRoleDetails = await getRoleById(role.id_rol);
+        if (!fullRoleDetails) {
+            throw new Error("No se pudo cargar la información completa del rol para editar.");
+        }
+        setCurrentEditingRole(fullRoleDetails); // This role will have its permissions populated
+        setIsEditMode(true);
+        setIsAddRoleDialogOpen(true);
+    } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Error al cargar detalles del rol.";
+        toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+        setLoadingRoles(false);
+    }
   };
 
   const openDeleteDialog = (role: Role) => {
+    if (role.es_rol_sistema) {
+        toast({title: "Acción no permitida", description: "Los roles del sistema no pueden ser eliminados.", variant: "destructive"});
+        return;
+    }
+     if (role.user_count && role.user_count > 0) {
+        toast({title: "Rol en Uso", description: `El rol "${role.nombre_rol}" está asignado a ${role.user_count} usuario(s) y no puede ser eliminado.`, variant: "destructive"});
+        return;
+    }
     setRoleToDelete(role);
     setIsDeleteAlertOpen(true);
   };
 
-  const handleConfirmDeleteRole = () => {
-    if (roleToDelete) {
-      setRolesData(prevRoles => prevRoles.filter(role => role.id !== roleToDelete.id));
-      // Aquí podrías añadir un toast de éxito
+  const handleConfirmDeleteRole = async () => {
+    if (roleToDelete && !roleToDelete.es_rol_sistema) {
+      try {
+        await deleteRole(roleToDelete.id_rol);
+        toast({ title: "Rol Eliminado", description: `El rol "${roleToDelete.nombre_rol}" ha sido eliminado.` });
+        fetchRolesAndPermissions(); // Re-fetch
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "No se pudo eliminar el rol.";
+        toast({ title: "Error al Eliminar Rol", description: errorMessage, variant: "destructive" });
+      }
     }
     setRoleToDelete(null);
     setIsDeleteAlertOpen(false);
   };
 
+  if (loadingRoles || loadingPermissions) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-10">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold">Cargando Roles y Permisos...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="max-w-2xl mx-auto">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error de Carga</AlertTitle>
+        <AlertDescription>
+          {error}
+          <Button onClick={fetchRolesAndPermissions} variant="link" className="p-0 h-auto ml-2">Reintentar</Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -185,91 +181,67 @@ export default function RolesPermissionsPage() {
             Gestión de Roles y Permisos
           </h1>
         </div>
-        <Button onClick={openAddDialog}>
+        <Button onClick={openAddDialog} disabled={loadingPermissions || allAvailablePermissions.length === 0}>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
         </Button>
       </div>
       <p className="text-muted-foreground">
         Define roles personalizados y asigna permisos específicos a cada módulo.
-        Los roles creados aquí son para simulación y se perderán al recargar la página.
+        {loadingPermissions && allAvailablePermissions.length === 0 && <span className="text-destructive"> (Cargando permisos disponibles...)</span>}
       </p>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
-        {rolesData.map((role) => (
-          <Card key={role.id} className="shadow-md">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <role.icon className="h-8 w-8 text-primary" />
-                    <div>
-                    <CardTitle className="text-xl font-headline">{role.name}</CardTitle>
-                    <CardDescription>{role.description}</CardDescription>
+        {rolesData.map((role) => {
+          const RoleIcon = roleIcons[role.nombre_rol] || roleIcons["default"];
+          return (
+            <Card key={role.id_rol} className="shadow-md">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                      <RoleIcon className="h-8 w-8 text-primary" />
+                      <div>
+                      <CardTitle className="text-xl font-headline">{role.nombre_rol}</CardTitle>
+                      <CardDescription>{role.descripcion_rol || "Sin descripción"}</CardDescription>
+                      </div>
+                  </div>
+                  {!role.es_rol_sistema && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
+                        <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)} disabled={role.user_count && role.user_count > 0}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex items-center">
+                        <ShieldCheck className="mr-1.5 h-4 w-4" />
+                        Permisos Asignados: {role.permission_count ?? 'N/A'}
+                    </div>
+                    <div className="flex items-center">
+                        <Users className="mr-1.5 h-4 w-4" />
+                        Usuarios con este Rol: {role.user_count ?? 'N/A'}
                     </div>
                 </div>
-                {!role.isSystemRole && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
-                      <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)}>
-                      <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                    </Button>
+                
+                {role.es_rol_sistema ? (
+                  <div className="pt-2 text-xs text-muted-foreground">
+                    (Rol del sistema - no editable/eliminable aquí)
+                  </div>
+                ): (
+                   <div className="pt-2 text-xs text-muted-foreground">
+                    (Rol personalizado)
                   </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <h4 className="text-md font-semibold text-muted-foreground">Permisos Asignados:</h4>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                {role.permissions.map((perm) => (
-                  <div key={perm.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`${role.id}-${perm.id}`}
-                      checked={perm.granted}
-                      disabled
-                      aria-label={`${perm.label} para ${role.name}`}
-                    />
-                    <Label htmlFor={`${role.id}-${perm.id}`} className="text-sm font-normal text-foreground peer-disabled:opacity-100">
-                      {perm.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              {role.isSystemRole ? (
-                <div className="pt-2 text-xs text-muted-foreground">
-                  (Rol del sistema - no editable/eliminable aquí)
-                </div>
-              ): (
-                 <div className="pt-2 text-xs text-muted-foreground">
-                  (Rol personalizado)
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-
-       <Card className="mt-8 shadow-sm">
-        <CardHeader>
-            <CardTitle className="text-lg">Próximos Pasos para Funcionalidad Completa</CardTitle>
-            <CardDescription>Para una gestión de roles y permisos totalmente funcional, se requeriría:</CardDescription>
-        </CardHeader>
-        <CardContent>
-            <ul className="list-disc list-outside space-y-1.5 pl-5 text-sm text-muted-foreground">
-                <li>Diseño y creación de tablas en la base de datos para roles, permisos y la relación entre ellos.</li>
-                <li>Desarrollo de servicios de backend (API endpoints) para:
-                    <ul className="list-circle list-outside pl-5">
-                        <li>Crear, leer, actualizar y eliminar roles.</li>
-                        <li>Listar todos los permisos disponibles en el sistema (o definirlos en una tabla de permisos).</li>
-                        <li>Asignar y revocar permisos a los roles.</li>
-                        <li>Asignar roles a los usuarios.</li>
-                    </ul>
-                </li>
-                <li>Lógica en el frontend para interactuar con estos servicios (persistir roles, editar roles, etc.).</li>
-                <li>Integración de la verificación de permisos en todo el sistema (tanto en frontend para mostrar/ocultar UI, como en backend para proteger acciones).</li>
-            </ul>
-        </CardContent>
-       </Card>
 
        <AddRoleDialog
         open={isAddRoleDialogOpen}
@@ -289,3 +261,5 @@ export default function RolesPermissionsPage() {
     </div>
   );
 }
+
+    
