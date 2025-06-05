@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react"; // Added useMemo here
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle } from "lucide-react";
+import { Loader2, PlusCircle, Edit } from "lucide-react";
 import type { AvailablePermission, Role } from "@/app/(app)/settings/roles-permissions/page";
 
 const addRoleFormSchema = z.object({
@@ -43,13 +43,18 @@ type AddRoleFormValues = z.infer<typeof addRoleFormSchema>;
 interface AddRoleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRoleAdded: (newRole: Omit<Role, 'id' | 'icon' | 'isSystemRole'> & { selectedPermissions: string[] }) => void;
+  onSaveRole: (
+    roleData: Omit<Role, 'id' | 'icon' | 'isSystemRole' | 'permissions'> & { selectedPermissions: string[] },
+    existingRoleId?: string
+  ) => void;
   availablePermissions: AvailablePermission[];
+  existingRole?: Role | null; 
 }
 
-export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermissions }: AddRoleDialogProps) {
+export function AddRoleDialog({ open, onOpenChange, onSaveRole, availablePermissions, existingRole }: AddRoleDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const isEditMode = !!existingRole;
 
   const form = useForm<AddRoleFormValues>({
     resolver: zodResolver(addRoleFormSchema),
@@ -62,23 +67,29 @@ export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermis
 
   useEffect(() => {
     if (open) {
-      form.reset({
-        name: "",
-        description: "",
-        selectedPermissions: [],
-      });
+      if (isEditMode && existingRole) {
+        form.reset({
+          name: existingRole.name,
+          description: existingRole.description,
+          selectedPermissions: existingRole.permissions.filter(p => p.granted).map(p => p.id),
+        });
+      } else {
+        form.reset({
+          name: "",
+          description: "",
+          selectedPermissions: [],
+        });
+      }
     }
-  }, [open, form]);
+  }, [open, form, isEditMode, existingRole]);
 
   function onSubmit(values: AddRoleFormValues) {
     setIsSubmitting(true);
-    // Aquí, en una implementación real, llamarías a un servicio de backend.
-    // Por ahora, solo pasamos los datos a la página principal para simulación.
-    setTimeout(() => { // Simular delay de red
-      onRoleAdded(values);
+    setTimeout(() => { 
+      onSaveRole(values, isEditMode ? existingRole?.id : undefined);
       toast({
-        title: "Rol Agregado (Simulado)",
-        description: `El rol "${values.name}" ha sido agregado a la vista actual.`,
+        title: isEditMode ? "Rol Actualizado (Simulado)" : "Rol Agregado (Simulado)",
+        description: `El rol "${values.name}" ha sido ${isEditMode ? 'actualizado' : 'agregado'} a la vista actual.`,
       });
       setIsSubmitting(false);
       onOpenChange(false);
@@ -100,9 +111,9 @@ export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermis
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Agregar Nuevo Rol</DialogTitle>
+          <DialogTitle>{isEditMode ? "Editar Rol" : "Agregar Nuevo Rol"}</DialogTitle>
           <DialogDescription>
-            Defina un nuevo rol y seleccione los permisos que tendrá.
+            {isEditMode ? `Modifique los detalles del rol "${existingRole?.name}".` : "Defina un nuevo rol y seleccione los permisos que tendrá."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -190,8 +201,12 @@ export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermis
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
-                Agregar Rol
+                {isSubmitting 
+                  ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  : isEditMode 
+                    ? <><Edit className="mr-2 h-4 w-4" /> Guardar Cambios</>
+                    : <><PlusCircle className="mr-2 h-4 w-4" /> Agregar Rol</>
+                }
               </Button>
             </DialogFooter>
           </form>
@@ -200,3 +215,5 @@ export function AddRoleDialog({ open, onOpenChange, onRoleAdded, availablePermis
     </Dialog>
   );
 }
+
+    

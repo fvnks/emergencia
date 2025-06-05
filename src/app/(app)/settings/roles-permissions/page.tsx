@@ -6,20 +6,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2 } from "lucide-react"; // Added Settings2 for generic role
+import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon } from "lucide-react";
 import { useState, useMemo } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
 
 export interface Permission {
   id: string;
   label: string;
-  granted: boolean; // En el contexto de un rol específico
+  granted: boolean; 
 }
 
 export interface AvailablePermission {
   id: string;
   label: string;
-  module: string; // Para agrupar en el diálogo
+  module: string; 
 }
 
 export interface Role {
@@ -28,7 +28,7 @@ export interface Role {
   description: string;
   icon: React.ElementType;
   permissions: Permission[];
-  isSystemRole?: boolean; // Para diferenciar roles predefinidos de los creados por el usuario
+  isSystemRole?: boolean; 
 }
 
 const initialRolesData: Role[] = [
@@ -71,7 +71,6 @@ const initialRolesData: Role[] = [
       { id: "complete_tasks_assigned", label: "Completar tareas asignadas", granted: true },
       { id: "view_personnel_directory", label: "Ver Directorio de Personal", granted: true },
       { id: "view_own_settings", label: "Ver y modificar su propia configuración de cuenta", granted: true },
-      // Faltantes para el usuario estándar
       { id: "manage_vehicles", label: "Gestionar Vehículos (Crear, Editar, Eliminar)", granted: false },
       { id: "manage_equipment", label: "Gestionar Equipos ERA (Crear, Editar, Eliminar, Asignar)", granted: false },
       { id: "manage_maintenance", label: "Gestionar Mantenciones (Crear, Editar, Eliminar)", granted: false },
@@ -88,15 +87,15 @@ const initialRolesData: Role[] = [
 
 export default function RolesPermissionsPage() {
   const [rolesData, setRolesData] = useState<Role[]>(initialRolesData);
-  const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null);
 
-  // Generar una lista de todos los permisos únicos disponibles
   const allAvailablePermissions = useMemo(() => {
     const permissionMap = new Map<string, Omit<AvailablePermission, 'granted'>>();
     initialRolesData.forEach(role => {
       role.permissions.forEach(perm => {
         if (!permissionMap.has(perm.id)) {
-          // Simple-minded module grouping based on perm.id
           let module = "General";
           if (perm.id.includes("vehicle")) module = "Vehículos";
           else if (perm.id.includes("equipment") || perm.id.includes("era")) module = "Equipos ERA";
@@ -111,22 +110,52 @@ export default function RolesPermissionsPage() {
       });
     });
     return Array.from(permissionMap.values());
-  }, []); // initialRolesData is stable within the module scope
+  }, []);
 
-  const handleRoleAdded = (newRole: Omit<Role, 'id' | 'icon' | 'isSystemRole'> & { selectedPermissions: string[] }) => {
-    const newFullRole: Role = {
-      ...newRole,
-      id: newRole.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(), // Simple unique ID
-      icon: Settings2, // Generic icon for custom roles
-      isSystemRole: false,
-      permissions: allAvailablePermissions.map(availPerm => ({
-        id: availPerm.id,
-        label: availPerm.label,
-        granted: newRole.selectedPermissions.includes(availPerm.id),
-      })),
-    };
-    setRolesData(prevRoles => [...prevRoles, newFullRole]);
+  const handleSaveRole = (
+    roleData: Omit<Role, 'id' | 'icon' | 'isSystemRole' | 'permissions'> & { selectedPermissions: string[] },
+    existingRoleId?: string
+  ) => {
+    const newPermissions: Permission[] = allAvailablePermissions.map(availPerm => ({
+      id: availPerm.id,
+      label: availPerm.label,
+      granted: roleData.selectedPermissions.includes(availPerm.id),
+    }));
+
+    if (existingRoleId) {
+      // Edit existing role
+      setRolesData(prevRoles =>
+        prevRoles.map(role =>
+          role.id === existingRoleId
+            ? { ...role, name: roleData.name, description: roleData.description, permissions: newPermissions }
+            : role
+        )
+      );
+    } else {
+      // Add new role
+      const newFullRole: Role = {
+        ...roleData,
+        id: roleData.name.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now(), 
+        icon: Settings2, 
+        isSystemRole: false,
+        permissions: newPermissions,
+      };
+      setRolesData(prevRoles => [...prevRoles, newFullRole]);
+    }
   };
+
+  const openAddDialog = () => {
+    setIsEditMode(false);
+    setCurrentEditingRole(null);
+    setIsRoleDialogOpen(true);
+  };
+
+  const openEditDialog = (role: Role) => {
+    setIsEditMode(true);
+    setCurrentEditingRole(role);
+    setIsRoleDialogOpen(true);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -140,7 +169,7 @@ export default function RolesPermissionsPage() {
             Gestión de Roles y Permisos
           </h1>
         </div>
-        <Button onClick={() => setIsAddRoleDialogOpen(true)}>
+        <Button onClick={openAddDialog}>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
         </Button> 
       </div>
@@ -153,12 +182,19 @@ export default function RolesPermissionsPage() {
         {rolesData.map((role) => (
           <Card key={role.id} className="shadow-md">
             <CardHeader>
-              <div className="flex items-center gap-3">
-                <role.icon className="h-8 w-8 text-primary" />
-                <div>
-                  <CardTitle className="text-xl font-headline">{role.name}</CardTitle>
-                  <CardDescription>{role.description}</CardDescription>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <role.icon className="h-8 w-8 text-primary" />
+                    <div>
+                    <CardTitle className="text-xl font-headline">{role.name}</CardTitle>
+                    <CardDescription>{role.description}</CardDescription>
+                    </div>
                 </div>
+                {!role.isSystemRole && (
+                  <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
+                    <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -169,7 +205,7 @@ export default function RolesPermissionsPage() {
                     <Checkbox
                       id={`${role.id}-${perm.id}`}
                       checked={perm.granted}
-                      disabled // Todos los checkboxes deshabilitados en esta maqueta visual de roles existentes
+                      disabled 
                       aria-label={`${perm.label} para ${role.name}`}
                     />
                     <Label htmlFor={`${role.id}-${perm.id}`} className="text-sm font-normal text-foreground peer-disabled:opacity-100">
@@ -211,12 +247,15 @@ export default function RolesPermissionsPage() {
        </Card>
 
        <AddRoleDialog
-        open={isAddRoleDialogOpen}
-        onOpenChange={setIsAddRoleDialogOpen}
-        onRoleAdded={handleRoleAdded}
+        open={isRoleDialogOpen}
+        onOpenChange={setIsRoleDialogOpen}
+        onSaveRole={handleSaveRole}
         availablePermissions={allAvailablePermissions}
+        existingRole={isEditMode ? currentEditingRole : null}
        />
 
     </div>
   );
 }
+
+    
