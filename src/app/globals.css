@@ -4,38 +4,38 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'PT Sans', Arial, Helvetica, sans-serif; /* Ensure PT Sans is primary */
 }
 
 @layer base {
   :root {
-    --background: 210 60% 98%; /* Off-white with a slight blue tint */
-    --foreground: 222.2 84% 4.9%; /* Default dark foreground */
+    --background: 208 87% 95%; /* #E8F4FD Light Grayish Blue */
+    --foreground: 222 84% 5%; /* Dark text for readability */
 
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 222 84% 5%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 84% 5%;
 
-    --primary: 217 91% 60%; /* Slightly darker, less saturated blue #3B82F6 (Tailwind's blue-500) */
-    --primary-foreground: 0 0% 98%; /* White/Light Gray */
+    --primary: 208 93% 58%; /* #3294F8 Deep Sky Blue */
+    --primary-foreground: 210 40% 98%; /* Light text on primary */
 
-    --secondary: 210 40% 96.1%; /* Light gray */
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 40% 96.1%; /* Default light gray for secondary elements */
+    --secondary-foreground: 222 47% 11%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 217 33% 50%; /* Grayish blue, more subtle */
-    --accent-foreground: 0 0% 98%; /* White/Light Gray text on accent */
+    --accent: 174 72% 56%; /* #40E0D0 Turquoise */
+    --accent-foreground: 222 84% 5%; /* Dark text on accent for contrast */
 
-    --destructive: 0 75% 55%; /* Adjusted destructive for better visibility */
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 217 91% 60%; /* Primary color for rings */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 208 93% 58%; /* Primary color for rings */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -45,45 +45,45 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific colors for floating dark sidebar */
-    --sidebar-background: 222.2 84% 4.9%; /* Very dark gray / almost black */
-    --sidebar-foreground: 210 40% 98%; /* Light text for sidebar */
-    --sidebar-primary: 217 91% 60%; /* Primary color for active items */
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%; /* Darker gray-blue for hover */
+    --sidebar-background: 222 84% 6%; /* Very dark (slightly bluer than pure black) */
+    --sidebar-foreground: 210 40% 96%; /* Light text for sidebar */
+    --sidebar-primary: 208 93% 58%; /* App's primary color for active items */
+    --sidebar-primary-foreground: 210 40% 98%; /* Light text on sidebar primary */
+    --sidebar-accent: 220 30% 15%; /* Darker gray-blue for hover on dark sidebar */
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%; /* Border for sidebar */
-    --sidebar-ring: 217 91% 60%; /* Ring color for sidebar elements */
+    --sidebar-border: 220 30% 12%; /* Border for dark sidebar */
+    --sidebar-ring: 208 93% 58%; /* Ring color for sidebar elements */
   }
 
   .dark {
-    /* Dark mode can be further refined if needed, for now, keep existing dark theme and adapt sidebar */
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark mode (if ever fully implemented) - for now, matches sidebar's darkness */
+    --background: 222 84% 6%;
+    --foreground: 210 40% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 84% 8%; /* Slightly lighter than background for cards in dark mode */
+    --card-foreground: 210 40% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 84% 6%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 217 91% 60%; /* Consistent primary color */
-    --primary-foreground: 0 0% 98%;
+    --primary: 208 93% 58%; /* Consistent primary color */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 30% 15%;
+    --secondary-foreground: 210 40% 96%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 30% 15%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217 33% 50%; /* Consistent accent color */
-    --accent-foreground: 0 0% 98%;
+    --accent: 174 72% 56%; /* Consistent accent color */
+    --accent-foreground: 222 84% 6%; /* Dark text on accent */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 63% 40%;
+    --destructive-foreground: 210 40% 96%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 217 91% 60%;
+    --border: 220 30% 12%;
+    --input: 220 30% 15%;
+    --ring: 208 93% 58%;
 
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
@@ -91,15 +91,15 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
 
-    /* Sidebar specific colors for dark mode (already dark, so similar to light mode's sidebar) */
-    --sidebar-background: 220 40% 10%; /* Dark blue/grey */
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 217 91% 60%; 
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 220 40% 20%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 220 40% 15%;
-    --sidebar-ring: 217 91% 60%;
+    /* Sidebar colors in dark mode are the same as its default dark appearance */
+    --sidebar-background: 222 84% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 208 93% 58%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 30% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 30% 12%;
+    --sidebar-ring: 208 93% 58%;
   }
 }
 
