@@ -4,41 +4,42 @@
 import { query } from '@/lib/db';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import bcrypt from 'bcryptjs';
+import type { Role } from './roleService'; // Import Role type
 
-export type UserRole = 'admin' | 'usuario';
+// UserRole is now more about the *name* of the role
+export type UserRoleName = string; // e.g., "Administrador", "Usuario Estándar", "Jefe de Bodega"
 
 export interface User {
   id_usuario: number;
   nombre_completo: string;
   email: string;
   password_hash?: string; // No siempre se devuelve
-  rol: UserRole;
+  id_rol_fk?: number | null; // Foreign key to Roles table
+  nombre_rol?: UserRoleName | null; // Nombre del rol (unido desde la tabla Roles)
   telefono?: string | null;
   avatar_seed?: string | null;
-  fecha_creacion: string; // O Date, dependiendo de cómo se procese
-  fecha_actualizacion: string; // O Date
+  fecha_creacion: string; 
+  fecha_actualizacion: string; 
 }
 
 export interface UserCreateInput {
   nombre_completo: string;
   email: string;
   password_plaintext: string;
-  rol: UserRole;
+  id_rol_fk: number; // Debe proveer el ID del rol al crear
   telefono?: string;
-  // avatar_seed ya no es parte del input directo, se genera si no se provee
 }
 
 export interface UserUpdateInput {
   nombre_completo?: string;
   email?: string;
-  rol?: UserRole;
+  id_rol_fk?: number | null;
   telefono?: string | null;
   avatar_seed?: string | null;
 }
 
 const SALT_ROUNDS = 10;
 
-// Helper para generar avatar_seed a partir de iniciales si no se provee
 function generateAvatarSeed(name: string): string {
     if (!name) return 'NA';
     const nameParts = name.trim().split(/\s+/);
@@ -49,7 +50,7 @@ function generateAvatarSeed(name: string): string {
 }
 
 export async function createUser(userData: UserCreateInput): Promise<User | null> {
-  const { nombre_completo, email, password_plaintext, rol, telefono } = userData;
+  const { nombre_completo, email, password_plaintext, id_rol_fk, telefono } = userData;
   
   const existingUser = await getUserByEmail(email);
   if (existingUser) {
@@ -57,13 +58,13 @@ export async function createUser(userData: UserCreateInput): Promise<User | null
   }
 
   const password_hash = await bcrypt.hash(password_plaintext, SALT_ROUNDS);
-  const avatar_seed = generateAvatarSeed(nombre_completo); // Generar avatar_seed
+  const avatar_seed = generateAvatarSeed(nombre_completo);
 
   const sql = `
-    INSERT INTO Usuarios (nombre_completo, email, password_hash, rol, telefono, avatar_seed)
+    INSERT INTO Usuarios (nombre_completo, email, password_hash, id_rol_fk, telefono, avatar_seed)
     VALUES (?, ?, ?, ?, ?, ?)
   `;
-  const params = [nombre_completo, email, password_hash, rol, telefono || null, avatar_seed];
+  const params = [nombre_completo, email, password_hash, id_rol_fk, telefono || null, avatar_seed];
   
   try {
     const result = await query(sql, params) as ResultSetHeader;
@@ -81,7 +82,12 @@ export async function createUser(userData: UserCreateInput): Promise<User | null
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const sql = 'SELECT id_usuario, nombre_completo, email, password_hash, rol, telefono, avatar_seed, fecha_creacion, fecha_actualizacion FROM Usuarios WHERE email = ?';
+  const sql = `
+    SELECT u.id_usuario, u.nombre_completo, u.email, u.password_hash, u.id_rol_fk, u.telefono, u.avatar_seed, u.fecha_creacion, u.fecha_actualizacion, r.nombre_rol
+    FROM Usuarios u
+    LEFT JOIN Roles r ON u.id_rol_fk = r.id_rol
+    WHERE u.email = ?
+  `;
   try {
     const rows = await query(sql, [email]) as User[];
     return rows.length > 0 ? rows[0] : null;
@@ -92,7 +98,12 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function getUserById(id_usuario: number): Promise<User | null> {
-  const sql = 'SELECT id_usuario, nombre_completo, email, rol, telefono, avatar_seed, fecha_creacion, fecha_actualizacion FROM Usuarios WHERE id_usuario = ?';
+  const sql = `
+    SELECT u.id_usuario, u.nombre_completo, u.email, u.id_rol_fk, u.telefono, u.avatar_seed, u.fecha_creacion, u.fecha_actualizacion, r.nombre_rol
+    FROM Usuarios u
+    LEFT JOIN Roles r ON u.id_rol_fk = r.id_rol
+    WHERE u.id_usuario = ?
+  `;
   try {
     const rows = await query(sql, [id_usuario]) as User[];
     return rows.length > 0 ? rows[0] : null;
@@ -103,7 +114,12 @@ export async function getUserById(id_usuario: number): Promise<User | null> {
 }
 
 export async function getAllUsers(): Promise<User[]> {
-  const sql = 'SELECT id_usuario, nombre_completo, email, rol, telefono, avatar_seed, fecha_creacion, fecha_actualizacion FROM Usuarios ORDER BY nombre_completo ASC';
+  const sql = `
+    SELECT u.id_usuario, u.nombre_completo, u.email, u.id_rol_fk, u.telefono, u.avatar_seed, u.fecha_creacion, u.fecha_actualizacion, r.nombre_rol
+    FROM Usuarios u
+    LEFT JOIN Roles r ON u.id_rol_fk = r.id_rol
+    ORDER BY u.nombre_completo ASC
+  `;
   try {
     const rows = await query(sql) as User[];
     return rows;
@@ -114,9 +130,8 @@ export async function getAllUsers(): Promise<User[]> {
 }
 
 export async function updateUserProfile(id_usuario: number, data: UserUpdateInput): Promise<User | null> {
-  const { nombre_completo, email, rol, telefono } = data;
+  const { nombre_completo, email, id_rol_fk, telefono } = data;
   let { avatar_seed } = data;
-
 
   const fieldsToUpdate: string[] = [];
   const params: (string | number | null)[] = [];
@@ -124,7 +139,7 @@ export async function updateUserProfile(id_usuario: number, data: UserUpdateInpu
   if (nombre_completo !== undefined) {
     fieldsToUpdate.push('nombre_completo = ?');
     params.push(nombre_completo);
-    if (avatar_seed === undefined) { // Si avatar_seed no se está actualizando explícitamente, regenerarlo si el nombre cambia
+    if (avatar_seed === undefined) { 
         avatar_seed = generateAvatarSeed(nombre_completo);
     }
   }
@@ -136,19 +151,18 @@ export async function updateUserProfile(id_usuario: number, data: UserUpdateInpu
     fieldsToUpdate.push('email = ?');
     params.push(email);
   }
-  if (rol !== undefined) {
-    fieldsToUpdate.push('rol = ?');
-    params.push(rol);
+  if (id_rol_fk !== undefined) {
+    fieldsToUpdate.push('id_rol_fk = ?');
+    params.push(id_rol_fk);
   }
   if (telefono !== undefined) {
     fieldsToUpdate.push('telefono = ?');
-    params.push(telefono); // Puede ser null
+    params.push(telefono); 
   }
-   if (avatar_seed !== undefined) { // Si se proporcionó explícitamente
+   if (avatar_seed !== undefined) { 
     fieldsToUpdate.push('avatar_seed = ?');
     params.push(avatar_seed);
    }
-
 
   if (fieldsToUpdate.length === 0) {
     return getUserById(id_usuario); 
@@ -170,6 +184,17 @@ export async function updateUserProfile(id_usuario: number, data: UserUpdateInpu
      if (error instanceof Error && (error as any).code === 'ER_DUP_ENTRY' && (error as any).sqlMessage.includes('email')) {
         throw new Error('El nuevo correo electrónico ya está en uso por otro usuario.');
     }
+    throw error;
+  }
+}
+
+export async function assignRoleToUser(userId: number, roleId: number | null): Promise<boolean> {
+  const sql = 'UPDATE Usuarios SET id_rol_fk = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id_usuario = ?';
+  try {
+    const result = await query(sql, [roleId, userId]) as ResultSetHeader;
+    return result.affectedRows > 0;
+  } catch (error) {
+    console.error(`Error asignando rol ${roleId} al usuario ${userId}:`, error);
     throw error;
   }
 }
@@ -204,6 +229,4 @@ export async function deleteUser(id_usuario: number): Promise<boolean> {
 export async function verifyPassword(password_plaintext: string, password_hash: string): Promise<boolean> {
   return bcrypt.compare(password_plaintext, password_hash);
 }
-
-// La re-exportación de getPool se elimina de aquí.
-// Los módulos que necesiten getPool deben importarlo directamente de '@/lib/db'.
+    
