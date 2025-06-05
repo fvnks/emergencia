@@ -38,14 +38,14 @@ export function LoginForm() {
       <header className="py-3 px-4 sm:px-6 shadow-sm bg-white">
         <div className="container mx-auto flex items-center gap-2">
           <Shield className="h-5 w-5 text-blue-600" />
-          <span className="font-semibold text-md text-slate-700">Emergency Response Admin</span>
+          <span className="font-semibold text-md text-slate-700">Administrador de Respuesta a Emergencias</span>
         </div>
       </header>
 
       <main className="flex-grow flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-8">
           <h1 className="text-3xl font-bold text-center text-slate-800">
-            Welcome back
+            Bienvenido de nuevo
           </h1>
 
           {authError && (
@@ -58,11 +58,11 @@ export function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-700">Username</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">Correo Electrónico</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your username"
+                placeholder="Ingresa tu correo electrónico"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -71,11 +71,11 @@ export function LoginForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-slate-700">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-slate-700">Contraseña</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -84,7 +84,7 @@ export function LoginForm() {
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="remember-me" className="font-normal text-sm text-slate-600 select-none cursor-pointer">Remember me</Label>
+              <Label htmlFor="remember-me" className="font-normal text-sm text-slate-600 select-none cursor-pointer">Recuérdame</Label>
               <Checkbox
                 id="remember-me"
                 checked={rememberMe}
@@ -94,12 +94,12 @@ export function LoginForm() {
             </div>
 
             <Button type="submit" className="w-full font-semibold bg-blue-500 hover:bg-blue-600 text-white py-3 h-11 rounded-lg text-sm" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Log in"}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Iniciar Sesión"}
             </Button>
 
             <div className="text-center">
               <a href="#" className="text-sm text-blue-500 hover:text-blue-600 hover:underline">
-                Forgot password?
+                ¿Olvidaste tu contraseña?
               </a>
             </div>
           </form>
