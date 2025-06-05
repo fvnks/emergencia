@@ -7,7 +7,7 @@ import { getAllVehicles } from "@/services/vehicleService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, FileText, Wrench, Loader2, AlertTriangle, Truck, Search, Filter, Eye } from "lucide-react"; // Added Eye
+import { PlusCircle, Edit, Trash2, FileText, Wrench, Loader2, AlertTriangle, Truck, Search, Filter, Eye } from "lucide-react"; // Added Eye and AlertTriangle
 import Image from "next/image";
 import Link from "next/link"; // Import Link
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,8 +23,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"; // Import Select components
 import { ALL_VEHICLE_STATUSES, ALL_VEHICLE_TYPES } from "@/types/vehicleTypes"; // Import status and type constants
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays, isFuture, isPast } from 'date-fns'; // Added date-fns functions
 import { es } from 'date-fns/locale';
+import { cn } from "@/lib/utils";
 
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -79,11 +80,13 @@ export default function VehiclesPage() {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
-      const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00Z"); // Assume UTC if no T
+      // Ensure date is parsed correctly if it's just YYYY-MM-DD
+      const date = parseISO(dateString); 
       if (!isValid(date)) return "Fecha inválida";
       return format(date, "dd-MM-yyyy", { locale: es });
     } catch (e) {
-      return dateString;
+      // Fallback for potentially malformed date strings that parseISO might not handle before isValid check
+      return dateString; 
     }
   };
 
@@ -218,61 +221,120 @@ export default function VehiclesPage() {
 
       {filteredVehicles.length > 0 && (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredVehicles.map((vehicle) => (
-            <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
-              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full cursor-pointer">
-                <CardHeader className="p-0">
-                  <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
-                    <Image 
-                      src={vehicle.url_imagen || `https://placehold.co/600x400.png?text=${encodeURIComponent(vehicle.marca)}`} 
-                      alt={`${vehicle.marca} ${vehicle.modelo}`} 
-                      layout="fill" 
-                      objectFit="cover" 
-                      data-ai-hint={vehicle.ai_hint_imagen || vehicle.tipo_vehiculo?.toLowerCase() || "vehiculo emergencia"}
-                      onError={(e) => { e.currentTarget.src = `https://placehold.co/600x400.png?text=Error`; }}
-                    />
-                  </div>
-                   <div className="p-4">
-                    <CardTitle className="font-headline text-xl">{vehicle.marca} {vehicle.modelo}</CardTitle>
-                    <CardDescription>
-                        {vehicle.identificador_interno && <span className="font-semibold">{vehicle.identificador_interno}</span>}
-                        {vehicle.identificador_interno && vehicle.patente && " | "}
-                        {vehicle.patente && `Patente: ${vehicle.patente}`}
-                        {!vehicle.identificador_interno && !vehicle.patente && "Sin identificador"}
-                    </CardDescription>
-                   </div>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-3 p-4">
-                  <div>
-                    <span className="text-sm font-medium text-muted-foreground">Estado: </span>
-                    <Badge variant={vehicle.estado_vehiculo === "Operativo" ? "default" : "destructive"} className={getStatusBadgeClassName(vehicle.estado_vehiculo)}>
-                      {vehicle.estado_vehiculo}
-                    </Badge>
-                  </div>
-                  {vehicle.tipo_vehiculo && (
-                      <div className="text-sm">
-                          <span className="font-medium text-muted-foreground">Tipo: </span>{vehicle.tipo_vehiculo}
-                      </div>
-                  )}
-                  <div className="flex items-center text-sm">
-                    <Wrench className="mr-2 h-4 w-4 text-muted-foreground" />
-                    Próx. Mantención: {formatDate(vehicle.proxima_mantencion_programada)}
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                    Docs Vencen: {formatDate(vehicle.vencimiento_documentacion)}
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end gap-2 border-t pt-4 p-4">
-                   <Button variant="outline" size="sm" onClick={(e) => { e.preventDefault(); router.push(`/vehicles/${vehicle.id_vehiculo}`)}}>
-                        <Eye className="mr-1 h-4 w-4" /> Ver
-                    </Button>
-                  <Button variant="outline" size="sm" onClick={(e) => openEditDialog(vehicle, e)}><Edit className="mr-1 h-4 w-4" /> Editar</Button>
-                  <Button variant="destructive" size="sm" onClick={(e) => openDeleteDialog(vehicle, e)}><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
+          {filteredVehicles.map((vehicle) => {
+            const today = new Date();
+            today.setHours(0,0,0,0); // Normalize today to the beginning of the day
+
+            let isMaintenanceOverdue = false;
+            let isMaintenanceUpcoming = false;
+            let maintenanceTitle = "";
+
+            if (vehicle.proxima_mantencion_programada) {
+              const proxMantencionDate = parseISO(vehicle.proxima_mantencion_programada);
+              if (isValid(proxMantencionDate)) {
+                const daysToMaintenance = differenceInDays(proxMantencionDate, today);
+                if (daysToMaintenance < 0 && vehicle.estado_vehiculo === 'Operativo') {
+                  isMaintenanceOverdue = true;
+                  maintenanceTitle = "Mantención Vencida";
+                } else if (daysToMaintenance >= 0 && daysToMaintenance <= 7) {
+                  isMaintenanceUpcoming = true;
+                  maintenanceTitle = `Mantención en ${daysToMaintenance} día(s)`;
+                  if (daysToMaintenance === 0) maintenanceTitle = "Mantención Hoy";
+                }
+              }
+            }
+
+            let isDocsOverdue = false;
+            let isDocsUpcoming = false;
+            let docsTitle = "";
+
+            if (vehicle.vencimiento_documentacion) {
+              const vencimientoDocsDate = parseISO(vehicle.vencimiento_documentacion);
+              if (isValid(vencimientoDocsDate)) {
+                 const daysToDocsExpiration = differenceInDays(vencimientoDocsDate, today);
+                if (daysToDocsExpiration < 0) {
+                  isDocsOverdue = true;
+                  docsTitle = "Documentación Vencida";
+                } else if (daysToDocsExpiration >= 0 && daysToDocsExpiration <= 7) {
+                  isDocsUpcoming = true;
+                  docsTitle = `Documentación vence en ${daysToDocsExpiration} día(s)`;
+                  if (daysToDocsExpiration === 0) docsTitle = "Documentación vence Hoy";
+                }
+              }
+            }
+
+            return (
+              <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
+                <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full cursor-pointer">
+                  <CardHeader className="p-0">
+                    <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
+                      <Image 
+                        src={vehicle.url_imagen || `https://placehold.co/600x400.png?text=${encodeURIComponent(vehicle.marca)}`} 
+                        alt={`${vehicle.marca} ${vehicle.modelo}`} 
+                        layout="fill" 
+                        objectFit="cover" 
+                        data-ai-hint={vehicle.ai_hint_imagen || vehicle.tipo_vehiculo?.toLowerCase() || "vehiculo emergencia"}
+                        onError={(e) => { e.currentTarget.src = `https://placehold.co/600x400.png?text=Error`; }}
+                      />
+                    </div>
+                     <div className="p-4">
+                      <CardTitle className="font-headline text-xl">{vehicle.marca} {vehicle.modelo}</CardTitle>
+                      <CardDescription>
+                          {vehicle.identificador_interno && <span className="font-semibold">{vehicle.identificador_interno}</span>}
+                          {vehicle.identificador_interno && vehicle.patente && " | "}
+                          {vehicle.patente && `Patente: ${vehicle.patente}`}
+                          {!vehicle.identificador_interno && !vehicle.patente && "Sin identificador"}
+                      </CardDescription>
+                     </div>
+                  </CardHeader>
+                  <CardContent className="flex-grow space-y-3 p-4">
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Estado: </span>
+                      <Badge variant={vehicle.estado_vehiculo === "Operativo" ? "default" : "destructive"} className={getStatusBadgeClassName(vehicle.estado_vehiculo)}>
+                        {vehicle.estado_vehiculo}
+                      </Badge>
+                    </div>
+                    {vehicle.tipo_vehiculo && (
+                        <div className="text-sm">
+                            <span className="font-medium text-muted-foreground">Tipo: </span>{vehicle.tipo_vehiculo}
+                        </div>
+                    )}
+                    <div className="flex items-center text-sm">
+                      <Wrench className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      Próx. Mantención: {formatDate(vehicle.proxima_mantencion_programada)}
+                      {(isMaintenanceUpcoming || isMaintenanceOverdue) && (
+                        <AlertTriangle 
+                          className={cn("ml-2 h-4 w-4 flex-shrink-0", 
+                            isMaintenanceOverdue ? "text-red-600" : "text-orange-500"
+                          )} 
+                          title={maintenanceTitle} 
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <FileText className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      Docs Vencen: {formatDate(vehicle.vencimiento_documentacion)}
+                      {(isDocsUpcoming || isDocsOverdue) && (
+                        <AlertTriangle 
+                          className={cn("ml-2 h-4 w-4 flex-shrink-0",
+                            isDocsOverdue ? "text-red-600" : "text-orange-500"
+                          )} 
+                          title={docsTitle}
+                        />
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-end gap-2 border-t pt-4 p-4">
+                     <Button variant="outline" size="sm" onClick={(e) => { e.preventDefault(); router.push(`/vehicles/${vehicle.id_vehiculo}`)}}>
+                          <Eye className="mr-1 h-4 w-4" /> Ver
+                      </Button>
+                    <Button variant="outline" size="sm" onClick={(e) => openEditDialog(vehicle, e)}><Edit className="mr-1 h-4 w-4" /> Editar</Button>
+                    <Button variant="destructive" size="sm" onClick={(e) => openDeleteDialog(vehicle, e)}><Trash2 className="mr-1 h-4 w-4" /> Eliminar</Button>
+                  </CardFooter>
+                </Card>
+              </Link>
+            )
+          })}
         </div>
       )}
       <AddVehicleDialog
@@ -299,3 +361,4 @@ export default function VehiclesPage() {
     </div>
   );
 }
+
