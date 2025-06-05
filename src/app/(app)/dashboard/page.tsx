@@ -9,7 +9,10 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLe
 import { useEffect, useState } from "react";
 import { getAllVehicles, type Vehicle } from "@/services/vehicleService";
 import { getAllUsers, type User } from "@/services/userService";
-import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService"; // Added Task and TaskStatus
+import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService";
+import { getAllEraEquipments, type EraEquipment } from "@/services/eraService";
+import { getAllInventoryItems, type InventoryItem } from "@/services/inventoryService";
+
 
 const dailyOpsData = [
   { name: 'Lun', ops: 4, maint: 2 },
@@ -33,6 +36,9 @@ const chartConfig = {
 } satisfies import("@/components/ui/chart").ChartConfig;
 
 const ACTIVE_TASK_STATUSES: TaskStatus[] = ['Pendiente', 'Programada', 'En Proceso', 'Atrasada'];
+const READY_ERA_STATUSES: EraEquipment["estado_era"][] = ['Operativo', 'Disponible'];
+const EXTINGUISHER_CATEGORY = "Extintores";
+
 
 export default function DashboardPage() {
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
@@ -41,6 +47,9 @@ export default function DashboardPage() {
   const [totalPersonnel, setTotalPersonnel] = useState<number | string>("N/A");
   const [activeTasksCount, setActiveTasksCount] = useState<number | string>("N/A");
   const [overdueTasksCount, setOverdueTasksCount] = useState<number | string>("N/A");
+  const [readyEraCount, setReadyEraCount] = useState<number | string>("N/A");
+  const [readyExtinguisherCount, setReadyExtinguisherCount] = useState<number | string>("N/A");
+  const [totalReadyEquipmentCount, setTotalReadyEquipmentCount] = useState<number | string>("N/A");
 
 
   const [loading, setLoading] = useState(true);
@@ -51,10 +60,12 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
       try {
-        const [vehiclesData, usersData, tasksData] = await Promise.all([
+        const [vehiclesData, usersData, tasksData, eraData, inventoryData] = await Promise.all([
           getAllVehicles(),
           getAllUsers(),
-          getAllTasks()
+          getAllTasks(),
+          getAllEraEquipments(),
+          getAllInventoryItems(),
         ]);
 
         // Process vehicle data
@@ -72,6 +83,18 @@ export default function DashboardPage() {
         setActiveTasksCount(activeTasks.length);
         setOverdueTasksCount(overdueTasks.length);
 
+        // Process ERA data
+        const erasReady = eraData.filter(era => READY_ERA_STATUSES.includes(era.estado_era)).length;
+        setReadyEraCount(erasReady);
+        
+        // Process Inventory data for Extinguishers
+        const extinguishersReady = inventoryData.filter(
+          item => item.categoria_item?.toLowerCase() === EXTINGUISHER_CATEGORY.toLowerCase() && item.cantidad_actual > 0
+        ).length;
+        setReadyExtinguisherCount(extinguishersReady);
+
+        setTotalReadyEquipmentCount(erasReady + extinguishersReady);
+
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError(err instanceof Error ? err.message : "No se pudieron cargar los datos del panel.");
@@ -81,6 +104,9 @@ export default function DashboardPage() {
         setTotalPersonnel("Error");
         setActiveTasksCount("Error");
         setOverdueTasksCount("Error");
+        setReadyEraCount("Error");
+        setReadyExtinguisherCount("Error");
+        setTotalReadyEquipmentCount("Error");
       } finally {
         setLoading(false);
       }
@@ -106,6 +132,19 @@ export default function DashboardPage() {
     );
   }
 
+  const readyEquipmentDescription = () => {
+    let parts: string[] = [];
+    if (readyEraCount !== "N/A" && readyEraCount !== "Error" && typeof readyEraCount === 'number' && readyEraCount > 0) {
+        parts.push(`${readyEraCount} ERA${readyEraCount > 1 ? 's' : ''}`);
+    }
+    if (readyExtinguisherCount !== "N/A" && readyExtinguisherCount !== "Error" && typeof readyExtinguisherCount === 'number' && readyExtinguisherCount > 0) {
+        parts.push(`${readyExtinguisherCount} Extintor${readyExtinguisherCount > 1 ? 'es' : ''}`);
+    }
+    if (parts.length === 0) return "No hay equipos listos.";
+    return parts.join(" y ") + " listos.";
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
@@ -120,7 +159,7 @@ export default function DashboardPage() {
           title="Tareas Activas"
           value={activeTasksCount.toString()}
           icon={Activity}
-          description={overdueTasksCount !== "N/A" && overdueTasksCount !== "Error" && overdueTasksCount > 0 ? `${overdueTasksCount} atrasada(s)` : "Ninguna tarea atrasada"}
+          description={overdueTasksCount !== "N/A" && overdueTasksCount !== "Error" && typeof overdueTasksCount === 'number' && overdueTasksCount > 0 ? `${overdueTasksCount} atrasada(s)` : "Ninguna tarea atrasada"}
           iconClassName="text-blue-500"
         />
         <StatCard
@@ -132,9 +171,9 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Equipos Listos"
-          value="45" // Placeholder
+          value={totalReadyEquipmentCount.toString()}
           icon={ShieldCheck}
-          description="ERA y Extintores" // Placeholder
+          description={readyEquipmentDescription()}
           iconClassName="text-teal-500"
         />
         <StatCard
@@ -201,4 +240,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
