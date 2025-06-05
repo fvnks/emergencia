@@ -3,13 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox"; // Keep for potential future direct display
-import { Label } from "@/components/ui/label"; // Keep for potential future direct display
 import Link from "next/link";
 import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2, Users, Loader2, AlertTriangle } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
 import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added import
 import { getAllRoles, getAllPermissions, createRole, updateRole, deleteRole, getRoleById, type Role, type Permission } from "@/services/roleService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,7 +30,7 @@ export default function RolesPermissionsPage() {
 
   const [isAddRoleDialogOpen, setIsAddRoleDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null); // Will store Role with its permissions for editing
+  const [currentEditingRole, setCurrentEditingRole] = useState<Role | null>(null);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
@@ -51,12 +50,12 @@ export default function RolesPermissionsPage() {
       console.error("Error fetching roles or permissions:", err);
       const errorMessage = err instanceof Error ? err.message : "No se pudieron cargar los datos de roles y permisos.";
       setError(errorMessage);
-      toast({ title: "Error de Carga", description: errorMessage, variant: "destructive" });
+      // Toast removed from here to avoid duplicate toasts if error component is shown
     } finally {
       setLoadingRoles(false);
       setLoadingPermissions(false);
     }
-  }, [toast]);
+  }, []); // Removed toast from dependencies
 
   useEffect(() => {
     fetchRolesAndPermissions();
@@ -64,7 +63,7 @@ export default function RolesPermissionsPage() {
 
 
   const handleSaveRole = async (
-    roleData: { name: string; description: string; selectedPermissions: number[] }, // selectedPermissions are IDs
+    roleData: { name: string; description: string; selectedPermissions: number[] },
     existingRoleId?: number
   ) => {
     try {
@@ -85,6 +84,8 @@ export default function RolesPermissionsPage() {
       }
       fetchRolesAndPermissions(); // Re-fetch all data to reflect changes
       setIsAddRoleDialogOpen(false);
+      setCurrentEditingRole(null);
+      setIsEditMode(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Ocurrió un error al guardar el rol.";
       toast({ title: "Error al Guardar Rol", description: errorMessage, variant: "destructive" });
@@ -103,12 +104,12 @@ export default function RolesPermissionsPage() {
         return;
     }
     try {
-        setLoadingRoles(true); // Indicate loading while fetching full role details
+        setLoadingRoles(true); 
         const fullRoleDetails = await getRoleById(role.id_rol);
         if (!fullRoleDetails) {
             throw new Error("No se pudo cargar la información completa del rol para editar.");
         }
-        setCurrentEditingRole(fullRoleDetails); // This role will have its permissions populated
+        setCurrentEditingRole(fullRoleDetails); 
         setIsEditMode(true);
         setIsAddRoleDialogOpen(true);
     } catch (err) {
@@ -125,7 +126,7 @@ export default function RolesPermissionsPage() {
         return;
     }
      if (role.user_count && role.user_count > 0) {
-        toast({title: "Rol en Uso", description: `El rol "${role.nombre_rol}" está asignado a ${role.user_count} usuario(s) y no puede ser eliminado.`, variant: "destructive"});
+        toast({title: "Rol en Uso", description: `El rol "${role.nombre_rol}" está asignado a ${role.user_count} usuario(s) y no puede ser eliminado. Reasigne los usuarios primero.`, variant: "destructive"});
         return;
     }
     setRoleToDelete(role);
@@ -137,7 +138,7 @@ export default function RolesPermissionsPage() {
       try {
         await deleteRole(roleToDelete.id_rol);
         toast({ title: "Rol Eliminado", description: `El rol "${roleToDelete.nombre_rol}" ha sido eliminado.` });
-        fetchRolesAndPermissions(); // Re-fetch
+        fetchRolesAndPermissions(); 
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "No se pudo eliminar el rol.";
         toast({ title: "Error al Eliminar Rol", description: errorMessage, variant: "destructive" });
@@ -188,6 +189,7 @@ export default function RolesPermissionsPage() {
       <p className="text-muted-foreground">
         Define roles personalizados y asigna permisos específicos a cada módulo.
         {loadingPermissions && allAvailablePermissions.length === 0 && <span className="text-destructive"> (Cargando permisos disponibles...)</span>}
+         {allAvailablePermissions.length === 0 && !loadingPermissions && <span className="text-orange-600"> (No hay permisos definidos en la base de datos. Por favor, ejecute el script SQL de roles y permisos.)</span>}
       </p>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -206,7 +208,7 @@ export default function RolesPermissionsPage() {
                   </div>
                   {!role.es_rol_sistema && (
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => openEditDialog(role)}>
+                      <Button variant="outline" size="sm" onClick={() => openEditDialog(role)} disabled={allAvailablePermissions.length === 0}>
                         <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
                       </Button>
                       <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)} disabled={role.user_count && role.user_count > 0}>
@@ -262,4 +264,3 @@ export default function RolesPermissionsPage() {
   );
 }
 
-    
