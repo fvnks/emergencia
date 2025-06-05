@@ -3,6 +3,7 @@
 
 import type { Vehicle, VehicleStatus, VehicleType } from "@/types/vehicleTypes"; // Import VehicleStatus and VehicleType
 import { useEffect, useState, useCallback, useMemo } from "react"; // Import useState and useMemo
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { getAllVehicles } from "@/services/vehicleService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 
 export default function VehiclesPage() {
+  const router = useRouter(); // Define router
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export default function VehiclesPage() {
       setVehicles(fetchedVehicles);
     } catch (err) {
       console.error("Error fetching vehicles:", err);
-      setError(err instanceof Error ? err.message : "No se pudieron cargar los vehículos.");
+      setError(err instanceof Error ? err.message : "No se pudieron cargar los veh\u00edculos.");
     } finally {
       setLoading(false);
     }
@@ -82,7 +84,7 @@ export default function VehiclesPage() {
     try {
       // Ensure date is parsed correctly if it's just YYYY-MM-DD
       const date = parseISO(dateString); 
-      if (!isValid(date)) return "Fecha inválida";
+      if (!isValid(date)) return "Fecha inv\u00e1lida";
       return format(date, "dd-MM-yyyy", { locale: es });
     } catch (e) {
       // Fallback for potentially malformed date strings that parseISO might not handle before isValid check
@@ -93,7 +95,7 @@ export default function VehiclesPage() {
   const getStatusBadgeClassName = (status: Vehicle["estado_vehiculo"]) => {
     switch (status) {
       case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
-      case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
+      case "En Mantenci\u00f3n": return "bg-yellow-500 hover:bg-yellow-600 text-black";
       case "Fuera de Servicio": return "bg-red-600 hover:bg-red-700 text-white";
       default: return "bg-gray-400 text-white";
     }
@@ -125,7 +127,7 @@ export default function VehiclesPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-        <p className="text-lg font-semibold">Cargando Vehículos...</p>
+        <p className="text-lg font-semibold">Cargando Veh\u00edculos...</p>
       </div>
     );
   }
@@ -134,7 +136,7 @@ export default function VehiclesPage() {
     return (
       <Alert variant="destructive" className="max-w-2xl mx-auto">
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error al Cargar Vehículos</AlertTitle>
+        <AlertTitle>Error al Cargar Veh\u00edculos</AlertTitle>
         <AlertDescription>
           {error.includes("La tabla 'Vehiculos' no existe")
             ? "La tabla 'Vehiculos' no existe en la base de datos. Por favor, ejecute el script SQL proporcionado para crearla."
@@ -148,9 +150,9 @@ export default function VehiclesPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Gestión de Vehículos</h1>
+        <h1 className="text-3xl font-headline font-bold">Gesti\u00f3n de Veh\u00edculos</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
-          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
+          <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Veh\u00edculo
         </Button>
       </div>
 
@@ -200,19 +202,19 @@ export default function VehiclesPage() {
                 <Truck className="h-10 w-10" />
             </div>
             <CardTitle className="mt-4">
-              {vehicles.length === 0 ? "No hay Vehículos Registrados" : "No se encontraron vehículos"}
+              {vehicles.length === 0 ? "No hay Veh\u00edculos Registrados" : "No se encontraron veh\u00edculos"}
             </CardTitle>
             <CardDescription>
               {vehicles.length === 0
-                ? "No hay vehículos registrados en el sistema. Comienza agregando uno."
-                : "Intenta ajustar los filtros o el término de búsqueda."
+                ? "No hay veh\u00edculos registrados en el sistema. Comienza agregando uno."
+                : "Intenta ajustar los filtros o el t\u00e9rmino de b\u00fasqueda."
               }
             </CardDescription>
           </CardHeader>
           {vehicles.length === 0 && (
             <CardContent>
               <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
+                  <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Veh\u00edculo
               </Button>
             </CardContent>
           )}
@@ -235,11 +237,11 @@ export default function VehiclesPage() {
                 const daysToMaintenance = differenceInDays(proxMantencionDate, today);
                 if (daysToMaintenance < 0 && vehicle.estado_vehiculo === 'Operativo') {
                   isMaintenanceOverdue = true;
-                  maintenanceTitle = "Mantención Vencida";
+                  maintenanceTitle = "Mantenci\u00f3n Vencida";
                 } else if (daysToMaintenance >= 0 && daysToMaintenance <= 7) {
                   isMaintenanceUpcoming = true;
-                  maintenanceTitle = `Mantención en ${daysToMaintenance} día(s)`;
-                  if (daysToMaintenance === 0) maintenanceTitle = "Mantención Hoy";
+                  maintenanceTitle = `Mantenci\u00f3n en ${daysToMaintenance} d\u00eda(s)`;
+                  if (daysToMaintenance === 0) maintenanceTitle = "Mantenci\u00f3n Hoy";
                 }
               }
             }
@@ -254,11 +256,11 @@ export default function VehiclesPage() {
                  const daysToDocsExpiration = differenceInDays(vencimientoDocsDate, today);
                 if (daysToDocsExpiration < 0) {
                   isDocsOverdue = true;
-                  docsTitle = "Documentación Vencida";
+                  docsTitle = "Documentaci\u00f3n Vencida";
                 } else if (daysToDocsExpiration >= 0 && daysToDocsExpiration <= 7) {
                   isDocsUpcoming = true;
-                  docsTitle = `Documentación vence en ${daysToDocsExpiration} día(s)`;
-                  if (daysToDocsExpiration === 0) docsTitle = "Documentación vence Hoy";
+                  docsTitle = `Documentaci\u00f3n vence en ${daysToDocsExpiration} d\u00eda(s)`;
+                  if (daysToDocsExpiration === 0) docsTitle = "Documentaci\u00f3n vence Hoy";
                 }
               }
             }
@@ -301,7 +303,7 @@ export default function VehiclesPage() {
                     )}
                     <div className="flex items-center text-sm">
                       <Wrench className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      Próx. Mantención: {formatDate(vehicle.proxima_mantencion_programada)}
+                      Pr\u00f3x. Mantenci\u00f3n: {formatDate(vehicle.proxima_mantencion_programada)}
                       {(isMaintenanceUpcoming || isMaintenanceOverdue) && (
                         <AlertTriangle 
                           className={cn("ml-2 h-4 w-4 flex-shrink-0", 
