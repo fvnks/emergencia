@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,6 +18,7 @@ import {
   Users,
   SettingsIcon,
   LucideIcon,
+  Map, // Usaremos Map como icono para el seguimiento
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -29,6 +31,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Panel Principal", icon: Home },
+  { href: "/tracking", label: "Seguimiento GPS", icon: Map },
   { href: "/vehicles", label: "Vehículos", icon: Truck },
   { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck },
   { href: "/maintenance", label: "Mantención", icon: Wrench },
