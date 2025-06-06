@@ -20,7 +20,8 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
         fontWeight="bold"
         fill="hsl(var(--foreground))" // Use main foreground color
         x="30" // Adjusted x position
-        y="33" // Adjusted y for vertical centering
+        y="33"
+        className="group-data-[collapsible=icon]:hidden" // Hide text when sidebar is collapsed
       >
         Admin Panel
       </text>
