@@ -81,11 +81,14 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className={cn("h-5 w-5", activeAlertsCount > 0 && "animate-pulse text-primary")} />
+                  <Bell className={cn("h-5 w-5", activeAlertsCount > 0 && "text-primary animate-ring-bell")} />
                   {activeAlertsCount > 0 && (
                     <Badge
                       variant="destructive"
-                      className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full"
+                      className={cn(
+                        "absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full",
+                        activeAlertsCount > 0 && "animate-pulse" 
+                      )}
                     >
                       {activeAlertsCount > 9 ? "9+" : activeAlertsCount}
                     </Badge>
