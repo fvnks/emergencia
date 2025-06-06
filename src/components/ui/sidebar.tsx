@@ -216,6 +216,7 @@ const Sidebar = React.forwardRef<
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -501,7 +502,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-[hsl(var(--sidebar-ring))] transition-[width,height,padding] focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-[hsl(var(--sidebar-ring))] transition-[width,height,padding] focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -510,9 +511,9 @@ const sidebarMenuButtonVariants = cva(
           "bg-background text-[hsl(var(--sidebar-item-fg))] shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-fg))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-item-hover-bg))] data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-semibold",
       },
       size: {
-        default: "h-8 text-sm",
+        default: "h-9 text-[15px]", // Updated height and font size
         sm: "h-7 text-xs",
-        lg: "h-12 text-sm group-data-[collapsible=icon]:!p-0",
+        lg: "h-12 text-[15px] group-data-[collapsible=icon]:!p-0", // Updated font size
       },
     },
     defaultVariants: {
@@ -538,7 +539,7 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
-      children, // Explicitly include children
+      children, 
       ...props
     },
     ref
@@ -555,7 +556,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
         {...props}
       >
-        {/* Ensure icons use the correct variable */}
+        
         {React.Children.map(children, child => {
           if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) {
             return React.cloneElement(child as React.ReactElement<any>, { 
@@ -613,7 +614,7 @@ const SidebarMenuAction = React.forwardRef<
         "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-[hsl(var(--sidebar-foreground))] outline-none ring-[hsl(var(--sidebar-ring))] transition-transform hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-fg))] focus-visible:ring-2 peer-hover/menu-button:text-[hsl(var(--sidebar-item-hover-fg))] [&>svg]:size-4 [&>svg]:shrink-0",
         "after:absolute after:-inset-2 after:md:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
-        "peer-data-[size=default]/menu-button:top-1.5",
+        "peer-data-[size=default]/menu-button:top-1.5", 
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
@@ -637,7 +638,7 @@ const SidebarMenuBadge = React.forwardRef<
       "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-[hsl(var(--sidebar-foreground))] select-none pointer-events-none",
       "peer-hover/menu-button:text-[hsl(var(--sidebar-item-hover-fg))] peer-data-[active=true]/menu-button:text-[hsl(var(--sidebar-item-active-fg))]",
       "peer-data-[size=sm]/menu-button:top-1",
-      "peer-data-[size=default]/menu-button:top-1.5",
+      "peer-data-[size=default]/menu-button:top-1.5", 
       "peer-data-[size=lg]/menu-button:top-2.5",
       "group-data-[collapsible=icon]:hidden",
       className

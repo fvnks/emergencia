@@ -57,7 +57,7 @@ export function SidebarNav() {
 
   return (
     <>
-      <div className="px-4 pt-2 pb-1 text-sm font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
+      <div className="px-4 pt-2 pb-1 text-[15px] font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
         MENU
       </div>
       <SidebarMenu>
@@ -66,10 +66,10 @@ export function SidebarNav() {
             <Link href={item.href} passHref legacyBehavior>
               <SidebarMenuButton
                 isActive={pathname.startsWith(item.href)}
-                className="justify-start w-full" // Removed explicit color classes, should come from CVA
+                className="justify-start w-full" 
                 tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
               >
-                <item.icon /> {/* Icon styling will be handled by SidebarMenuButton's CVA logic */}
+                <item.icon /> 
                 <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
               </SidebarMenuButton>
             </Link>
