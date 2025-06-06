@@ -14,11 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import { AddChecklistDialog } from "@/components/checklists/add-checklist-dialog"; // Se creará después
-// import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog"; // Se creará después
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Checklist {
   id: string;
@@ -27,10 +27,9 @@ interface Checklist {
   itemCount: number;
   category?: string;
   lastModified: string;
-  status: 'Nuevo' | 'En Progreso' | 'Completado'; // Ejemplo de estados
+  status: 'Nuevo' | 'En Progreso' | 'Completado';
 }
 
-// Datos simulados iniciales
 const SIMULATED_CHECKLISTS: Checklist[] = [
   { id: "chk1", name: "Inspección Pre-Operacional Bomba B-01", description: "Checklist diario antes de sacar la unidad.", itemCount: 15, category: "Vehicular", lastModified: "2024-07-28T10:00:00Z", status: "Nuevo" },
   { id: "chk2", name: "Revisión Semanal Equipos ERA", description: "Verificación de presión, estado de máscaras y cilindros.", itemCount: 8, category: "Equipos ERA", lastModified: "2024-07-25T14:30:00Z", status: "En Progreso" },
@@ -40,18 +39,14 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
-  const [loading, setLoading] = useState(false); // Para futuras cargas de datos
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 
   const { toast } = useToast();
 
-  // const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  // const [selectedChecklistForDelete, setSelectedChecklistForDelete] = useState<Checklist | null>(null);
-
   const handleOpenAddDialog = () => {
-    // setIsAddDialogOpen(true);
     toast({ title: "Próximamente", description: "La creación de checklists se implementará en una futura actualización." });
   };
 
@@ -64,7 +59,6 @@ export default function ChecklistsPage() {
   };
   
   const handleDeleteChecklist = (checklist: Checklist) => {
-    // setSelectedChecklistForDelete(checklist);
     toast({ title: "Próximamente", description: `Eliminar checklist ${checklist.name} se implementará pronto.` });
   };
 
@@ -80,6 +74,14 @@ export default function ChecklistsPage() {
   const uniqueCategories = Array.from(new Set(SIMULATED_CHECKLISTS.map(c => c.category).filter(Boolean))) as string[];
   const uniqueStatuses = Array.from(new Set(SIMULATED_CHECKLISTS.map(c => c.status))) as string[];
 
+  const getStatusBadgeClassName = (status: Checklist['status']) => {
+    switch (status) {
+      case 'Completado': return 'bg-green-500 text-white hover:bg-green-600';
+      case 'En Progreso': return 'bg-yellow-500 text-black hover:bg-yellow-600';
+      case 'Nuevo': return 'border-primary text-primary hover:bg-primary/10';
+      default: return 'border-muted text-muted-foreground';
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -157,68 +159,62 @@ export default function ChecklistsPage() {
           )}
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredChecklists.map((checklist) => (
-            <Card key={checklist.id} className="flex flex-col h-full">
-              <CardHeader>
-                <div className="flex justify-between items-start gap-2">
-                    <CardTitle className="font-headline text-lg flex-grow">{checklist.name}</CardTitle>
-                    {checklist.category && <Badge variant="outline">{checklist.category}</Badge>}
-                </div>
-                {checklist.description && <CardDescription className="text-xs pt-1">{checklist.description}</CardDescription>}
-              </CardHeader>
-              <CardContent className="flex-grow space-y-2 text-sm">
-                <div className="flex items-center text-muted-foreground">
-                  <ClipboardCheck className="mr-1.5 h-4 w-4" />
-                  {checklist.itemCount} Ítems
-                </div>
-                 <div className="flex items-center text-muted-foreground">
-                  <span className="mr-1.5">Estado:</span>
-                  <Badge 
-                    variant={checklist.status === 'Completado' ? 'default' : checklist.status === 'En Progreso' ? 'secondary' : 'outline'}
-                    className={
-                        checklist.status === 'Completado' ? 'bg-green-500 text-white' :
-                        checklist.status === 'En Progreso' ? 'bg-yellow-500 text-black' :
-                        'border-primary text-primary'
-                    }
-                  >
-                    {checklist.status}
-                  </Badge>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Últ. Modificación: {format(parseISO(checklist.lastModified), "dd MMM, yyyy 'a las' HH:mm", { locale: es })}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2 border-t pt-4">
-                <Button variant="outline" size="sm" onClick={() => handleViewChecklist(checklist.id)}>
-                  <Eye className="mr-1 h-4 w-4" /> Ver/Completar
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => handleEditChecklist(checklist.id)}>
-                  <Edit className="mr-1 h-4 w-4" /> Editar
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => handleDeleteChecklist(checklist)}>
-                  <Trash2 className="mr-1 h-4 w-4" /> Eliminar
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+        <Card className="shadow-md">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[200px]">Nombre</TableHead>
+                  <TableHead className="min-w-[250px] hidden md:table-cell">Descripción</TableHead>
+                  <TableHead className="hidden lg:table-cell">Categoría</TableHead>
+                  <TableHead className="text-center">Ítems</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="hidden sm:table-cell">Últ. Modificación</TableHead>
+                  <TableHead className="text-right w-[230px]">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredChecklists.map((checklist) => (
+                  <TableRow key={checklist.id}>
+                    <TableCell className="font-medium">{checklist.name}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground hidden md:table-cell truncate max-w-xs" title={checklist.description}>
+                      {checklist.description}
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {checklist.category ? <Badge variant="outline">{checklist.category}</Badge> : "N/A"}
+                    </TableCell>
+                    <TableCell className="text-center">{checklist.itemCount}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={checklist.status === 'Completado' ? 'default' : checklist.status === 'En Progreso' ? 'secondary' : 'outline'}
+                        className={cn("text-xs", getStatusBadgeClassName(checklist.status))}
+                      >
+                        {checklist.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">
+                      {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
+                    </TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist.id)}>
+                        <Eye className="mr-1 h-3.5 w-3.5" /> Ver
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist.id)}>
+                        <Edit className="mr-1 h-3.5 w-3.5" /> Editar
+                      </Button>
+                      <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
+                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
-      {/* 
-      <AddChecklistDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onChecklistAdded={() => { console.log("Checklist añadido"); }}
-      />
-      {selectedChecklistForDelete && (
-        <DeleteChecklistDialog
-          checklist={selectedChecklistForDelete}
-          onChecklistDeleted={() => { console.log("Checklist eliminado"); setSelectedChecklistForDelete(null); }}
-          open={!!selectedChecklistForDelete}
-          onOpenChange={(open) => { if (!open) setSelectedChecklistForDelete(null); }}
-        />
-      )}
-      */}
     </div>
   );
 }
+
+    
