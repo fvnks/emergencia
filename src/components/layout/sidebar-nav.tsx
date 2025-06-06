@@ -18,7 +18,8 @@ import {
   Users,
   SettingsIcon,
   LucideIcon,
-  Map, // Usaremos Map como icono para el seguimiento
+  Map, 
+  Fingerprint, // Importar Fingerprint
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -38,6 +39,7 @@ const navItems: NavItem[] = [
   { href: "/inventory", label: "Inventario", icon: Archive },
   { href: "/tasks", label: "Tareas", icon: ClipboardList },
   { href: "/personnel", label: "Personal", icon: Users },
+  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true }, // Nuevo ítem
   { href: "/settings", label: "Configuración", icon: SettingsIcon },
 ];
 
