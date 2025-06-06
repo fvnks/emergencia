@@ -20,6 +20,7 @@ import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
+import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog"; // Importar el nuevo diálogo
 
 export interface Checklist {
   id: string;
@@ -40,21 +41,23 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Aunque no se usa, se mantiene por si se integra backend
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); // Estado para diálogo de eliminación
+  const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null); // Estado para el checklist a eliminar
 
   const { toast } = useToast();
 
   const handleChecklistAdded = (newChecklistData: NewChecklistData) => {
     const newChecklist: Checklist = {
-      id: `chk${checklists.length + 1}-${Date.now()}`, // Simple unique ID generation
+      id: `chk${checklists.length + 1}-${Date.now()}`,
       name: newChecklistData.name,
       description: newChecklistData.description,
       category: newChecklistData.category,
-      itemCount: 0, // New checklists start with 0 items
+      itemCount: 0,
       lastModified: new Date().toISOString(),
       status: "Nuevo",
     };
@@ -70,8 +73,16 @@ export default function ChecklistsPage() {
   };
   
   const handleDeleteChecklist = (checklist: Checklist) => {
-    toast({ title: "Próximamente", description: `Eliminar checklist ${checklist.name} se implementará pronto.` });
-    // Example: setChecklists(prev => prev.filter(c => c.id !== checklist.id));
+    setChecklistToDelete(checklist);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDeleteChecklist = () => {
+    if (!checklistToDelete) return;
+    setChecklists(prev => prev.filter(c => c.id !== checklistToDelete.id));
+    toast({ title: "Checklist Eliminado", description: `El checklist "${checklistToDelete.name}" ha sido eliminado.` });
+    setIsDeleteDialogOpen(false);
+    setChecklistToDelete(null);
   };
 
   const filteredChecklists = checklists.filter(checklist => {
@@ -230,6 +241,12 @@ export default function ChecklistsPage() {
         onOpenChange={setIsAddDialogOpen}
         onChecklistAdded={handleChecklistAdded}
         existingCategories={uniqueCategories}
+      />
+      <DeleteChecklistDialog
+        checklist={checklistToDelete}
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirmDelete={handleConfirmDeleteChecklist}
       />
     </div>
   );
