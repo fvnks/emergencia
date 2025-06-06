@@ -40,7 +40,6 @@ const getPageTitle = (pathname: string) => {
     case 'settings': return "Configuración";
     case 'tracking': return "Seguimiento GPS (Beta)";
     default:
-      // Para subpáginas de settings, por ejemplo
       if (segments.includes('settings')) {
         const settingSubPage = segments[segments.length -1].replace(/-/g, ' ');
         return `Configuración - ${settingSubPage.charAt(0).toUpperCase() + settingSubPage.slice(1)}`;
@@ -52,7 +51,7 @@ const getPageTitle = (pathname: string) => {
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { activeAlertsCount, alertNotifications } = useAppData();
+  const { activeAlertsCount, alertNotifications, seenNotificationIds, markNotificationAsSeen } = useAppData();
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
 
@@ -68,6 +67,7 @@ export function Header() {
   const avatarPlaceholder = user?.avatarSeed ? user.avatarSeed.toUpperCase() : getInitials(user?.name);
   const avatarHint = user?.role === 'admin' ? "administrador avatar" : "usuario avatar";
 
+  const unreadNotifications = alertNotifications.filter(alert => !seenNotificationIds.includes(alert.id));
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
@@ -98,19 +98,21 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 sm:w-96">
                 <DropdownMenuLabel className="flex justify-between items-center">
-                  <span>Notificaciones ({activeAlertsCount})</span>
+                  <span>Notificaciones ({unreadNotifications.length > 0 ? unreadNotifications.length : activeAlertsCount})</span>
                   {activeAlertsCount > 0 && (
                      <Link href="/dashboard#recent-activity" className="text-xs text-primary hover:underline">
-                        Ver todas
+                        Ver todas las alertas
                      </Link>
                   )}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {alertNotifications.length > 0 ? (
+                {unreadNotifications.length > 0 ? (
                   <ScrollArea className="h-[200px] sm:h-[250px]">
                     <DropdownMenuGroup>
-                    {alertNotifications.slice(0, 5).map((alert: AlertNotificationItem) => (
-                      <DropdownMenuItem key={alert.id} asChild className="cursor-pointer">
+                    {unreadNotifications.slice(0, 5).map((alert: AlertNotificationItem) => (
+                      <DropdownMenuItem key={alert.id} asChild className="cursor-pointer"
+                        onClick={() => markNotificationAsSeen(alert.id)}
+                      >
                         <Link href={alert.link || "/dashboard"} className="flex items-start gap-2.5 p-2.5">
                           <alert.icon className={cn("h-4 w-4 mt-0.5 flex-shrink-0", alert.iconClassName)} />
                           <div className="flex-grow">
@@ -126,7 +128,7 @@ export function Header() {
                   </ScrollArea>
                 ) : (
                   <div className="p-4 text-center text-sm text-muted-foreground">
-                    No hay notificaciones nuevas.
+                    {activeAlertsCount > 0 ? "Todas las notificaciones han sido vistas en esta sesión." : "No hay notificaciones nuevas."}
                   </div>
                 )}
               </DropdownMenuContent>

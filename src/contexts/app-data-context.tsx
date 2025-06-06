@@ -11,7 +11,7 @@ export interface AlertNotificationItem {
   description: string;
   icon: LucideIcon;
   iconClassName: string;
-  type: string; // Mantener genérico por si se expande
+  type: string; 
   link?: string;
   severity?: 'info' | 'warning' | 'error';
 }
@@ -21,6 +21,8 @@ interface AppDataContextType {
   setActiveAlertsCount: (count: number) => void;
   alertNotifications: AlertNotificationItem[];
   setAlertNotifications: (alerts: AlertNotificationItem[]) => void;
+  seenNotificationIds: string[];
+  markNotificationAsSeen: (notificationId: string) => void;
 }
 
 const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
@@ -28,13 +30,25 @@ const AppDataContext = createContext<AppDataContextType | undefined>(undefined);
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [activeAlertsCount, setActiveAlertsCount] = useState(0);
   const [alertNotifications, setAlertNotifications] = useState<AlertNotificationItem[]>([]);
+  const [seenNotificationIds, setSeenNotificationIds] = useState<string[]>([]);
+
+  const markNotificationAsSeen = (notificationId: string) => {
+    setSeenNotificationIds((prevSeenIds) => {
+      if (!prevSeenIds.includes(notificationId)) {
+        return [...prevSeenIds, notificationId];
+      }
+      return prevSeenIds;
+    });
+  };
 
   return (
     <AppDataContext.Provider value={{
       activeAlertsCount,
       setActiveAlertsCount,
       alertNotifications,
-      setAlertNotifications
+      setAlertNotifications,
+      seenNotificationIds,
+      markNotificationAsSeen
     }}>
       {children}
     </AppDataContext.Provider>
