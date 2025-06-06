@@ -233,7 +233,7 @@ export default function VehiclesPage() {
               const proxMantencionDate = parseISO(vehicle.proxima_mantencion_programada);
               if (isValid(proxMantencionDate)) {
                 const daysToMaintenance = differenceInDays(proxMantencionDate, today);
-                if (daysToMaintenance < 0 && vehicle.estado_vehiculo === 'Operativo') {
+                if (isPast(proxMantencionDate) && daysToMaintenance < 0 && vehicle.estado_vehiculo === 'Operativo') {
                   isMaintenanceOverdue = true;
                   maintenanceTitle = "Mantención Vencida";
                 } else if (daysToMaintenance >= 0 && daysToMaintenance <= 7) {
@@ -252,7 +252,7 @@ export default function VehiclesPage() {
               const vencimientoDocsDate = parseISO(vehicle.vencimiento_documentacion);
               if (isValid(vencimientoDocsDate)) {
                  const daysToDocsExpiration = differenceInDays(vencimientoDocsDate, today);
-                if (daysToDocsExpiration < 0) {
+                if (isPast(vencimientoDocsDate) && daysToDocsExpiration < 0) {
                   isDocsOverdue = true;
                   docsTitle = "Documentación Vencida";
                 } else if (daysToDocsExpiration >= 0 && daysToDocsExpiration <= 7) {
@@ -389,3 +389,4 @@ export default function VehiclesPage() {
     </div>
   );
 }
+
