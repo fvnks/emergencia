@@ -194,7 +194,7 @@ export default function VehiclesPage() {
       </Card>
 
       {filteredVehicles.length === 0 && !loading && (
-         <Card className="shadow-md text-center">
+         <Card className="text-center"> {/* Removed shadow-md as base Card now has it */}
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <Truck className="h-10 w-10" />
@@ -265,7 +265,7 @@ export default function VehiclesPage() {
 
             return (
               <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
-                <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 flex flex-col h-full cursor-pointer">
+                <Card className="flex flex-col h-full cursor-pointer"> {/* Removed transition and shadow classes, base Card has them */}
                   <CardHeader className="p-0">
                     <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
                       <Image 
@@ -389,4 +389,3 @@ export default function VehiclesPage() {
     </div>
   );
 }
-

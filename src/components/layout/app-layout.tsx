@@ -29,7 +29,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar
-        variant="sidebar" 
+        variant="floating" 
         collapsible="icon"
         className="bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]"
       >
@@ -52,7 +52,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background">
+      <SidebarInset>
         <Header />
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto">
           <div className="flex-grow">

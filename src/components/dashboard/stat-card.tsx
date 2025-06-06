@@ -16,7 +16,7 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon: Icon, description, className, iconClassName, href }: StatCardProps) {
   const cardContent = (
-    <Card className={cn("shadow-md hover:shadow-lg transition-shadow duration-300 h-full", className)}>
+    <Card className={cn("h-full", className)}> {/* Removed shadow and transition, base Card will handle it */}
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground font-body">
           {title}
