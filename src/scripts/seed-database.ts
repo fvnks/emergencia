@@ -1,6 +1,6 @@
 
 import { createUser, getUserByEmail } from '../services/userService';
-import { testConnection, query } from '../lib/db'; // Importar query
+import { testConnection, query, getPool } from '../lib/db'; // Importar query y getPool
 
 // dotenv.config() is no longer needed here, it will be preloaded by tsx -r dotenv/config
 
@@ -42,7 +42,7 @@ async function seedDatabase() {
     try {
         admin = await createUser(adminUserCreateData);
         if (admin) {
-            console.log(`Usuario administrador creado exitosamente:`);
+            console.log(`Usuario administrador creado exitosamente.`);
         }
     } catch (error: any) {
         if (error.message && error.message.includes('El correo electrónico ya está registrado')) {

@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(null);
     try {
       const dbUser = await getUserByEmail(email);
+      console.log('AuthContext - dbUser.nombre_rol:', dbUser?.nombre_rol); // Log para depuración
       if (!dbUser || !dbUser.password_hash) {
         throw new Error('Usuario no encontrado o cuenta no activa.');
       }
@@ -65,19 +66,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Contraseña incorrecta.');
       }
 
-      // Mapear el nombre_rol de la BD al UserRoleKey del contexto
-      // Hacemos la comparación insensible a mayúsculas/minúsculas.
-      let roleKey: UserRoleKey = 'usuario'; // Default to 'usuario'
+      let roleKey: UserRoleKey = 'usuario'; 
       if (dbUser.nombre_rol && dbUser.nombre_rol.toLowerCase() === 'administrador') {
         roleKey = 'admin';
       }
-      // Se podrían añadir más mapeos si hubiera más roles que equivalen a 'admin' o 'usuario' en la UI
-
+      
       const authUser: AuthUser = {
         id: dbUser.id_usuario,
         name: dbUser.nombre_completo,
         email: dbUser.email,
-        role: roleKey, // Usar el roleKey mapeado
+        role: roleKey, 
         avatarSeed: dbUser.avatar_seed,
       };
 
