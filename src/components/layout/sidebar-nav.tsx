@@ -31,7 +31,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Panel Principal", icon: Home },
-  { href: "/tracking", label: "Seguimiento GPS", icon: Map },
+  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map },
   { href: "/vehicles", label: "Vehículos", icon: Truck },
   { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck },
   { href: "/maintenance", label: "Mantención", icon: Wrench },
@@ -71,3 +71,4 @@ export function SidebarNav() {
     </SidebarMenu>
   );
 }
+
