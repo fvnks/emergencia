@@ -11,8 +11,9 @@ import {
   type ChartConfig
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend as RechartsLegend, Tooltip as RechartsTooltip } from "recharts";
-import { FileText, AlertTriangle, Filter, Download, CalendarIcon } from "lucide-react";
+import { FileText, AlertTriangle, Filter, Download, CalendarIcon, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Added Input
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -22,6 +23,7 @@ import { es } from 'date-fns/locale';
 import type { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label"; // Added Label
 
 // Asumimos que estos vienen de los types/services
 const ALL_VEHICLE_STATUSES_REPORTS = ['Operativo', 'En Mantención', 'Fuera de Servicio'];
@@ -92,11 +94,18 @@ export default function ReportsPage() {
   const [vehicleStatusFilter, setVehicleStatusFilter] = useState<string>("all");
   const [eraStatusFilter, setEraStatusFilter] = useState<string>("all");
   const [maintenanceStatusFilter, setMaintenanceStatusFilter] = useState<string>("all");
+  
+  // States for specific ID inputs (simulated multi-select)
+  const [specificVehicleIds, setSpecificVehicleIds] = useState<string>("");
+  const [specificEraIds, setSpecificEraIds] = useState<string>("");
+  const [specificInventoryItemIds, setSpecificInventoryItemIds] = useState<string>("");
+
 
   const handleApplyFilters = () => {
     toast({
       title: "Filtros Aplicados (Simulado)",
-      description: "En una aplicación real, los gráficos se actualizarían con los filtros seleccionados.",
+      description: "En una aplicación real, los gráficos se actualizarían con los filtros seleccionados. Filtros específicos aplicados: Vehículos: " + specificVehicleIds + ", ERAs: " + specificEraIds + ", Ítems Inventario: " + specificInventoryItemIds,
+      duration: 7000,
     });
   };
 
@@ -128,7 +137,7 @@ export default function ReportsPage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div>
-              <label htmlFor="date-range" className="text-sm font-medium text-muted-foreground mb-1 block">Rango de Fechas</label>
+              <Label htmlFor="date-range" className="text-sm font-medium text-muted-foreground mb-1 block">Rango de Fechas</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -167,45 +176,96 @@ export default function ReportsPage() {
                 </PopoverContent>
               </Popover>
             </div>
-
-            <Select value={vehicleTypeFilter} onValueChange={setVehicleTypeFilter}>
-                <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Tipo de Vehículo" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todos los Tipos de Vehículo</SelectItem>
-                    {ALL_VEHICLE_TYPES_REPORTS.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={vehicleStatusFilter} onValueChange={setVehicleStatusFilter}>
-                <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Estado de Vehículo" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todos los Estados de Vehículo</SelectItem>
-                    {ALL_VEHICLE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={eraStatusFilter} onValueChange={setEraStatusFilter}>
-                <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Estado de ERA" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todos los Estados de ERA</SelectItem>
-                    {ALL_ERA_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                </SelectContent>
-            </Select>
-            <Select value={maintenanceStatusFilter} onValueChange={setMaintenanceStatusFilter}>
-                <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Estado de Mantención" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">Todos los Estados de Mantención</SelectItem>
-                    {ALL_MAINTENANCE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                </SelectContent>
-            </Select>
+            <div>
+                <Label htmlFor="vehicle-type-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Tipo de Vehículo</Label>
+                <Select value={vehicleTypeFilter} onValueChange={setVehicleTypeFilter}>
+                    <SelectTrigger id="vehicle-type-filter" className="h-10">
+                        <SelectValue placeholder="Todos los Tipos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los Tipos de Vehículo</SelectItem>
+                        {ALL_VEHICLE_TYPES_REPORTS.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="vehicle-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de Vehículo</Label>
+                <Select value={vehicleStatusFilter} onValueChange={setVehicleStatusFilter}>
+                    <SelectTrigger id="vehicle-status-filter" className="h-10">
+                        <SelectValue placeholder="Todos los Estados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los Estados de Vehículo</SelectItem>
+                        {ALL_VEHICLE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="era-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de ERA</Label>
+                <Select value={eraStatusFilter} onValueChange={setEraStatusFilter}>
+                    <SelectTrigger id="era-status-filter" className="h-10">
+                        <SelectValue placeholder="Todos los Estados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los Estados de ERA</SelectItem>
+                        {ALL_ERA_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="maintenance-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de Mantención</Label>
+                <Select value={maintenanceStatusFilter} onValueChange={setMaintenanceStatusFilter}>
+                    <SelectTrigger id="maintenance-status-filter" className="h-10">
+                        <SelectValue placeholder="Todos los Estados" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos los Estados de Mantención</SelectItem>
+                        {ALL_MAINTENANCE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className="lg:col-span-1"> {/* Ajustar el span si es necesario */}
+                <Label htmlFor="specific-vehicle-ids" className="text-sm font-medium text-muted-foreground mb-1 block">
+                    Vehículos Específicos (IDs)
+                </Label>
+                <Input
+                    id="specific-vehicle-ids"
+                    placeholder="Ej: 1, 5, 12 (separados por coma)"
+                    value={specificVehicleIds}
+                    onChange={(e) => setSpecificVehicleIds(e.target.value)}
+                    className="h-10"
+                />
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4">
+            <div>
+                <Label htmlFor="specific-era-ids" className="text-sm font-medium text-muted-foreground mb-1 block">
+                    Equipos ERA Específicos (IDs)
+                </Label>
+                <Input
+                    id="specific-era-ids"
+                    placeholder="Ej: 101, 105 (separados por coma)"
+                    value={specificEraIds}
+                    onChange={(e) => setSpecificEraIds(e.target.value)}
+                    className="h-10"
+                />
+            </div>
+            <div>
+                <Label htmlFor="specific-inventory-item-ids" className="text-sm font-medium text-muted-foreground mb-1 block">
+                    Ítems Inventario Específicos (IDs)
+                </Label>
+                <Input
+                    id="specific-inventory-item-ids"
+                    placeholder="Ej: 20, 25, 33 (separados por coma)"
+                    value={specificInventoryItemIds}
+                    onChange={(e) => setSpecificInventoryItemIds(e.target.value)}
+                    className="h-10"
+                />
+            </div>
+          </div>
+
+
+          <div className="flex flex-col sm:flex-row gap-3 pt-6">
             <Button onClick={handleApplyFilters} className="w-full sm:w-auto">
                 <Filter className="mr-2 h-4 w-4" /> Aplicar Filtros (Simulado)
             </Button>
@@ -348,6 +408,7 @@ export default function ReportsPage() {
     </div>
   );
 }
-
         
+    
+
     
