@@ -210,7 +210,7 @@ export default function RolesPermissionsPage() {
                       <Button variant="outline" size="sm" onClick={() => openEditDialog(role)} disabled={allAvailablePermissions.length === 0}>
                         <EditIcon className="mr-2 h-4 w-4" /> Editar Rol
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)} disabled={role.user_count && role.user_count > 0}>
+                      <Button variant="destructive" size="sm" onClick={() => openDeleteDialog(role)} disabled={role.user_count != null && role.user_count > 0}>
                         <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                       </Button>
                     </div>
@@ -218,7 +218,7 @@ export default function RolesPermissionsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center justify-between text-sm text-muted-foreground border-t pt-3">
                     <div className="flex items-center">
                         <ShieldCheck className="mr-1.5 h-4 w-4" />
                         Permisos Asignados: {role.permission_count ?? 'N/A'}
@@ -230,11 +230,11 @@ export default function RolesPermissionsPage() {
                 </div>
                 
                 {role.es_rol_sistema ? (
-                  <div className="pt-2 text-xs text-muted-foreground">
-                    (Rol del sistema - no editable/eliminable aquí)
+                  <div className="pt-1 text-xs text-muted-foreground italic">
+                    (Rol del sistema - no editable/eliminable)
                   </div>
                 ): (
-                   <div className="pt-2 text-xs text-muted-foreground">
+                   <div className="pt-1 text-xs text-muted-foreground italic">
                     (Rol personalizado)
                   </div>
                 )}
