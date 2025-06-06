@@ -3,7 +3,7 @@
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock, ClipboardList } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
@@ -16,6 +16,9 @@ import { getAllInventoryItems, type InventoryItem } from "@/services/inventorySe
 import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, isBefore, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 const chartConfig = {
   ops: {
@@ -42,6 +45,7 @@ interface ActivityItem {
         'alert_stock' | 'alert_maintenance_overdue' | 'alert_vehicle_oos';
   details?: string;
   severity?: 'info' | 'warning' | 'error';
+  link?: string;
 }
 
 interface DailyOpsChartDataItem {
@@ -52,6 +56,7 @@ interface DailyOpsChartDataItem {
 
 
 export default function DashboardPage() {
+  const { user: currentUser } = useAuth();
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
   const [totalVehicles, setTotalVehicles] = useState<number | string>("N/A");
   const [personnelCount, setPersonnelCount] = useState<number | string>("N/A");
@@ -64,6 +69,7 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [dailyOpsChartData, setDailyOpsChartData] = useState<DailyOpsChartDataItem[]>([]);
   const [activeAlertsCount, setActiveAlertsCount] = useState<number | string>("N/A");
+  const [currentUserTasks, setCurrentUserTasks] = useState<Task[]>([]);
 
 
   const [loading, setLoading] = useState(true);
@@ -95,6 +101,14 @@ export default function DashboardPage() {
         setActiveTasksCount(activeTasks.length);
         setOverdueTasksCount(overdueTasks.length);
 
+        if (currentUser) {
+          const userSpecificTasks = tasksData.filter(
+            task => task.id_usuario_asignado === currentUser.id && ACTIVE_TASK_STATUSES.includes(task.estado_tarea)
+          );
+          setCurrentUserTasks(userSpecificTasks.sort((a, b) => new Date(a.fecha_vencimiento || 0).getTime() - new Date(b.fecha_vencimiento || 0).getTime()));
+        }
+
+
         const erasReady = eraData.filter(era => READY_ERA_STATUSES.includes(era.estado_era)).length;
         setReadyEraCount(erasReady);
         
@@ -113,12 +127,13 @@ export default function DashboardPage() {
           if (item.stock_minimo && item.stock_minimo > 0 && item.cantidad_actual <= item.stock_minimo) {
             activities.push({
               id: `alert-stock-${item.id_item}`,
-              date: new Date(), // Alert is current
+              date: new Date(), 
               description: `Stock bajo: ${item.nombre_item} (${item.codigo_item}). Actual: ${item.cantidad_actual}, Mín: ${item.stock_minimo}.`,
               icon: AlertTriangle,
               iconClassName: "text-orange-500",
               type: 'alert_stock',
               severity: 'warning',
+              link: `/inventory#item-${item.id_item}`
             });
           }
         });
@@ -128,12 +143,13 @@ export default function DashboardPage() {
               maint.estado_mantencion !== 'Completada' && maint.estado_mantencion !== 'Cancelada') {
             activities.push({
               id: `alert-maint-${maint.id_mantencion}`,
-              date: parseISO(maint.fecha_programada), // Date of the overdue event
+              date: parseISO(maint.fecha_programada), 
               description: `Mantención Vencida: ${maint.nombre_item_mantenimiento}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
               icon: Wrench, 
               iconClassName: "text-red-500",
               type: 'alert_maintenance_overdue',
               severity: 'error',
+              link: `/maintenance#maint-${maint.id_mantencion}`
             });
           }
         });
@@ -142,20 +158,20 @@ export default function DashboardPage() {
           if (vehicle.estado_vehiculo === 'Fuera de Servicio') {
             activities.push({
               id: `alert-vehicle-${vehicle.id_vehiculo}`,
-              date: new Date(), // Alert is current
+              date: new Date(), 
               description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
               icon: ArchiveX, 
               iconClassName: "text-red-500",
               type: 'alert_vehicle_oos',
               severity: 'error',
+              link: `/vehicles/${vehicle.id_vehiculo}`
             });
           }
         });
         
-        // Add other activity logs (tasks, maintenance completions, etc.)
         tasksData
           .sort((a, b) => new Date(b.fecha_actualizacion).getTime() - new Date(a.fecha_actualizacion).getTime())
-          .slice(0, 3) // Limit non-alert activities to avoid clutter if many alerts
+          .slice(0, 3) 
           .forEach(task => {
             let taskDesc = `Tarea T-${task.id_tarea.toString().padStart(3,'0')}`;
             if (task.fecha_actualizacion !== task.fecha_creacion && task.estado_tarea === 'Completada') {
@@ -173,11 +189,12 @@ export default function DashboardPage() {
               iconClassName: "text-blue-500",
               type: 'task',
               severity: 'info',
+              link: `/tasks#task-${task.id_tarea}`
             });
           });
 
         maintenanceData
-          .filter(m => m.estado_mantencion === 'Completada' && m.fecha_completada) // Only completed for recent activity list
+          .filter(m => m.estado_mantencion === 'Completada' && m.fecha_completada) 
           .sort((a, b) => new Date(b.fecha_completada!).getTime() - new Date(a.fecha_completada!).getTime())
           .slice(0, 2)
           .forEach(maint => {
@@ -249,6 +266,7 @@ export default function DashboardPage() {
         setTotalReadyEquipmentCount("Error");
         setActiveAlertsCount("Error");
         setRecentActivity([]);
+        setCurrentUserTasks([]);
         setDailyOpsChartData( Array(7).fill(null).map((_, i) => ({ name: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).charAt(0).toUpperCase() + format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).slice(1,3), ops: 0, maint: 0 })) );
       } finally {
         setLoading(false);
@@ -257,7 +275,28 @@ export default function DashboardPage() {
     fetchDashboardData();
     const intervalId = setInterval(fetchDashboardData, 60000); 
     return () => clearInterval(intervalId);
-  }, []);
+  }, [currentUser]);
+
+  const formatDate = (dateString?: string | null, dateFormat: string = "dd-MM-yyyy") => {
+    if (!dateString) return "N/A";
+    try {
+      const date = parseISO(dateString);
+      return format(date, dateFormat, { locale: es });
+    } catch (e) {
+      return dateString;
+    }
+  };
+  
+  const getTaskStatusBadgeClassName = (status: TaskStatus) => {
+     switch (status) {
+      case "Completada": return "bg-green-500 hover:bg-green-600 text-white";
+      case "En Proceso": return "bg-yellow-500 hover:bg-yellow-600 text-black";
+      case "Programada": return "bg-blue-500 hover:bg-blue-600 text-white";
+      case "Pendiente": return "bg-slate-400 hover:bg-slate-500 text-white"; 
+      case "Atrasada": return "border-red-700 bg-red-600 hover:bg-red-700 text-white";
+      default: return "bg-gray-400";
+    }
+  };
 
   if (loading && recentActivity.length === 0) { 
     return (
@@ -301,7 +340,7 @@ export default function DashboardPage() {
           iconClassName="text-green-500"
         />
         <StatCard
-          title="Tareas Activas"
+          title="Tareas Activas (Global)"
           value={activeTasksCount.toString()}
           icon={Activity}
           description={overdueTasksCount !== "N/A" && overdueTasksCount !== "Error" && typeof overdueTasksCount === 'number' && overdueTasksCount > 0 ? `${overdueTasksCount} atrasada(s)` : "Ninguna tarea atrasada"}
@@ -338,8 +377,47 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-md">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="shadow-md lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="font-headline flex items-center"><ClipboardList className="mr-2 h-5 w-5 text-primary" /> Mis Tareas Pendientes</CardTitle>
+            <CardDescription>Tus tareas activas asignadas.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {currentUserTasks.length > 0 ? (
+              <ul className="space-y-3 text-sm">
+                {currentUserTasks.slice(0, 5).map((task) => ( // Mostrar hasta 5 tareas
+                  <li key={`user-task-${task.id_tarea}`} className="flex flex-col p-2 border rounded-md hover:bg-muted/50">
+                    <div className="flex justify-between items-start">
+                       <Link href={`/tasks#task-${task.id_tarea}`} className="font-medium hover:underline flex-grow pr-2">
+                         <span className="block truncate" title={task.descripcion_tarea}>{task.descripcion_tarea}</span>
+                       </Link>
+                       <Badge className={cn("text-xs whitespace-nowrap", getTaskStatusBadgeClassName(task.estado_tarea))}>
+                          {task.estado_tarea}
+                        </Badge>
+                    </div>
+                    {task.fecha_vencimiento && isValid(parseISO(task.fecha_vencimiento)) && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Vence: {formatDate(task.fecha_vencimiento)}
+                      </p>
+                    )}
+                  </li>
+                ))}
+                {currentUserTasks.length > 5 && (
+                    <li className="text-center mt-3">
+                        <Link href="/tasks" className="text-sm text-primary hover:underline">
+                            Ver todas mis tareas ({currentUserTasks.length})
+                        </Link>
+                    </li>
+                )}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">No tienes tareas pendientes asignadas.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-md lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-headline">Operaciones y Mantenciones Diarias</CardTitle>
             <CardDescription>Resumen de la semana actual.</CardDescription>
@@ -363,7 +441,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md">
+        <Card className="shadow-md lg:col-span-1">
           <CardHeader>
             <CardTitle className="font-headline">Actividad Reciente y Alertas</CardTitle>
             <CardDescription>Registro de eventos importantes y alertas activas.</CardDescription>
@@ -375,7 +453,13 @@ export default function DashboardPage() {
                   <li key={activity.id} className="flex items-start">
                     <activity.icon className={cn("h-4 w-4 mr-2 mt-0.5 flex-shrink-0", activity.iconClassName)} />
                     <div className="flex-grow">
-                      <span className={cn(activity.type.startsWith('alert_') && "font-semibold")}>{activity.description}</span>
+                      {activity.link ? (
+                         <Link href={activity.link} className={cn("hover:underline", activity.type.startsWith('alert_') && "font-semibold")}>
+                            {activity.description}
+                         </Link>
+                      ) : (
+                         <span className={cn(activity.type.startsWith('alert_') && "font-semibold")}>{activity.description}</span>
+                      )}
                       {isValid(activity.date) && (
                         <p className="text-xs text-muted-foreground">
                           {activity.type.startsWith('alert_') ? `Detectada ${formatDistanceToNow(activity.date, { addSuffix: true, locale: es })}` : formatDistanceToNow(activity.date, { addSuffix: true, locale: es })}
