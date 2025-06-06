@@ -1,5 +1,6 @@
 
 import type { LucideIcon } from "lucide-react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +11,12 @@ interface StatCardProps {
   description?: string;
   className?: string;
   iconClassName?: string;
+  href?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, description, className, iconClassName }: StatCardProps) {
-  return (
-    <Card className={cn("shadow-md hover:shadow-lg transition-shadow duration-300", className)}>
+export function StatCard({ title, value, icon: Icon, description, className, iconClassName, href }: StatCardProps) {
+  const cardContent = (
+    <Card className={cn("shadow-md hover:shadow-lg transition-shadow duration-300 h-full", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground font-body">
           {title}
@@ -29,4 +31,14 @@ export function StatCard({ title, value, icon: Icon, description, className, ico
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block h-full">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }

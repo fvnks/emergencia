@@ -377,6 +377,7 @@ export default function DashboardPage() {
           title="Alertas Activas"
           value={internalActiveAlertsCount.toString()}
           icon={AlertTriangle}
+          href="#recent-activity-card"
           description={
             typeof internalActiveAlertsCount === 'number' && internalActiveAlertsCount > 0 
             ? "Requieren atención inmediata" 
@@ -454,7 +455,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-md lg:col-span-1">
+        <Card className="shadow-md lg:col-span-1" id="recent-activity-card">
           <CardHeader>
             <CardTitle className="font-headline">Actividad Reciente y Alertas</CardTitle>
             <CardDescription>Registro de eventos importantes y alertas activas.</CardDescription>
