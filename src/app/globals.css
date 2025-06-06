@@ -47,8 +47,8 @@ body {
     /* Sidebar specific colors */
     --sidebar-background: 0 0% 100%;      /* #FFFFFF - White sidebar (floating panel content) background */
     --sidebar-foreground: 224 71% 4%;        /* #020617 - General text in sidebar (like "MENU") */
-    --sidebar-border: 220 13% 84%;          /* #CBD5E1 - Border for sidebar elements if needed (e.g. footer if it had one) */
-    --sidebar-floating-panel-border: 220 10% 50%; /* Darker gray for the floating panel border */
+    --sidebar-border: 220 13% 84%;          /* #CBD5E1 - General border for sidebar elements if needed (e.g. footer if it had one) */
+    --sidebar-floating-panel-border: 220 13% 84%; /* #CBD5E1 - Very light gray border for floating panel */
 
     /* Sidebar Item Colors - TailAdmin style */
     --sidebar-item-fg:  220 9% 46%;                   /* #64748B - Default text color for items */
@@ -85,4 +85,5 @@ body {
   .form-select {
     @apply pr-8; /* Space for the select arrow */
   }
+
 }
