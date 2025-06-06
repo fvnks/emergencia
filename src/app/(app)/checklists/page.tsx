@@ -20,7 +20,8 @@ import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
-import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog"; // Importar el nuevo diálogo
+import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
+import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog"; // Importar nuevo diálogo
 
 export interface Checklist {
   id: string;
@@ -41,13 +42,15 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
-  const [loading, setLoading] = useState(false); // Aunque no se usa, se mantiene por si se integra backend
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false); // Estado para diálogo de eliminación
-  const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null); // Estado para el checklist a eliminar
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // Estado para diálogo de vista
+  const [selectedChecklistForView, setSelectedChecklistForView] = useState<Checklist | null>(null); // Estado para checklist en vista
 
   const { toast } = useToast();
 
@@ -64,8 +67,9 @@ export default function ChecklistsPage() {
     setChecklists(prev => [newChecklist, ...prev]);
   };
 
-  const handleViewChecklist = (id: string) => {
-    toast({ title: "Próximamente", description: `Ver/Completar checklist ${id} se implementará pronto.` });
+  const handleViewChecklist = (checklist: Checklist) => {
+    setSelectedChecklistForView(checklist);
+    setIsViewDialogOpen(true);
   };
   
   const handleEditChecklist = (id: string) => {
@@ -219,7 +223,7 @@ export default function ChecklistsPage() {
                       {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist.id)}>
+                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
                         <Eye className="mr-1 h-3.5 w-3.5" /> Ver
                       </Button>
                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist.id)}>
@@ -248,6 +252,13 @@ export default function ChecklistsPage() {
         onOpenChange={setIsDeleteDialogOpen}
         onConfirmDelete={handleConfirmDeleteChecklist}
       />
+      <ViewChecklistDialog
+        checklist={selectedChecklistForView}
+        open={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+      />
     </div>
   );
 }
+
+    
