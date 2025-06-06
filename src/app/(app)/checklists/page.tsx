@@ -20,7 +20,7 @@ import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
-import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog"; // Importar nuevo diálogo de edición
+import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
 import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
 
@@ -48,8 +48,8 @@ export default function ChecklistsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // Estado para diálogo de edición
-  const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null); // Estado para checklist en edición
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -79,6 +79,7 @@ export default function ChecklistsPage() {
               name: updatedData.name,
               description: updatedData.description,
               category: updatedData.category,
+              itemCount: updatedData.itemCount, // Actualizar itemCount
               lastModified: new Date().toISOString(),
             }
           : c
@@ -292,7 +293,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
-    
-
-    

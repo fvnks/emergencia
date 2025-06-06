@@ -33,6 +33,7 @@ const editChecklistFormSchema = z.object({
   name: z.string().min(3, { message: "El nombre del checklist debe tener al menos 3 caracteres." }),
   description: z.string().optional(),
   category: z.string().optional(),
+  itemCount: z.coerce.number().min(0, { message: "El número de ítems no puede ser negativo." }).default(0),
 });
 
 export type EditChecklistData = z.infer<typeof editChecklistFormSchema>;
@@ -55,6 +56,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
       name: "",
       description: "",
       category: "",
+      itemCount: 0,
     },
   });
 
@@ -64,6 +66,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
         name: checklist.name,
         description: checklist.description || "",
         category: checklist.category || "",
+        itemCount: checklist.itemCount || 0,
       });
     }
   }, [checklist, open, form]);
@@ -98,11 +101,11 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
             <Edit className="mr-2 h-5 w-5 text-primary" /> Editar Checklist: {checklist.name}
           </DialogTitle>
           <DialogDescription>
-            Modifique los detalles del checklist. Los ítems se gestionan por separado.
+            Modifique los detalles del checklist. Los ítems específicos se gestionarán en una etapa posterior.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-2">
             <FormField
               control={form.control}
               name="name"
@@ -129,25 +132,43 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Categoría (Opcional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ej: Vehicular, Equipos ERA, Procedimientos" {...field} list="edit-existing-categories" />
-                  </FormControl>
-                  <datalist id="edit-existing-categories">
-                    {existingCategories.map(cat => <option key={cat} value={cat} />)}
-                  </datalist>
-                  <FormDescription>
-                    Puede escribir una nueva categoría o seleccionar una existente.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoría (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej: Vehicular" {...field} list="edit-existing-categories" />
+                    </FormControl>
+                    <datalist id="edit-existing-categories">
+                      {existingCategories.map(cat => <option key={cat} value={cat} />)}
+                    </datalist>
+                    <FormDescription>
+                      Escriba una nueva o seleccione una existente.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="itemCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Número de Ítems</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="0" placeholder="Ej: 15" {...field} />
+                    </FormControl>
+                     <FormDescription>
+                      Cantidad de ítems que tendrá este checklist.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
@@ -162,5 +183,3 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     </Dialog>
   );
 }
-
-    
