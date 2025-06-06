@@ -82,7 +82,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 md:px-6">
-      <div className="md:hidden">
+      <div> {/* Removed md:hidden from this div */}
         <SidebarTrigger />
       </div>
       <h1 className="text-xl font-headline font-semibold text-foreground">{pageTitle}</h1>
