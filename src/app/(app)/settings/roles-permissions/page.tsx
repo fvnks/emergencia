@@ -103,7 +103,7 @@ export default function RolesPermissionsPage() {
         return;
     }
     try {
-        setLoadingRoles(true);
+        setLoadingRoles(true); // Re-use loadingRoles for simplicity, or a new state for "loadingRoleDetails"
         const fullRoleDetails = await getRoleById(role.id_rol);
         if (!fullRoleDetails) {
             throw new Error("No se pudo cargar la información completa del rol para editar.");
@@ -125,7 +125,12 @@ export default function RolesPermissionsPage() {
         return;
     }
      if (role.user_count && role.user_count > 0) {
-        toast({title: "Rol en Uso", description: `El rol "${role.nombre_rol}" está asignado a ${role.user_count} usuario(s) y no puede ser eliminado. Reasigne los usuarios primero.`, variant: "destructive"});
+        toast({
+            title: "Rol en Uso", 
+            description: `El rol "${role.nombre_rol}" está asignado a ${role.user_count} usuario(s) y no puede ser eliminado. Reasigne los usuarios primero.`, 
+            variant: "destructive",
+            duration: 7000, // Show longer for important messages
+        });
         return;
     }
     setRoleToDelete(role);
@@ -134,6 +139,13 @@ export default function RolesPermissionsPage() {
 
   const handleConfirmDeleteRole = async () => {
     if (roleToDelete && !roleToDelete.es_rol_sistema) {
+      // Double check user_count, although it should be 0 if we reached here via openDeleteDialog
+      if (roleToDelete.user_count && roleToDelete.user_count > 0) {
+          toast({title: "Rol en Uso", description: `El rol "${roleToDelete.nombre_rol}" aún está asignado a usuarios.`, variant: "destructive"});
+          setIsDeleteAlertOpen(false);
+          setRoleToDelete(null);
+          return;
+      }
       try {
         await deleteRole(roleToDelete.id_rol);
         toast({ title: "Rol Eliminado", description: `El rol "${roleToDelete.nombre_rol}" ha sido eliminado.` });
