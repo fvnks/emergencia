@@ -194,22 +194,18 @@ export default function InventoryPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button className="w-full sm:w-auto" onClick={() => setIsAddInventoryDialogOpen(true)} disabled={bodegasForFilter.length === 0 && inventoryItems.length > 0}>
-            <PlusCircle className="mr-2 h-5 w-5" /> Agregar Ítem
-          </Button>
+          <AddInventoryItemDialog
+             onItemAdded={handleItemAddedOrUpdatedOrDeleted}
+             bodegas={bodegasForFilter}
+             // triggerButton prop can be used if a custom button is needed
+             // For default button, this will render DialogTrigger inside AddInventoryItemDialog itself
+          />
            {bodegasForFilter.length === 0 && inventoryItems.length > 0 && (
              <p className="text-xs text-muted-foreground sm:ml-2">Crea al menos una bodega en Configuración para agregar ítems.</p>
            )}
         </div>
       </div>
-      {isAddInventoryDialogOpen && (
-        <AddInventoryItemDialog
-          onItemAdded={handleItemAddedOrUpdatedOrDeleted}
-          bodegas={bodegasForFilter}
-          open={isAddInventoryDialogOpen}
-          onOpenChange={setIsAddInventoryDialogOpen}
-        />
-      )}
+      {/* AddInventoryItemDialog is now triggered from within the component itself if no triggerButton is passed */}
 
 
       {filteredInventoryItems.length === 0 && !loading && (
@@ -231,9 +227,10 @@ export default function InventoryPage() {
           </CardHeader>
           {selectedBodegaFilter === "all" && inventoryItems.length === 0 && bodegasForFilter.length > 0 && (
             <CardContent>
-                <Button onClick={() => setIsAddInventoryDialogOpen(true)}>
-                    <PlusCircle className="mr-2 h-5 w-5" /> Agregar Ítem
-                </Button>
+                <AddInventoryItemDialog
+                    onItemAdded={handleItemAddedOrUpdatedOrDeleted}
+                    bodegas={bodegasForFilter}
+                />
             </CardContent>
           )}
         </Card>
@@ -255,14 +252,19 @@ export default function InventoryPage() {
               </TableHeader>
               <TableBody>
                 {filteredInventoryItems.map((item) => (
-                  <TableRow key={item.id_item}>
+                  <TableRow key={item.id_item} id={`item-${item.id_item}`}>
                     <TableCell className="font-medium">{item.codigo_item}</TableCell>
                     <TableCell>
                       <div>{item.nombre_item}</div>
                       <div className="text-xs text-muted-foreground">{item.categoria_item}</div>
                     </TableCell>
                     <TableCell>{formatLocation(item)}</TableCell>
-                    <TableCell>{item.cantidad_actual} {item.unidad_medida}</TableCell>
+                    <TableCell>
+                        {item.cantidad_actual} {item.unidad_medida}
+                        {item.stock_minimo && item.cantidad_actual <= item.stock_minimo && (
+                            <Badge variant="destructive" className="ml-2 text-xs">Stock Bajo</Badge>
+                        )}
+                    </TableCell>
                     <TableCell>
                       {item.es_epp ? (
                           <Button
@@ -342,3 +344,4 @@ export default function InventoryPage() {
     </div>
   );
 }
+
