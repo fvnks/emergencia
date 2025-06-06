@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
 import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog";
-import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog";
+import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog"; // Added ViewMaintenanceDialog
 import { format, parseISO, isValid, isPast, differenceInDays, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
@@ -33,8 +33,8 @@ export default function MaintenancePage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null); // State for View Dialog
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for View Dialog
 
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -108,7 +108,7 @@ export default function MaintenancePage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const openViewDialog = (task: MaintenanceTask) => {
+  const openViewDialog = (task: MaintenanceTask) => { // Function to open View Dialog
     setSelectedTaskForView(task);
     setIsViewDialogOpen(true);
   };
@@ -300,7 +300,7 @@ export default function MaintenancePage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDateTable(task.fecha_ultima_realizada)}</TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right space-x-1"> {/* Adjusted space-x-1 for new button */}
                       <Button 
                         variant="outline" 
                         size="icon" 
