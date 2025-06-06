@@ -29,11 +29,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar
-        variant="sidebar" // Changed from "floating"
+        variant="sidebar" 
         collapsible="icon"
-        className="bg-sidebar border-r border-sidebar-border" // Use new sidebar variables
+        className="bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]"
       >
-        <SidebarHeader className="p-4 h-16 flex items-center"> {/* Ensure header height consistency */}
+        <SidebarHeader className="p-4 h-16 flex items-center">
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-7" />
           </Link>
@@ -41,18 +41,18 @@ export function AppLayout({ children }: AppLayoutProps) {
         <SidebarContent className="p-2 flex-grow">
           <SidebarNav />
         </SidebarContent>
-        <SidebarFooter className="p-2 border-t border-sidebar-border">
+        <SidebarFooter className="p-2 border-t border-[hsl(var(--sidebar-border))]">
            <SidebarMenuButton
               onClick={logout}
-              className="justify-start w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              className="justify-start w-full" // Let CVA handle styling
               tooltip={{children: "Cerrar Sesión", className: "bg-popover text-popover-foreground border-border"}}
             >
-              <LogOut className="h-5 w-5" />
+              <LogOut />
               <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesión</span>
             </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background"> {/* Main content area background */}
+      <SidebarInset className="bg-background">
         <Header />
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto">
           <div className="flex-grow">

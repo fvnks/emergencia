@@ -22,6 +22,7 @@ import {
   Fingerprint,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
@@ -56,7 +57,7 @@ export function SidebarNav() {
 
   return (
     <>
-      <div className="px-4 pt-2 pb-1 text-xs font-semibold text-muted-foreground group-data-[collapsible=icon]:hidden">
+      <div className="px-4 pt-2 pb-1 text-xs font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
         MENU
       </div>
       <SidebarMenu>
@@ -65,10 +66,10 @@ export function SidebarNav() {
             <Link href={item.href} passHref legacyBehavior>
               <SidebarMenuButton
                 isActive={pathname.startsWith(item.href)}
-                className="justify-start w-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
+                className="justify-start w-full" // Removed explicit color classes, should come from CVA
                 tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon /> {/* Icon styling will be handled by SidebarMenuButton's CVA logic */}
                 <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
               </SidebarMenuButton>
             </Link>

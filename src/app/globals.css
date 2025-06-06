@@ -27,7 +27,7 @@ body {
     --muted: 220 14% 91%;
     --muted-foreground: 220 9% 46%; /* #64748B */
 
-    --accent: 220 13% 89%; /* #DEE4EC - Light gray for hover, etc. */
+    --accent: 220 13% 89%; /* #DEE4EC - Light gray for hover, etc. (general accent) */
     --accent-foreground: 224 71% 4%; /* Dark text on accent */
 
     --destructive: 0 72% 51%; /* #EF4444 - Red */
@@ -44,19 +44,26 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Sidebar specific colors for TailAdmin-like light sidebar */
-    --sidebar-background: 220 13% 95%; /* #F1F5F9 - Same as page background */
-    --sidebar-foreground: 224 71% 4%;   /* #020617 - Dark text */
-    --sidebar-primary: 217 91% 60%;    /* #3B82F6 - Active item background or icon color */
-    --sidebar-primary-foreground: 0 0% 100%; /* #FFFFFF - White text on active item */
-    --sidebar-accent: 217 91% 94%; /* #EBF4FF - Very light blue for hover */
-    --sidebar-accent-foreground: 217 91% 45%; /* #2563EB - Darker blue text for hover */
-    --sidebar-border: 220 13% 84%;     /* #CBD5E1 - Border for sidebar (e.g., right border) */
-    --sidebar-ring: 217 91% 60%;       /* Primary blue for focus rings */
-  }
+    /* Sidebar specific colors */
+    --sidebar-background: 220 13% 95%;      /* #F1F5F9 - Page background */
+    --sidebar-foreground: 224 71% 4%;        /* #020617 - General text in sidebar (like "MENU") */
+    --sidebar-border: 220 13% 84%;          /* #CBD5E1 - Border for sidebar (e.g., right border) */
 
-  /* Dark mode is not part of the TailAdmin free visual style, so it's removed for simplicity.
-     If dark mode is needed, it would require a separate set of TailAdmin-dark variables. */
+    /* Sidebar Item Colors - TailAdmin style */
+    --sidebar-item-fg: 220 9% 46%;                   /* #64748B - Default text color for items (muted-foreground) */
+    --sidebar-item-icon-fg: 220 9% 46%;             /* #64748B - Default icon color */
+
+    --sidebar-item-hover-bg: 217 91% 96%;             /* #EFF6FF - Very light blue, slightly more than primary/10 */
+    --sidebar-item-hover-fg: 217 91% 50%;             /* #3B82F6 - Primary blue for text */
+    --sidebar-item-hover-icon-fg: 217 91% 50%;        /* #3B82F6 - Primary blue for icon */
+
+    --sidebar-item-active-bg: 217 91% 90%;            /* #DBEAFE - Light blue for active item background */
+    --sidebar-item-active-fg: 217 91% 55%;            /* #3B82F6 - Primary blue for active text */
+    --sidebar-item-active-icon-fg: 217 91% 55%;       /* #3B82F6 - Primary blue for active icon */
+    --sidebar-item-active-font-weight: 600;
+
+    --sidebar-ring: 217 91% 60%; /* Primary blue for focus rings within sidebar */
+  }
 }
 
 @layer base {
