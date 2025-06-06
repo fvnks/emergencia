@@ -19,8 +19,9 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
 
-interface Checklist {
+export interface Checklist {
   id: string;
   name: string;
   description?: string;
@@ -43,11 +44,21 @@ export default function ChecklistsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const { toast } = useToast();
 
-  const handleOpenAddDialog = () => {
-    toast({ title: "Próximamente", description: "La creación de checklists se implementará en una futura actualización." });
+  const handleChecklistAdded = (newChecklistData: NewChecklistData) => {
+    const newChecklist: Checklist = {
+      id: `chk${checklists.length + 1}-${Date.now()}`, // Simple unique ID generation
+      name: newChecklistData.name,
+      description: newChecklistData.description,
+      category: newChecklistData.category,
+      itemCount: 0, // New checklists start with 0 items
+      lastModified: new Date().toISOString(),
+      status: "Nuevo",
+    };
+    setChecklists(prev => [newChecklist, ...prev]);
   };
 
   const handleViewChecklist = (id: string) => {
@@ -60,6 +71,7 @@ export default function ChecklistsPage() {
   
   const handleDeleteChecklist = (checklist: Checklist) => {
     toast({ title: "Próximamente", description: `Eliminar checklist ${checklist.name} se implementará pronto.` });
+    // Example: setChecklists(prev => prev.filter(c => c.id !== checklist.id));
   };
 
   const filteredChecklists = checklists.filter(checklist => {
@@ -71,7 +83,7 @@ export default function ChecklistsPage() {
     return matchesSearchTerm && matchesCategory && matchesStatus;
   });
 
-  const uniqueCategories = Array.from(new Set(SIMULATED_CHECKLISTS.map(c => c.category).filter(Boolean))) as string[];
+  const uniqueCategories = Array.from(new Set(checklists.map(c => c.category).filter(Boolean))) as string[];
   const uniqueStatuses = Array.from(new Set(SIMULATED_CHECKLISTS.map(c => c.status))) as string[];
 
   const getStatusBadgeClassName = (status: Checklist['status']) => {
@@ -90,7 +102,7 @@ export default function ChecklistsPage() {
           <ListChecks className="mr-3 h-7 w-7 text-primary" />
           Gestión de Checklists y Formularios
         </h1>
-        <Button onClick={handleOpenAddDialog}>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
           <FilePlus2 className="mr-2 h-5 w-5" /> Crear Nuevo Checklist
         </Button>
       </div>
@@ -152,7 +164,7 @@ export default function ChecklistsPage() {
           </CardHeader>
            {checklists.length === 0 && (
             <CardContent>
-              <Button onClick={handleOpenAddDialog}>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
                 <FilePlus2 className="mr-2 h-5 w-5" /> Crear Nuevo Checklist
               </Button>
             </CardContent>
@@ -213,8 +225,12 @@ export default function ChecklistsPage() {
           </CardContent>
         </Card>
       )}
+      <AddChecklistDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onChecklistAdded={handleChecklistAdded}
+        existingCategories={uniqueCategories}
+      />
     </div>
   );
 }
-
-    
