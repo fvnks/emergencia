@@ -228,7 +228,7 @@ export default function TasksPage() {
                         {task.estado_tarea}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right space-x-1"> {/* Ajustado space-x-1 */}
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => openViewDialog(task)}>
                         <Eye className="h-4 w-4" />
                       </Button>
