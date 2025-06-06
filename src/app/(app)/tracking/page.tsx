@@ -5,17 +5,21 @@ import { useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Clock, AlertTriangle, Truck, ListFilter, Crosshair } from "lucide-react";
+import { MapPin, Clock, AlertTriangle, Truck, ListFilter, Crosshair, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ALL_VEHICLE_TYPES, type VehicleType } from "@/types/vehicleTypes";
-import type L from 'leaflet'; // Import Leaflet type for map instance
-import 'leaflet/dist/leaflet.css'; // Import Leaflet CSS
+import type L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { getVehicleUpdates, type SimulatedVehicle as FlowSimulatedVehicle } from "@/ai/flows/vehicle-tracking-flow"; // Import from Genkit flow
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 type VehicleStatus = "En Base" | "En Ruta" | "En Emergencia" | "Necesita Mantención" | "Fuera de Servicio";
 const ALL_VEHICLE_STATUSES: VehicleStatus[] = ["En Base", "En Ruta", "En Emergencia", "Necesita Mantención", "Fuera de Servicio"];
 
+// Keep SimulatedVehicle type in frontend for map and list rendering
 interface SimulatedVehicle {
   id: string;
   name: string;
@@ -26,42 +30,21 @@ interface SimulatedVehicle {
   assignedIncident?: string | null;
 }
 
-const initialVehicles: SimulatedVehicle[] = [
-  { id: "v1", name: "B-01", type: "Bomba", status: "En Base", lastUpdate: "00:00:00", location: { lat: -33.450, lon: -70.660 }, assignedIncident: null },
-  { id: "v2", name: "M-02", type: "Ambulancia", status: "En Ruta", lastUpdate: "00:00:00", location: { lat: -33.455, lon: -70.665 }, assignedIncident: "Accidente en Ruta 5" },
-  { id: "v3", name: "R-03", type: "Rescate", status: "En Emergencia", lastUpdate: "00:00:00", location: { lat: -33.460, lon: -70.670 }, assignedIncident: "Derrumbe sector El Salto" },
-  { id: "v4", name: "UT-04", type: "Utilitario", status: "Necesita Mantención", lastUpdate: "00:00:00", location: { lat: -33.465, lon: -70.675 }, assignedIncident: null },
-  { id: "v5", name: "Q-05", type: "HazMat", status: "Fuera de Servicio", lastUpdate: "00:00:00", location: { lat: -33.470, lon: -70.680 }, assignedIncident: null },
-  { id: "v6", name: "B-02", type: "Bomba", status: "En Ruta", lastUpdate: "00:00:00", location: { lat: -33.475, lon: -70.685 }, assignedIncident: null },
-  { id: "v7", name: "F-01", type: "Forestal", status: "En Base", lastUpdate: "00:00:00", location: { lat: -33.480, lon: -70.690 }, assignedIncident: null },
-];
-
-function getRandomStatus(currentStatus: VehicleStatus): VehicleStatus {
-  if (currentStatus === "Fuera de Servicio") return "Fuera de Servicio";
-  const statuses: VehicleStatus[] = ["En Base", "En Ruta", "En Emergencia"];
-  return statuses[Math.floor(Math.random() * statuses.length)];
-}
-
-function getRandomIncident(): string | null {
-    const incidents = ["Incendio en Casona Vieja", "Accidente Múltiple Autopista Central", "Rescate Persona Atrapada", null, "Derrame Químico Industrial", null];
-    return incidents[Math.floor(Math.random() * incidents.length)];
-}
 
 export default function TrackingPage() {
-  const [vehicles, setVehicles] = useState<SimulatedVehicle[]>(initialVehicles);
+  const [vehicles, setVehicles] = useState<SimulatedVehicle[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
 
-  // Initialize map
   useEffect(() => {
     if (typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
       import('leaflet').then(L => {
-        // This is a common fix for Leaflet's default icon path issue with bundlers like Webpack/Next.js
-        // It ensures Leaflet can find its marker icon images.
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
@@ -69,14 +52,13 @@ export default function TrackingPage() {
           shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
-        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12); // Santiago, Chile
+        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapInstance);
         mapRef.current = mapInstance;
       });
     }
-    // Cleanup function to remove map on component unmount
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
@@ -84,34 +66,30 @@ export default function TrackingPage() {
       }
       markersRef.current = {};
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
-
-
-  // Simulate vehicle data updates and marker updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVehicles((prevVehicles) =>
-        prevVehicles.map((v) => {
-          const newStatus = v.status === "Fuera de Servicio" || v.status === "Necesita Mantención" ? v.status : getRandomStatus(v.status);
-          const newLocation = {
-            lat: v.location.lat + (Math.random() - 0.5) * 0.002, // Slightly larger movement
-            lon: v.location.lon + (Math.random() - 0.5) * 0.002,
-          };
-          return {
-            ...v,
-            status: newStatus,
-            lastUpdate: new Date().toLocaleTimeString('es-CL'),
-            location: newLocation,
-            assignedIncident: newStatus === "En Emergencia" ? (v.assignedIncident || getRandomIncident() || "Emergencia Activa") : null,
-          };
-        })
-      );
-    }, 5000);
-
-    return () => clearInterval(interval);
   }, []);
 
-  // Update markers on map when vehicles data changes
+  useEffect(() => {
+    async function fetchVehicleData() {
+      try {
+        setError(null);
+        const result = await getVehicleUpdates({});
+        // Map FlowSimulatedVehicle to frontend SimulatedVehicle if necessary,
+        // but they should be compatible if defined consistently.
+        setVehicles(result.vehicles as SimulatedVehicle[]);
+      } catch (err) {
+        console.error("Error fetching vehicle updates:", err);
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los datos de los vehículos.");
+      } finally {
+        if (loading) setLoading(false);
+      }
+    }
+
+    fetchVehicleData(); // Initial fetch
+    const intervalId = setInterval(fetchVehicleData, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on component unmount
+  }, [loading]); // Added loading to dependencies to ensure initial setLoading(false)
+
   useEffect(() => {
     if (mapRef.current && typeof window !== "undefined") {
       import('leaflet').then(L => {
@@ -127,7 +105,6 @@ export default function TrackingPage() {
             marker.bindPopup(popupContent);
             markersRef.current[vehicle.id] = marker;
           }
-          // Automatically open popup for vehicles in emergency
           if (vehicle.status === "En Emergencia" && markersRef.current[vehicle.id]) {
             markersRef.current[vehicle.id].openPopup();
           }
@@ -135,7 +112,6 @@ export default function TrackingPage() {
       });
     }
   }, [vehicles]);
-
 
   const getStatusBadgeColor = (status: VehicleStatus) => {
     switch (status) {
@@ -165,7 +141,7 @@ export default function TrackingPage() {
                     Seguimiento de Flota
                     </CardTitle>
                     <CardDescription>
-                    Visualización en tiempo real (simulada) del estado y ubicación de los vehículos.
+                    Visualización en tiempo real (simulada desde backend) del estado y ubicación de los vehículos.
                     </CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
@@ -198,73 +174,93 @@ export default function TrackingPage() {
         </CardHeader>
       </Card>
 
-      <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
-        <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
-          <CardHeader>
-            <CardTitle className="text-xl font-headline">Mapa de Operaciones</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-grow p-2 sm:p-4">
-            <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
-              {/* Leaflet map will be rendered here */}
-            </div>
-            <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
-                 <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
-                 Simulación de datos.
-            </div>
-          </CardContent>
-        </Card>
+      {loading && vehicles.length === 0 && (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+          Cargando datos de vehículos...
+        </div>
+      )}
 
-        <Card className="lg:flex-[1] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
-          <CardHeader>
-            <CardTitle className="text-xl font-headline">Estado de Vehículos</CardTitle>
-            <CardDescription>{filteredVehicles.length} vehículo(s) mostrando.</CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 flex-grow overflow-hidden">
-            <ScrollArea className="h-full p-1 sm:p-3">
-              {filteredVehicles.length > 0 ? (
-                <div className="space-y-3">
-                  {filteredVehicles.map((vehicle) => (
-                    <div key={vehicle.id} className="p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
-                      <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-semibold text-md text-primary flex items-center">
-                          <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
-                          {vehicle.name} <span className="text-xs text-muted-foreground ml-1">({vehicle.type})</span>
-                        </h4>
-                        <Badge className={cn("text-xs text-white", getStatusBadgeColor(vehicle.status))}>
-                          {vehicle.status}
-                        </Badge>
+      {error && (
+        <Alert variant="destructive" className="my-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error al Cargar Datos</AlertTitle>
+          <AlertDescription>
+            {error}
+            <Button onClick={() => setLoading(true)} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!loading && !error && (
+        <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
+          <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
+            <CardHeader>
+              <CardTitle className="text-xl font-headline">Mapa de Operaciones</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow p-2 sm:p-4">
+              <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
+                {/* Leaflet map will be rendered here */}
+              </div>
+              <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
+                  <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
+                  Simulación de datos desde backend.
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:flex-[1] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
+            <CardHeader>
+              <CardTitle className="text-xl font-headline">Estado de Vehículos</CardTitle>
+              <CardDescription>{filteredVehicles.length} vehículo(s) mostrando.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 flex-grow overflow-hidden">
+              <ScrollArea className="h-full p-1 sm:p-3">
+                {filteredVehicles.length > 0 ? (
+                  <div className="space-y-3">
+                    {filteredVehicles.map((vehicle) => (
+                      <div key={vehicle.id} className="p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
+                        <div className="flex justify-between items-center mb-1">
+                          <h4 className="font-semibold text-md text-primary flex items-center">
+                            <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
+                            {vehicle.name} <span className="text-xs text-muted-foreground ml-1">({vehicle.type})</span>
+                          </h4>
+                          <Badge className={cn("text-xs text-white", getStatusBadgeColor(vehicle.status))}>
+                            {vehicle.status}
+                          </Badge>
+                        </div>
+                        {vehicle.assignedIncident && (
+                          <p className="text-xs text-destructive mb-1">
+                            Asignado a: {vehicle.assignedIncident}
+                          </p>
+                        )}
+                        <div className="text-xs text-muted-foreground flex items-center justify-between">
+                          <span className="flex items-center">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {vehicle.location.lat.toFixed(4)}, {vehicle.location.lon.toFixed(4)}
+                          </span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {vehicle.lastUpdate}
+                          </span>
+                        </div>
                       </div>
-                      {vehicle.assignedIncident && (
-                        <p className="text-xs text-destructive mb-1">
-                          Asignado a: {vehicle.assignedIncident}
-                        </p>
-                      )}
-                      <div className="text-xs text-muted-foreground flex items-center justify-between">
-                        <span className="flex items-center">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {vehicle.location.lat.toFixed(4)}, {vehicle.location.lon.toFixed(4)}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {vehicle.lastUpdate}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                 <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                    <ListFilter className="h-12 w-12 text-muted-foreground mb-3" />
-                    <p className="text-md font-medium">No hay vehículos</p>
-                    <p className="text-sm text-muted-foreground">
-                      No se encontraron vehículos que coincidan con los filtros actuales.
-                    </p>
+                    ))}
                   </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                      <ListFilter className="h-12 w-12 text-muted-foreground mb-3" />
+                      <p className="text-md font-medium">No hay vehículos</p>
+                      <p className="text-sm text-muted-foreground">
+                        No se encontraron vehículos que coincidan con los filtros actuales.
+                      </p>
+                    </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
