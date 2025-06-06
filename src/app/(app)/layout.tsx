@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from "react";
@@ -6,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 import { AppLayout } from '@/components/layout/app-layout';
 import { Loader2 } from "lucide-react";
+import { AppDataProvider } from "@/contexts/app-data-context"; // Importar el proveedor
 
 export default function AuthenticatedAppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -26,5 +28,9 @@ export default function AuthenticatedAppLayout({ children }: { children: ReactNo
     );
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  return (
+    <AppDataProvider> {/* Envolver AppLayout con el proveedor */}
+      <AppLayout>{children}</AppLayout>
+    </AppDataProvider>
+  );
 }

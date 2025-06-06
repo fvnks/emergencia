@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context"; // Importar useAppData y AlertNotificationItem
 
 const chartConfig = {
   ops: {
@@ -57,6 +58,8 @@ interface DailyOpsChartDataItem {
 
 export default function DashboardPage() {
   const { user: currentUser } = useAuth();
+  const { setActiveAlertsCount, setAlertNotifications } = useAppData(); // Usar el contexto
+
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
   const [totalVehicles, setTotalVehicles] = useState<number | string>("N/A");
   const [personnelCount, setPersonnelCount] = useState<number | string>("N/A");
@@ -68,7 +71,7 @@ export default function DashboardPage() {
   const [totalReadyEquipmentCount, setTotalReadyEquipmentCount] = useState<number | string>("N/A");
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [dailyOpsChartData, setDailyOpsChartData] = useState<DailyOpsChartDataItem[]>([]);
-  const [activeAlertsCount, setActiveAlertsCount] = useState<number | string>("N/A");
+  const [internalActiveAlertsCount, setInternalActiveAlertsCount] = useState<number | string>("N/A"); // Estado interno para el StatCard
   const [currentUserTasks, setCurrentUserTasks] = useState<Task[]>([]);
 
 
@@ -120,12 +123,12 @@ export default function DashboardPage() {
         setTotalReadyEquipmentCount(erasReady + extinguishersReady);
 
         const activities: ActivityItem[] = [];
+        const alertsForContext: AlertNotificationItem[] = [];
         const today = startOfDay(new Date());
 
-        // Generate Specific Alerts
         inventoryData.forEach(item => {
           if (item.stock_minimo && item.stock_minimo > 0 && item.cantidad_actual <= item.stock_minimo) {
-            activities.push({
+            const alertItem: AlertNotificationItem = {
               id: `alert-stock-${item.id_item}`,
               date: new Date(), 
               description: `Stock bajo: ${item.nombre_item} (${item.codigo_item}). Actual: ${item.cantidad_actual}, Mín: ${item.stock_minimo}.`,
@@ -134,14 +137,16 @@ export default function DashboardPage() {
               type: 'alert_stock',
               severity: 'warning',
               link: `/inventory#item-${item.id_item}`
-            });
+            };
+            activities.push(alertItem as ActivityItem);
+            alertsForContext.push(alertItem);
           }
         });
 
         maintenanceData.forEach(maint => {
           if (maint.fecha_programada && isBefore(parseISO(maint.fecha_programada), today) && 
               maint.estado_mantencion !== 'Completada' && maint.estado_mantencion !== 'Cancelada') {
-            activities.push({
+            const alertItem: AlertNotificationItem = {
               id: `alert-maint-${maint.id_mantencion}`,
               date: parseISO(maint.fecha_programada), 
               description: `Mantención Vencida: ${maint.nombre_item_mantenimiento}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
@@ -150,13 +155,15 @@ export default function DashboardPage() {
               type: 'alert_maintenance_overdue',
               severity: 'error',
               link: `/maintenance#maint-${maint.id_mantencion}`
-            });
+            };
+            activities.push(alertItem as ActivityItem);
+            alertsForContext.push(alertItem);
           }
         });
 
         vehiclesData.forEach(vehicle => {
           if (vehicle.estado_vehiculo === 'Fuera de Servicio') {
-            activities.push({
+            const alertItem: AlertNotificationItem = {
               id: `alert-vehicle-${vehicle.id_vehiculo}`,
               date: new Date(), 
               description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
@@ -165,7 +172,9 @@ export default function DashboardPage() {
               type: 'alert_vehicle_oos',
               severity: 'error',
               link: `/vehicles/${vehicle.id_vehiculo}`
-            });
+            };
+            activities.push(alertItem as ActivityItem);
+            alertsForContext.push(alertItem);
           }
         });
         
@@ -216,7 +225,9 @@ export default function DashboardPage() {
         );
 
         const currentActiveAlerts = activities.filter(a => a.type.startsWith('alert_')).length;
-        setActiveAlertsCount(currentActiveAlerts);
+        setInternalActiveAlertsCount(currentActiveAlerts);
+        setActiveAlertsCount(currentActiveAlerts); // Actualizar contexto
+        setAlertNotifications(alertsForContext.sort((a,b) => b.date.getTime() - a.date.getTime())); // Actualizar contexto
 
 
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -264,7 +275,9 @@ export default function DashboardPage() {
         setReadyEraCount("Error");
         setReadyExtinguisherCount("Error");
         setTotalReadyEquipmentCount("Error");
-        setActiveAlertsCount("Error");
+        setInternalActiveAlertsCount("Error");
+        setActiveAlertsCount(0); // Contexto
+        setAlertNotifications([]); // Contexto
         setRecentActivity([]);
         setCurrentUserTasks([]);
         setDailyOpsChartData( Array(7).fill(null).map((_, i) => ({ name: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).charAt(0).toUpperCase() + format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).slice(1,3), ops: 0, maint: 0 })) );
@@ -275,7 +288,7 @@ export default function DashboardPage() {
     fetchDashboardData();
     const intervalId = setInterval(fetchDashboardData, 60000); 
     return () => clearInterval(intervalId);
-  }, [currentUser]);
+  }, [currentUser, setActiveAlertsCount, setAlertNotifications]);
 
   const formatDate = (dateString?: string | null, dateFormat: string = "dd-MM-yyyy") => {
     if (!dateString) return "N/A";
@@ -362,15 +375,15 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Alertas Activas"
-          value={activeAlertsCount.toString()}
+          value={internalActiveAlertsCount.toString()}
           icon={AlertTriangle}
           description={
-            typeof activeAlertsCount === 'number' && activeAlertsCount > 0 
+            typeof internalActiveAlertsCount === 'number' && internalActiveAlertsCount > 0 
             ? "Requieren atención inmediata" 
             : "Sin alertas críticas"
           }
           iconClassName={
-            typeof activeAlertsCount === 'number' && activeAlertsCount > 0 
+            typeof internalActiveAlertsCount === 'number' && internalActiveAlertsCount > 0 
             ? "text-red-500 animate-pulse" 
             : "text-green-500"
           }
@@ -386,7 +399,7 @@ export default function DashboardPage() {
           <CardContent>
             {currentUserTasks.length > 0 ? (
               <ul className="space-y-3 text-sm">
-                {currentUserTasks.slice(0, 5).map((task) => ( // Mostrar hasta 5 tareas
+                {currentUserTasks.slice(0, 5).map((task) => ( 
                   <li key={`user-task-${task.id_tarea}`} className="flex flex-col p-2 border rounded-md hover:bg-muted/50">
                     <div className="flex justify-between items-start">
                        <Link href={`/tasks#task-${task.id_tarea}`} className="font-medium hover:underline flex-grow pr-2">
@@ -478,9 +491,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
-
-    
-
-    
