@@ -47,16 +47,15 @@ export default function VehicleDetailPage() {
   const [simulatedLocationTime, setSimulatedLocationTime] = useState<string>("Calculando...");
 
   useEffect(() => {
-    if (open) {
-      const updateTime = () => {
-        const minutes = Math.floor(Math.random() * 10) + 1; // 1 to 10 minutes ago
-        setSimulatedLocationTime(`Hace ${minutes} minuto${minutes > 1 ? 's' : ''} (Simulado)`);
-      };
-      updateTime(); // Initial update
-      const intervalId = setInterval(updateTime, 60000); // Update every minute
-      return () => clearInterval(intervalId);
-    }
-  }, [open]);
+    // Actualizar el tiempo simulado cada minuto
+    const updateTime = () => {
+      const minutes = Math.floor(Math.random() * 10) + 1; // 1 to 10 minutes ago
+      setSimulatedLocationTime(`Hace ${minutes} minuto${minutes > 1 ? 's' : ''} (Simulado)`);
+    };
+    updateTime(); // Initial update
+    const intervalId = setInterval(updateTime, 60000); // Update every minute
+    return () => clearInterval(intervalId);
+  }, []); // Ejecutar al montar el componente
 
   const fetchVehicleDetails = useCallback(async () => {
     if (id) {
@@ -332,6 +331,3 @@ export default function VehicleDetailPage() {
     </div>
   );
 }
-
-
-    
