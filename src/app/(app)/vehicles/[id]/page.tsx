@@ -8,15 +8,17 @@ import Link from "next/link";
 import { getVehicleById } from "@/services/vehicleService";
 import type { Vehicle, VehicleAssignedInventoryItem } from "@/types/vehicleTypes";
 import type { EraEquipment } from "@/components/equipment/era-types";
+import { getAllMaintenanceTasks, type MaintenanceTask, type MaintenanceStatus } from "@/services/maintenanceService"; // Importar servicio y tipo
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench, Package, ShieldAlert as EraIcon, MapPin, Clock } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench, Package, ShieldAlert as EraIcon, MapPin, Clock, ScrollText } from "lucide-react"; // Agregado ScrollText
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { ManageVehicleEraDialog } from "@/components/vehicles/manage-vehicle-era-dialog";
 import { ManageVehicleInventoryDialog } from "@/components/vehicles/manage-vehicle-inventory-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"; // Para la tabla de historial
 
 type LucideIcon = typeof Loader2;
 
@@ -39,6 +41,7 @@ export default function VehicleDetailPage() {
   const { toast } = useToast();
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [vehicleMaintenanceHistory, setVehicleMaintenanceHistory] = useState<MaintenanceTask[]>([]); // Estado para el historial
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,17 +50,16 @@ export default function VehicleDetailPage() {
   const [simulatedLocationTime, setSimulatedLocationTime] = useState<string>("Calculando...");
 
   useEffect(() => {
-    // Actualizar el tiempo simulado cada minuto
     const updateTime = () => {
-      const minutes = Math.floor(Math.random() * 10) + 1; // 1 to 10 minutes ago
+      const minutes = Math.floor(Math.random() * 10) + 1; 
       setSimulatedLocationTime(`Hace ${minutes} minuto${minutes > 1 ? 's' : ''} (Simulado)`);
     };
-    updateTime(); // Initial update
-    const intervalId = setInterval(updateTime, 60000); // Update every minute
+    updateTime(); 
+    const intervalId = setInterval(updateTime, 60000);
     return () => clearInterval(intervalId);
-  }, []); // Ejecutar al montar el componente
+  }, []);
 
-  const fetchVehicleDetails = useCallback(async () => {
+  const fetchVehicleDetailsAndHistory = useCallback(async () => {
     if (id) {
       const vehicleId = parseInt(id, 10);
       if (isNaN(vehicleId)) {
@@ -68,21 +70,39 @@ export default function VehicleDetailPage() {
 
       setLoading(true);
       setError(null);
+      setVehicle(null);
+      setVehicleMaintenanceHistory([]);
+
       try {
-        const data = await getVehicleById(vehicleId);
-        if (data) {
-          // Asegurar que los arrays de asignaciones existan si son null/undefined
+        const vehicleData = await getVehicleById(vehicleId);
+        if (vehicleData) {
           setVehicle({
-            ...data,
-            assignedEras: data.assignedEras || [],
-            assignedInventoryItems: data.assignedInventoryItems || [],
+            ...vehicleData,
+            assignedEras: vehicleData.assignedEras || [],
+            assignedInventoryItems: vehicleData.assignedInventoryItems || [],
           });
+
+          // Fetch and filter maintenance history
+          const allMaintenance = await getAllMaintenanceTasks();
+          const history = allMaintenance.filter(task => {
+            const nameMatch = task.nombre_item_mantenimiento?.toLowerCase();
+            const idMatch = vehicleData.identificador_interno?.toLowerCase();
+            const patentMatch = vehicleData.patente?.toLowerCase();
+            
+            return (idMatch && nameMatch?.includes(idMatch)) || (patentMatch && nameMatch?.includes(patentMatch));
+          }).sort((a, b) => {
+            const dateA = a.fecha_completada || a.fecha_programada || a.fecha_creacion;
+            const dateB = b.fecha_completada || b.fecha_programada || b.fecha_creacion;
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+          });
+          setVehicleMaintenanceHistory(history);
+
         } else {
           setError("Vehículo no encontrado.");
         }
       } catch (err) {
-        console.error("Error fetching vehicle details:", err);
-        setError(err instanceof Error ? err.message : "No se pudieron cargar los detalles del vehículo.");
+        console.error("Error fetching vehicle details or history:", err);
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los datos.");
       } finally {
         setLoading(false);
       }
@@ -90,41 +110,45 @@ export default function VehicleDetailPage() {
   }, [id]);
 
   useEffect(() => {
-    fetchVehicleDetails();
-  }, [fetchVehicleDetails]);
+    fetchVehicleDetailsAndHistory();
+  }, [fetchVehicleDetailsAndHistory]);
 
-  const formatDate = (dateString?: string | null) => {
+  const formatDate = (dateString?: string | null, withTime: boolean = false) => {
     if (!dateString) return null;
     try {
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00Z");
       if (!isValid(date)) return "Fecha inválida";
-      return format(date, "PPP", { locale: es });
+      return format(date, withTime ? "PPPp" : "PPP", { locale: es });
     } catch (e) {
       return dateString;
     }
   };
 
-  const getStatusBadgeClassName = (status?: Vehicle["estado_vehiculo"]) => {
+  const getStatusBadgeClassName = (status?: Vehicle["estado_vehiculo"] | MaintenanceStatus) => {
     if (!status) return "";
-    switch (status) {
-      case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
-      case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
-      case "Fuera de Servicio": return "bg-red-600 hover:bg-red-700 text-white";
-      default: return "bg-gray-400 text-white";
+    // Vehicle statuses
+    if (['Operativo', 'En Mantención', 'Fuera de Servicio'].includes(status)) {
+      switch (status) {
+        case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
+        case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
+        case "Fuera de Servicio": return "bg-red-600 hover:bg-red-700 text-white";
+      }
     }
+    // Maintenance statuses
+    switch (status) {
+      case "Completada": return "bg-green-500 hover:bg-green-600 text-white";
+      case "Programada": return "bg-blue-500 hover:bg-blue-600 text-white";
+      case "En Progreso": return "bg-yellow-500 hover:bg-yellow-600 text-black";
+      case "Pendiente": return "bg-orange-500 hover:bg-orange-600 text-white";
+      case "Atrasada": return "bg-red-600 hover:bg-red-700 text-white";
+      case "Cancelada": return "bg-slate-500 hover:bg-slate-600 text-white";
+    }
+    return "bg-gray-400 text-white";
   };
 
-  const handleManageEra = () => {
-    setIsManageEraDialogOpen(true);
-  };
-
-  const handleAssignmentsUpdated = () => {
-    fetchVehicleDetails(); // Recargar datos del vehículo
-  };
-
-  const handleManageInventory = () => {
-    setIsManageInventoryDialogOpen(true);
-  };
+  const handleManageEra = () => setIsManageEraDialogOpen(true);
+  const handleAssignmentsUpdated = () => fetchVehicleDetailsAndHistory(); // Recargar datos completos
+  const handleManageInventory = () => setIsManageInventoryDialogOpen(true);
 
   if (loading) {
     return (
@@ -261,6 +285,39 @@ export default function VehicleDetailPage() {
           </section>
 
           <section>
+            <h2 className="text-xl font-semibold font-headline mb-3 text-primary flex items-center">
+              <ScrollText className="mr-2 h-5 w-5" /> Historial de Mantenimiento
+            </h2>
+            {vehicleMaintenanceHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Descripción Tarea</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Notas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {vehicleMaintenanceHistory.map((task) => (
+                      <TableRow key={task.id_mantencion}>
+                        <TableCell className="whitespace-nowrap">{formatDate(task.fecha_completada || task.fecha_programada)}</TableCell>
+                        <TableCell className="min-w-[200px]">{task.descripcion_mantencion || task.nombre_item_mantenimiento}</TableCell>
+                        <TableCell><Badge className={getStatusBadgeClassName(task.estado_mantencion)}>{task.estado_mantencion}</Badge></TableCell>
+                        <TableCell className="text-xs">{task.notas_mantencion || "N/A"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No hay historial de mantenimiento registrado para este vehículo.</p>
+            )}
+          </section>
+
+
+          <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-xl font-semibold font-headline text-primary flex items-center">
                 <EraIcon className="mr-2 h-5 w-5" /> Equipos ERA Asignados
@@ -306,8 +363,8 @@ export default function VehicleDetailPage() {
 
           <section className="text-xs text-muted-foreground pt-4 border-t mt-6">
             <p>ID Vehículo: {vehicle.id_vehiculo}</p>
-            <p>Última actualización: {formatDate(vehicle.fecha_actualizacion)}</p>
-            <p>Fecha creación: {formatDate(vehicle.fecha_creacion)}</p>
+            <p>Última actualización: {formatDate(vehicle.fecha_actualizacion, true)}</p>
+            <p>Fecha creación: {formatDate(vehicle.fecha_creacion, true)}</p>
           </section>
         </CardContent>
       </Card>
@@ -331,3 +388,5 @@ export default function VehicleDetailPage() {
     </div>
   );
 }
+
+    
