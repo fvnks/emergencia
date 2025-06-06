@@ -22,7 +22,7 @@ export default function AuthenticatedAppLayout({ children }: { children: ReactNo
   if (loading || !user) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <Loader2 className="h-12 w-12 animate-cool-loader-spin text-primary" />
         <p className="ml-4 text-lg font-semibold">Cargando Gestor de Brigada...</p>
       </div>
     );

@@ -146,7 +146,7 @@ export default function PersonnelPage() {
   if (loading && personnel.length === 0) { 
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <Loader2 className="h-12 w-12 animate-cool-loader-spin text-primary mb-4" />
         <p className="text-lg font-semibold">Cargando personal...</p>
       </div>
     );
@@ -237,7 +237,7 @@ export default function PersonnelPage() {
                 <ShieldCheck className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="font-medium">EPP Asignado: </span>
-                  {eppLoading[person.id_usuario] && <span className="text-xs text-muted-foreground">Cargando EPP...</span>}
+                  {eppLoading[person.id_usuario] && <Loader2 className="h-4 w-4 animate-cool-loader-spin text-muted-foreground inline-block ml-1" />}
                   {!eppLoading[person.id_usuario] && (!assignedEpp[person.id_usuario] || assignedEpp[person.id_usuario]?.length === 0) && (
                     <span className="text-muted-foreground">Ninguno</span>
                   )}
@@ -256,7 +256,7 @@ export default function PersonnelPage() {
                 <ClipboardList className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
                   <span className="font-medium">Tareas Activas: </span>
-                  {tasksLoading[person.id_usuario] && <span className="text-xs text-muted-foreground">Cargando tareas...</span>}
+                  {tasksLoading[person.id_usuario] && <Loader2 className="h-4 w-4 animate-cool-loader-spin text-muted-foreground inline-block ml-1" />}
                   {!tasksLoading[person.id_usuario] && (!assignedTasks[person.id_usuario] || assignedTasks[person.id_usuario]?.length === 0) && (
                     <span className="text-muted-foreground">Ninguna</span>
                   )}
@@ -303,7 +303,3 @@ export default function PersonnelPage() {
     </div>
   );
 }
-
-
-
-    

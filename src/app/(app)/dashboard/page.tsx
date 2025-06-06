@@ -314,7 +314,7 @@ export default function DashboardPage() {
   if (loading && recentActivity.length === 0) { 
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <Loader2 className="h-8 w-8 animate-cool-loader-spin text-primary mr-2" />
         Cargando datos del panel...
       </div>
     );
@@ -491,4 +491,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

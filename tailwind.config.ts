@@ -96,12 +96,18 @@ export default {
           '40%': { transform: 'rotate(-4deg)' },
           '50%': { transform: 'rotate(10deg)' },
           '60%': { transform: 'rotate(0)' }, 
-        }
+        },
+        'cool-loader-spin': {
+          '0%': { transform: 'rotate(0deg) scale(1)', opacity: 1 },
+          '50%': { transform: 'rotate(180deg) scale(1.15)', opacity: 0.8 },
+          '100%': { transform: 'rotate(360deg) scale(1)', opacity: 1 },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'ring-bell': 'ring-bell 2s ease-in-out infinite',
+        'cool-loader-spin': 'cool-loader-spin 1.2s linear infinite',
       },
     },
   },

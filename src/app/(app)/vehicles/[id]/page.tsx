@@ -153,7 +153,7 @@ export default function VehicleDetailPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <Loader2 className="h-12 w-12 animate-cool-loader-spin text-primary mb-4" />
         <p className="text-lg font-semibold">Cargando detalles del vehículo...</p>
       </div>
     );
@@ -388,5 +388,3 @@ export default function VehicleDetailPage() {
     </div>
   );
 }
-
-    
