@@ -45,22 +45,22 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 220 13% 95%;      /* #F1F5F9 - Page background */
+    --sidebar-background: 220 13% 95%;      /* #F1F5F9 - Page background (same as page) */
     --sidebar-foreground: 224 71% 4%;        /* #020617 - General text in sidebar (like "MENU") */
     --sidebar-border: 220 13% 84%;          /* #CBD5E1 - Border for sidebar (e.g., right border) */
 
     /* Sidebar Item Colors - TailAdmin style */
-    --sidebar-item-fg: 220 9% 46%;                   /* #64748B - Default text color for items (muted-foreground) */
+    --sidebar-item-fg:  220 9% 46%;                   /* #64748B - Default text color for items (muted-foreground like) */
     --sidebar-item-icon-fg: 220 9% 46%;             /* #64748B - Default icon color */
 
-    --sidebar-item-hover-bg: hsl(var(--secondary));       /* #E2E8F0 - Using secondary for a more distinct gray sweep */
-    --sidebar-item-hover-fg: hsl(217 91% 50%);       /* #3B82F6 - Primary blue for text on hover */
-    --sidebar-item-hover-icon-fg: hsl(217 91% 50%);  /* #3B82F6 - Primary blue for icon on hover */
+    --sidebar-item-hover-bg: hsl(var(--secondary));        /* #E2E8F0 - Light gray background on hover */
+    --sidebar-item-hover-fg: hsl(217 91% 50%);        /* #3B82F6 - Primary blue for text on hover */
+    --sidebar-item-hover-icon-fg: hsl(217 91% 50%);   /* #3B82F6 - Primary blue for icon on hover */
 
     --sidebar-item-active-bg: hsl(217 91% 90%);      /* #DBEAFE - Light blue for active item background (solid) */
     --sidebar-item-active-fg: hsl(217 91% 55%);      /* #3B82F6 - Primary blue for active text */
     --sidebar-item-active-icon-fg: hsl(217 91% 55%); /* #3B82F6 - Primary blue for active icon */
-    --sidebar-item-active-font-weight: 600;
+    --sidebar-item-active-font-weight: 600;          /* Semibold for active item text */
 
     --sidebar-ring: 217 91% 60%; /* Primary blue for focus rings within sidebar */
   }
@@ -85,31 +85,3 @@ body {
     @apply pr-8; /* Space for the select arrow */
   }
 }
-
-@layer utilities {
-  .sidebar-hover-sweep {
-    position: relative; /* Context for ::before */
-    overflow: hidden;   /* Clip the ::before */
-    z-index: 0;         /* Ensure button itself has a stacking context for ::before z-index -1 to work properly */
-  }
-
-  .sidebar-hover-sweep::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: hsl(var(--sidebar-item-hover-bg)); /* Use the defined hover background color */
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s ease-in-out;
-    z-index: -1; /* Behind the button's content */
-  }
-
-  .sidebar-hover-sweep:hover::before,
-  .sidebar-hover-sweep:focus-visible::before {
-    transform: scaleX(1);
-  }
-}
-

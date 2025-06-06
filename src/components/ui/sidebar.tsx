@@ -503,18 +503,21 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button sidebar-hover-sweep relative flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-[hsl(var(--sidebar-ring))] transition-[width,height,padding] focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button relative flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-[hsl(var(--sidebar-ring))] transition-colors focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {
         default: 
           "text-[hsl(var(--sidebar-item-fg))] \
-           hover:text-[hsl(var(--sidebar-item-hover-fg))] \
-           focus-visible:text-[hsl(var(--sidebar-item-hover-fg))] \
+           hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-fg))] \
+           focus-visible:bg-[hsl(var(--sidebar-item-hover-bg))] focus-visible:text-[hsl(var(--sidebar-item-hover-fg))] \
            data-[state=open]:bg-[hsl(var(--sidebar-item-hover-bg))] data-[state=open]:text-[hsl(var(--sidebar-item-hover-fg))] \
            data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-[var(--sidebar-item-active-font-weight)]",
         outline:
-          "bg-background text-[hsl(var(--sidebar-item-fg))] shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:text-[hsl(var(--sidebar-item-hover-fg))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-item-hover-bg))] data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-[var(--sidebar-item-active-font-weight)]",
+          "bg-background text-[hsl(var(--sidebar-item-fg))] shadow-[0_0_0_1px_hsl(var(--sidebar-border))] \
+           hover:bg-[hsl(var(--sidebar-item-hover-bg))] hover:text-[hsl(var(--sidebar-item-hover-fg))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-item-hover-bg))] \
+           focus-visible:bg-[hsl(var(--sidebar-item-hover-bg))] focus-visible:text-[hsl(var(--sidebar-item-hover-fg))] \
+           data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-[var(--sidebar-item-active-font-weight)]",
       },
       size: {
         default: "h-9 text-[15px]", 
@@ -564,12 +567,14 @@ const SidebarMenuButton = React.forwardRef<
       >
         
         {React.Children.map(children, child => {
-          if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) {
+          if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) { // Check if child is a Lucide icon
             return React.cloneElement(child as React.ReactElement<any>, { 
               className: cn(
-                child.props.className,
-                isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' : 'text-[hsl(var(--sidebar-item-icon-fg))]',
-                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))] group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]'
+                child.props.className, // Keep existing classes on icon
+                isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' 
+                         : 'text-[hsl(var(--sidebar-item-icon-fg))]',
+                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]', // Icon color on parent button hover
+                'group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]' // Icon color on parent button focus
               )
             });
           }
