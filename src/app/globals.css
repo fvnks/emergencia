@@ -52,8 +52,8 @@ body {
     /* Sidebar Item Colors - TailAdmin style */
     --sidebar-item-fg: 220 9% 46%;                   /* #64748B - Default text color for items (muted-foreground) */
     --sidebar-item-icon-fg: 220 9% 46%;             /* #64748B - Default icon color */
-    
-    --sidebar-item-hover-bg: hsl(217 91% 96%);       /* #EFF6FF - Very light blue for hover background (sweep color) */
+
+    --sidebar-item-hover-bg: hsl(var(--secondary));       /* #E2E8F0 - Using secondary for a more distinct gray sweep */
     --sidebar-item-hover-fg: hsl(217 91% 50%);       /* #3B82F6 - Primary blue for text on hover */
     --sidebar-item-hover-icon-fg: hsl(217 91% 50%);  /* #3B82F6 - Primary blue for icon on hover */
 
@@ -112,3 +112,4 @@ body {
     transform: scaleX(1);
   }
 }
+
