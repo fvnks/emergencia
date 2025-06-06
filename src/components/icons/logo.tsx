@@ -15,7 +15,7 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
       {/* Simple icon, can be replaced with a more TailAdmin-like one if needed */}
       <path d="M10 15 L10 35 L22 25 Z" fill="hsl(var(--primary))" /> 
       <text
-        fontFamily="'PT Sans', sans-serif" // Consider changing to Inter or similar for TailAdmin feel
+        fontFamily="'Inter', sans-serif" // Changed to Inter
         fontSize="22" // Adjusted font size
         fontWeight="bold"
         fill="hsl(var(--foreground))" // Use main foreground color

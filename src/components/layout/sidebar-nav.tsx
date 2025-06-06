@@ -57,7 +57,7 @@ export function SidebarNav() {
 
   return (
     <>
-      <div className="px-4 pt-2 pb-1 text-xs font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
+      <div className="px-4 pt-2 pb-1 text-sm font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
         MENU
       </div>
       <SidebarMenu>
