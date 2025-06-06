@@ -11,7 +11,24 @@ import {
   type ChartConfig
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend as RechartsLegend, Tooltip as RechartsTooltip } from "recharts";
-import { FileText, AlertTriangle } from "lucide-react";
+import { FileText, AlertTriangle, Filter, Download, CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { useState } from "react";
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import type { DateRange } from "react-day-picker";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+// Asumimos que estos vienen de los types/services
+const ALL_VEHICLE_STATUSES_REPORTS = ['Operativo', 'En Mantención', 'Fuera de Servicio'];
+const ALL_VEHICLE_TYPES_REPORTS = ['Bomba', 'Escala', 'Rescate', 'Ambulancia', 'HazMat', 'Forestal', 'Utilitario', 'Transporte Personal', 'Otro'];
+const ALL_ERA_STATUSES_REPORTS = ['Disponible', 'Operativo', 'En Mantención', 'Requiere Inspección', 'Fuera de Servicio'];
+const ALL_MAINTENANCE_STATUSES_REPORTS = ['Programada', 'Pendiente', 'En Progreso', 'Completada', 'Cancelada', 'Atrasada'];
+
 
 const vehicleAvailabilityData = [
   { status: "Operativos", count: 12, fill: "hsl(var(--chart-1))" },
@@ -64,20 +81,144 @@ const maintenanceComplianceChartConfig = {
   vencidas: { label: "Vencidas/Pendientes", color: "hsl(var(--chart-4))" },
 } satisfies ChartConfig;
 
-const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
 export default function ReportsPage() {
+  const { toast } = useToast();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string>("all");
+  const [vehicleStatusFilter, setVehicleStatusFilter] = useState<string>("all");
+  const [eraStatusFilter, setEraStatusFilter] = useState<string>("all");
+  const [maintenanceStatusFilter, setMaintenanceStatusFilter] = useState<string>("all");
+
+  const handleApplyFilters = () => {
+    toast({
+      title: "Filtros Aplicados (Simulado)",
+      description: "En una aplicación real, los gráficos se actualizarían con los filtros seleccionados.",
+    });
+  };
+
+  const handleExport = (formatType: 'Excel' | 'PDF') => {
+    toast({
+      title: `Exportación a ${formatType} (Simulada)`,
+      description: `Funcionalidad de exportación a ${formatType} no implementada en esta demostración.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <h1 className="text-2xl font-headline font-bold md:text-3xl flex items-center">
           <FileText className="mr-3 h-7 w-7 text-primary" />
           Informes y Estadísticas
         </h1>
       </div>
       <p className="text-muted-foreground">
-        Visualización detallada del estado y rendimiento de los recursos. (Datos simulados para demostración)
+        Visualización detallada del estado y rendimiento de los recursos. Utilice los filtros para refinar los datos de los informes.
       </p>
+
+      {/* Sección de Filtros */}
+      <Card className="shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center"><Filter className="mr-2 h-5 w-5 text-primary" /> Filtros de Informes</CardTitle>
+          <CardDescription>Seleccione criterios para generar informes específicos.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+            <div>
+              <label htmlFor="date-range" className="text-sm font-medium text-muted-foreground mb-1 block">Rango de Fechas</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date-range"
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-10",
+                      !dateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "LLL dd, y", {locale: es})} -{" "}
+                          {format(dateRange.to, "LLL dd, y", {locale: es})}
+                        </>
+                      ) : (
+                        format(dateRange.from, "LLL dd, y", {locale: es})
+                      )
+                    ) : (
+                      <span>Seleccione un rango</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateRange?.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <Select value={vehicleTypeFilter} onValueChange={setVehicleTypeFilter}>
+                <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Tipo de Vehículo" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los Tipos de Vehículo</SelectItem>
+                    {ALL_VEHICLE_TYPES_REPORTS.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={vehicleStatusFilter} onValueChange={setVehicleStatusFilter}>
+                <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Estado de Vehículo" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los Estados de Vehículo</SelectItem>
+                    {ALL_VEHICLE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={eraStatusFilter} onValueChange={setEraStatusFilter}>
+                <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Estado de ERA" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los Estados de ERA</SelectItem>
+                    {ALL_ERA_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={maintenanceStatusFilter} onValueChange={setMaintenanceStatusFilter}>
+                <SelectTrigger className="h-10">
+                    <SelectValue placeholder="Estado de Mantención" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los Estados de Mantención</SelectItem>
+                    {ALL_MAINTENANCE_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <Button onClick={handleApplyFilters} className="w-full sm:w-auto">
+                <Filter className="mr-2 h-4 w-4" /> Aplicar Filtros (Simulado)
+            </Button>
+            <Button variant="outline" onClick={() => handleExport('Excel')} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Exportar a Excel (Simulado)
+            </Button>
+            <Button variant="outline" onClick={() => handleExport('PDF')} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" /> Exportar a PDF (Simulado)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card className="shadow-md">
@@ -199,7 +340,7 @@ export default function ReportsPage() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-orange-700">
-              <strong>Nota Importante:</strong> Todos los datos y gráficos presentados en esta sección son simulados y tienen fines demostrativos únicamente. No representan información operativa real.
+              <strong>Nota Importante:</strong> Todos los datos y gráficos presentados en esta sección son simulados y tienen fines demostrativos únicamente. La funcionalidad de filtrado y exportación real no está implementada.
             </p>
           </div>
         </div>
@@ -208,3 +349,5 @@ export default function ReportsPage() {
   );
 }
 
+        
+    
