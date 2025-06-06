@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { getAllInventoryItems } from "@/services/inventoryService";
 import { getAllBodegas, type Bodega } from "@/services/bodegaService"; // Importar Bodega y servicio
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Added Input
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle, PlusCircle, Eye } from "lucide-react"; // Added Eye
+import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle, PlusCircle, Eye, Search } from "lucide-react"; // Added Eye, Search
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
@@ -23,7 +24,7 @@ import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-i
 import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
 import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog";
 import { InventoryMovementHistoryDialog } from "@/components/inventory/inventory-movement-history-dialog";
-import { ViewInventoryItemDialog } from "@/components/inventory/view-inventory-item-dialog"; // Added View Dialog
+import { ViewInventoryItemDialog } from "@/components/inventory/view-inventory-item-dialog";
 
 
 declare module "@/components/ui/button" {
@@ -36,6 +37,7 @@ export default function InventoryPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [bodegasForFilter, setBodegasForFilter] = useState<Bodega[]>([]);
   const [selectedBodegaFilter, setSelectedBodegaFilter] = useState<string>("all"); // 'all' o id_bodega
+  const [searchTerm, setSearchTerm] = useState<string>(""); // State for search term
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,8 +54,8 @@ export default function InventoryPage() {
   const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
-  const [selectedItemForView, setSelectedItemForView] = useState<InventoryItem | null>(null); // State for View Dialog
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for View Dialog
+  const [selectedItemForView, setSelectedItemForView] = useState<InventoryItem | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
     try {
@@ -127,23 +129,34 @@ export default function InventoryPage() {
     setIsHistoryDialogOpen(true);
   };
 
-  const openViewDialog = (item: InventoryItem) => { // Function to open View Dialog
+  const openViewDialog = (item: InventoryItem) => {
     setSelectedItemForView(item);
     setIsViewDialogOpen(true);
   };
 
   const filteredInventoryItems = useMemo(() => {
-    if (selectedBodegaFilter === "all") {
-      return inventoryItems;
+    let items = inventoryItems;
+
+    if (selectedBodegaFilter !== "all") {
+      const bodegaId = parseInt(selectedBodegaFilter, 10);
+      items = items.filter(item => item.id_bodega === bodegaId);
     }
-    const bodegaId = parseInt(selectedBodegaFilter, 10);
-    return inventoryItems.filter(item => item.id_bodega === bodegaId);
-  }, [inventoryItems, selectedBodegaFilter]);
+
+    if (searchTerm) {
+      const lowercasedFilter = searchTerm.toLowerCase();
+      items = items.filter(item =>
+        item.nombre_item.toLowerCase().includes(lowercasedFilter) ||
+        item.codigo_item.toLowerCase().includes(lowercasedFilter) ||
+        (item.categoria_item && item.categoria_item.toLowerCase().includes(lowercasedFilter))
+      );
+    }
+    return items;
+  }, [inventoryItems, selectedBodegaFilter, searchTerm]);
 
 
   const formatLocation = (item: InventoryItem) => {
-    const bodegaNombre = item.nombre_bodega?.trim(); // Nombre de la bodega desde el JOIN
-    const subLoc = item.sub_ubicacion?.trim(); // Sub-ubicación directamente del ítem
+    const bodegaNombre = item.nombre_bodega?.trim();
+    const subLoc = item.sub_ubicacion?.trim();
 
     if (bodegaNombre && bodegaNombre !== "") {
       if (subLoc && subLoc !== "") {
@@ -181,8 +194,18 @@ export default function InventoryPage() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
         <h1 className="text-2xl font-headline font-bold">Inventario General</h1>
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
+           <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar por nombre, código..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-full sm:w-[240px] bg-background"
+              />
+            </div>
           <Select value={selectedBodegaFilter} onValueChange={setSelectedBodegaFilter} disabled={bodegasForFilter.length === 0}>
-            <SelectTrigger className="w-full sm:w-[220px] bg-background"> {/* Cambiado bg-card a bg-background para mejor contraste dentro de la barra */}
+            <SelectTrigger className="w-full sm:w-[220px] bg-background">
               <SelectValue placeholder="Filtrar por bodega" />
             </SelectTrigger>
             <SelectContent>
@@ -197,15 +220,12 @@ export default function InventoryPage() {
           <AddInventoryItemDialog
              onItemAdded={handleItemAddedOrUpdatedOrDeleted}
              bodegas={bodegasForFilter}
-             // triggerButton prop can be used if a custom button is needed
-             // For default button, this will render DialogTrigger inside AddInventoryItemDialog itself
           />
            {bodegasForFilter.length === 0 && inventoryItems.length > 0 && (
              <p className="text-xs text-muted-foreground sm:ml-2">Crea al menos una bodega en Configuración para agregar ítems.</p>
            )}
         </div>
       </div>
-      {/* AddInventoryItemDialog is now triggered from within the component itself if no triggerButton is passed */}
 
 
       {filteredInventoryItems.length === 0 && !loading && (
@@ -215,17 +235,17 @@ export default function InventoryPage() {
                 <PackageSearch className="h-10 w-10" />
             </div>
             <CardTitle className="mt-4">
-              {selectedBodegaFilter === "all" && inventoryItems.length === 0
+              {inventoryItems.length === 0
                 ? "Inventario Vacío"
                 : "No hay ítems para esta selección"}
             </CardTitle>
             <CardDescription>
-              {selectedBodegaFilter === "all" && inventoryItems.length === 0
-                ? bodegasForFilter.length > 0 ? "No hay ítems registrados. Comienza agregando uno." : "Primero crea al menos una bodega en Configuración > Gestionar Bodegas."
-                : "No hay ítems que coincidan con el filtro de bodega actual."}
+              {inventoryItems.length === 0
+                ? (bodegasForFilter.length > 0 ? "No hay ítems registrados. Comienza agregando uno." : "Primero crea al menos una bodega en Configuración > Gestionar Bodegas.")
+                : "No hay ítems que coincidan con los filtros o la búsqueda actual."}
             </CardDescription>
           </CardHeader>
-          {selectedBodegaFilter === "all" && inventoryItems.length === 0 && bodegasForFilter.length > 0 && (
+          {inventoryItems.length === 0 && bodegasForFilter.length > 0 && (
             <CardContent>
                 <AddInventoryItemDialog
                     onItemAdded={handleItemAddedOrUpdatedOrDeleted}
