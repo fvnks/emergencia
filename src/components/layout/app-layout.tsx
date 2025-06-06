@@ -59,8 +59,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             {children}
           </div>
           <footer className="mt-auto pt-6 pb-4 text-center text-xs text-muted-foreground border-t border-border">
-            <p>Esto es una demo para Iván Santander de 5ta.cl.</p>
-            <p>Aplicación funcional para demostración, no para uso en producción.</p>
+            <p>&copy; {new Date().getFullYear()} Gestor de Brigada. Todos los derechos reservados.</p>
+            <p className="mt-1">Aplicación funcional para demostración, no para uso en producción.</p>
           </footer>
         </main>
       </SidebarInset>

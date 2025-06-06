@@ -74,3 +74,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* More specific styles for input and select to match TailAdmin */
+@layer components {
+  .form-input, .form-select {
+    @apply block w-full rounded-md border-border bg-muted/40 px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+  }
+  .form-select {
+    @apply pr-8; /* Space for the select arrow */
+  }
+}
