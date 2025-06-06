@@ -81,7 +81,7 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className="h-5 w-5" />
+                  <Bell className={cn("h-5 w-5", activeAlertsCount > 0 && "animate-pulse text-primary")} />
                   {activeAlertsCount > 0 && (
                     <Badge
                       variant="destructive"
