@@ -34,18 +34,16 @@ export default function TrackingPage() {
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVehicleIdFromList, setSelectedVehicleIdFromList] = useState<string | null>(null);
+
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
 
   useEffect(() => {
-    // This effect now depends on 'loading'.
-    // It will run when 'loading' changes.
     if (!loading && typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
-      // If not loading, and container is available, and map not yet initialized, then initialize.
       import('leaflet').then(L => {
-        // Workaround for default icon paths in Next.js with Leaflet
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
@@ -53,7 +51,7 @@ export default function TrackingPage() {
           shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
-        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12); // Santiago, Chile
+        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapInstance);
@@ -61,17 +59,14 @@ export default function TrackingPage() {
       });
     }
 
-    // The cleanup function will run:
-    // 1. When the component unmounts.
-    // 2. Before the effect runs again if 'loading' changes.
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      markersRef.current = {}; // Reset markers too, as they are tied to the map instance
+      markersRef.current = {};
     };
-  }, [loading]); // Key change: added 'loading' dependency
+  }, [loading]);
 
   useEffect(() => {
     async function fetchVehicleData() {
@@ -83,16 +78,15 @@ export default function TrackingPage() {
         console.error("Error fetching vehicle updates:", err);
         setError(err instanceof Error ? err.message : "No se pudieron cargar los datos de los vehículos.");
       } finally {
-        // Ensure loading is set to false only once after the initial fetch attempt
         if (loading) setLoading(false);
       }
     }
 
-    fetchVehicleData(); // Initial fetch
-    const intervalId = setInterval(fetchVehicleData, 5000); // Poll every 5 seconds
+    fetchVehicleData();
+    const intervalId = setInterval(fetchVehicleData, 5000);
 
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [loading]); // Depend on loading to re-initiate fetch on retry (if setLoading(true) is called)
+    return () => clearInterval(intervalId);
+  }, [loading]); // Depend on loading to re-initiate fetch on retry
 
   useEffect(() => {
     if (mapRef.current && typeof window !== "undefined") {
@@ -109,11 +103,13 @@ export default function TrackingPage() {
             marker.bindPopup(popupContent);
             markersRef.current[vehicle.id] = marker;
           }
+          // Si el vehículo está en emergencia Y es el seleccionado desde la lista O no hay ninguno seleccionado desde la lista (comportamiento original)
           if (vehicle.status === "En Emergencia" && markersRef.current[vehicle.id] && mapRef.current?.hasLayer(markersRef.current[vehicle.id])) {
-            markersRef.current[vehicle.id].openPopup();
+            if (selectedVehicleIdFromList === vehicle.id || (!selectedVehicleIdFromList && vehicle.status === "En Emergencia")) {
+                 // markersRef.current[vehicle.id].openPopup(); // Se abre con handleVehicleSelect
+            }
           }
         });
-        // Optional: Remove markers for vehicles no longer in the list
         Object.keys(markersRef.current).forEach(vehicleId => {
           if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
             mapRef.current.removeLayer(markersRef.current[vehicleId]);
@@ -122,7 +118,16 @@ export default function TrackingPage() {
         });
       });
     }
-  }, [vehicles]);
+  }, [vehicles, selectedVehicleIdFromList]);
+
+  const handleVehicleSelect = (vehicle: SimulatedVehicle) => {
+    setSelectedVehicleIdFromList(vehicle.id);
+    if (mapRef.current && markersRef.current[vehicle.id]) {
+      const { lat, lon } = vehicle.location;
+      mapRef.current.setView([lat, lon], 16); // Centrar y hacer zoom más cercano
+      markersRef.current[vehicle.id].openPopup();
+    }
+  };
 
   const getStatusBadgeColor = (status: VehicleStatus) => {
     switch (status) {
@@ -167,7 +172,7 @@ export default function TrackingPage() {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <ListFilter className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <Select value={statusFilter} onValueChange={(value) => {setStatusFilter(value); setSelectedVehicleIdFromList(null);}}>
                             <SelectTrigger className="w-full sm:w-[180px] bg-background">
                             <SelectValue placeholder="Estado" />
                             </SelectTrigger>
@@ -179,7 +184,7 @@ export default function TrackingPage() {
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <ListFilter className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                         <Select value={typeFilter} onValueChange={setTypeFilter}>
+                         <Select value={typeFilter} onValueChange={(value) => {setTypeFilter(value); setSelectedVehicleIdFromList(null);}}>
                             <SelectTrigger className="w-full sm:w-[180px] bg-background">
                             <SelectValue placeholder="Tipo" />
                             </SelectTrigger>
@@ -213,7 +218,6 @@ export default function TrackingPage() {
             </CardHeader>
             <CardContent className="flex-grow p-2 sm:p-4">
               <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
-                {/* Leaflet map will be rendered here */}
               </div>
               <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
                   <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
@@ -232,7 +236,14 @@ export default function TrackingPage() {
                 {filteredVehicles.length > 0 ? (
                   <div className="space-y-3">
                     {filteredVehicles.map((vehicle) => (
-                      <div key={vehicle.id} className="p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
+                      <div 
+                        key={vehicle.id} 
+                        className={cn(
+                            "p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer",
+                            selectedVehicleIdFromList === vehicle.id && "ring-2 ring-primary border-primary bg-primary/5"
+                        )}
+                        onClick={() => handleVehicleSelect(vehicle)}
+                      >
                         <div className="flex justify-between items-center mb-1">
                           <h4 className="font-semibold text-md text-primary flex items-center">
                             <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
