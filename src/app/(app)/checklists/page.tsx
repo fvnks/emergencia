@@ -20,8 +20,9 @@ import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
+import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog"; // Importar nuevo diálogo de edición
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
-import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog"; // Importar nuevo diálogo
+import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
 
 export interface Checklist {
   id: string;
@@ -47,10 +48,12 @@ export default function ChecklistsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false); // Estado para diálogo de edición
+  const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null); // Estado para checklist en edición
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // Estado para diálogo de vista
-  const [selectedChecklistForView, setSelectedChecklistForView] = useState<Checklist | null>(null); // Estado para checklist en vista
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedChecklistForView, setSelectedChecklistForView] = useState<Checklist | null>(null);
 
   const { toast } = useToast();
 
@@ -60,11 +63,30 @@ export default function ChecklistsPage() {
       name: newChecklistData.name,
       description: newChecklistData.description,
       category: newChecklistData.category,
-      itemCount: 0,
+      itemCount: 0, // Nuevos checklists comienzan sin ítems
       lastModified: new Date().toISOString(),
       status: "Nuevo",
     };
     setChecklists(prev => [newChecklist, ...prev]);
+  };
+
+  const handleChecklistUpdated = (id: string, updatedData: EditChecklistData) => {
+    setChecklists(prev =>
+      prev.map(c =>
+        c.id === id
+          ? {
+              ...c,
+              name: updatedData.name,
+              description: updatedData.description,
+              category: updatedData.category,
+              lastModified: new Date().toISOString(),
+            }
+          : c
+      )
+    );
+    toast({ title: "Checklist Actualizado", description: `El checklist "${updatedData.name}" ha sido actualizado.` });
+    setIsEditDialogOpen(false);
+    setChecklistToEdit(null);
   };
 
   const handleViewChecklist = (checklist: Checklist) => {
@@ -72,8 +94,9 @@ export default function ChecklistsPage() {
     setIsViewDialogOpen(true);
   };
   
-  const handleEditChecklist = (id: string) => {
-    toast({ title: "Próximamente", description: `Editar checklist ${id} se implementará pronto.` });
+  const handleEditChecklist = (checklist: Checklist) => {
+    setChecklistToEdit(checklist);
+    setIsEditDialogOpen(true);
   };
   
   const handleDeleteChecklist = (checklist: Checklist) => {
@@ -226,7 +249,7 @@ export default function ChecklistsPage() {
                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
                         <Eye className="mr-1 h-3.5 w-3.5" /> Ver
                       </Button>
-                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist.id)}>
+                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
                         <Edit className="mr-1 h-3.5 w-3.5" /> Editar
                       </Button>
                       <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
@@ -246,6 +269,15 @@ export default function ChecklistsPage() {
         onChecklistAdded={handleChecklistAdded}
         existingCategories={uniqueCategories}
       />
+      {checklistToEdit && (
+        <EditChecklistDialog
+          checklist={checklistToEdit}
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onChecklistUpdated={handleChecklistUpdated}
+          existingCategories={uniqueCategories}
+        />
+      )}
       <DeleteChecklistDialog
         checklist={checklistToDelete}
         open={isDeleteDialogOpen}
@@ -260,5 +292,7 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
+    
 
     
