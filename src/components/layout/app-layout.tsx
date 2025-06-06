@@ -29,13 +29,13 @@ export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider defaultOpen={true}>
       <Sidebar
-        variant="floating"
+        variant="sidebar" // Changed from "floating"
         collapsible="icon"
-        className="border-sidebar-border"
+        className="bg-sidebar border-r border-sidebar-border" // Use new sidebar variables
       >
-        <SidebarHeader className="p-4">
+        <SidebarHeader className="p-4 h-16 flex items-center"> {/* Ensure header height consistency */}
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
-            <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-6" />
+            <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-7" />
           </Link>
         </SidebarHeader>
         <SidebarContent className="p-2 flex-grow">
@@ -52,13 +52,13 @@ export function AppLayout({ children }: AppLayoutProps) {
             </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="bg-background">
+      <SidebarInset className="bg-background"> {/* Main content area background */}
         <Header />
         <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto">
           <div className="flex-grow">
             {children}
           </div>
-          <footer className="mt-8 py-4 text-center text-xs text-muted-foreground border-t border-border">
+          <footer className="mt-auto pt-6 pb-4 text-center text-xs text-muted-foreground border-t border-border">
             <p>Esto es una demo para Iván Santander de 5ta.cl.</p>
             <p>Aplicación funcional para demostración, no para uso en producción.</p>
           </footer>

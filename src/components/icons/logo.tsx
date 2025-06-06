@@ -6,21 +6,23 @@ export function Logo(props: SVGProps<SVGSVGElement>) {
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 200 50"
-      width="120"
+      width="130" // Adjusted width for "Admin Panel"
       height="30"
-      aria-label="Logo Gestor de Brigada"
+      aria-label="Logo Admin Panel"
       {...props}
     >
       <rect width="200" height="50" fill="transparent" />
-      <path d="M10 10 L10 40 L25 25 Z" fill="hsl(var(--sidebar-foreground))" />
+      {/* Simple icon, can be replaced with a more TailAdmin-like one if needed */}
+      <path d="M10 15 L10 35 L22 25 Z" fill="hsl(var(--primary))" /> 
       <text
-        fontFamily="'PT Sans', sans-serif"
-        fontSize="24"
+        fontFamily="'PT Sans', sans-serif" // Consider changing to Inter or similar for TailAdmin feel
+        fontSize="22" // Adjusted font size
         fontWeight="bold"
-        fill="hsl(var(--sidebar-foreground))"
+        fill="hsl(var(--foreground))" // Use main foreground color
+        x="30" // Adjusted x position
+        y="33" // Adjusted y for vertical centering
       >
-        <tspan x="35" y="20">Gestor de</tspan>
-        <tspan x="35" y="44">Brigada</tspan>
+        Admin Panel
       </text>
     </svg>
   );

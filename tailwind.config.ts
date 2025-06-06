@@ -1,7 +1,8 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
-  darkMode: ['class'],
+  darkMode: ['class'], // Keep dark mode selector if needed for other parts or future
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -11,7 +12,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['"PT Sans"', 'sans-serif'],
-        headline: ['"PT Sans"', 'sans-serif'],
+        headline: ['"PT Sans"', 'sans-serif'], // TailAdmin uses Inter, but PT Sans is fine for now
         code: ['monospace'],
       },
       colors: {
@@ -46,7 +47,7 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
         border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
+        input: 'hsl(var(--input))', // Often used for input borders
         ring: 'hsl(var(--ring))',
         chart: {
           '1': 'hsl(var(--chart-1))',
@@ -55,6 +56,7 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+        // Sidebar specific colors defined in globals.css are now referenced here
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',
@@ -67,7 +69,7 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
+        lg: 'var(--radius)', // Typically 0.5rem or 0.75rem in TailAdmin
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
@@ -95,7 +97,7 @@ export default {
           '30%': { transform: 'rotate(14deg)' },
           '40%': { transform: 'rotate(-4deg)' },
           '50%': { transform: 'rotate(10deg)' },
-          '60%': { transform: 'rotate(0)' }, 
+          '60%': { transform: 'rotate(0)' },
         },
         'cool-loader-spin': {
           '0%': { transform: 'rotate(0deg)', opacity: 0.7 },

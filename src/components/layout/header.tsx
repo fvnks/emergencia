@@ -17,16 +17,17 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
 import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context";
-import { LogOut, Settings, Bell } from "lucide-react"; // Removed AlertTriangle as it's not used here
+import { LogOut, Settings, Bell, Search } from "lucide-react"; // Added Search
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Input } from "@/components/ui/input"; // Added Input
 
 const getPageTitle = (pathname: string) => {
   const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0) return "Panel Principal"; 
+  if (segments.length === 0) return "Panel Principal";
 
   const mainSegment = segments[segments.length -1];
   switch (mainSegment) {
@@ -44,6 +45,15 @@ const getPageTitle = (pathname: string) => {
         const settingSubPage = segments[segments.length -1].replace(/-/g, ' ');
         return `Configuración - ${settingSubPage.charAt(0).toUpperCase() + settingSubPage.slice(1)}`;
       }
+      // For detailed views like /vehicles/123, show "Vehículos"
+      if (segments.length > 1 && !isNaN(Number(mainSegment))) {
+        const parentSegment = segments[segments.length - 2];
+         switch (parentSegment) {
+            case 'vehicles': return "Vehículos";
+            // Add other parent segments if needed for their detail pages
+            default: break;
+         }
+      }
       return mainSegment.charAt(0).toUpperCase() + mainSegment.slice(1).replace(/-/g, ' ');
   }
 };
@@ -51,19 +61,19 @@ const getPageTitle = (pathname: string) => {
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { alertNotifications, seenNotificationIds, markNotificationAsSeen, activeAlertsCount } = useAppData(); // Get activeAlertsCount for the "Ver todas" link logic
+  const { alertNotifications, seenNotificationIds, markNotificationAsSeen } = useAppData();
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
 
   const getInitials = (name?: string) => {
-    if (!name) return 'GB'; 
+    if (!name) return 'AP'; // Admin Panel
     const nameParts = name.split(' ');
     if (nameParts.length > 1) {
       return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
   }
-  
+
   const avatarPlaceholder = user?.avatarSeed ? user.avatarSeed.toUpperCase() : getInitials(user?.name);
   const avatarHint = user?.role === 'admin' ? "administrador avatar" : "usuario avatar";
 
@@ -71,24 +81,35 @@ export function Header() {
   const unreadCount = unreadNotifications.length;
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 md:px-6">
       <div className="md:hidden">
         <SidebarTrigger />
       </div>
-      <h1 className="text-xl font-headline font-semibold">{pageTitle}</h1>
-      <div className="ml-auto flex items-center gap-2 sm:gap-4">
+      <h1 className="text-xl font-headline font-semibold text-foreground">{pageTitle}</h1>
+
+      {/* Placeholder Search Bar */}
+      <div className="relative ml-auto hidden flex-1 sm:flex-grow-0 sm:flex-shrink-0 sm:basis-auto sm:block max-w-xs md:max-w-sm lg:max-w-md">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          type="search"
+          placeholder="Buscar..." // TailAdmin uses "Search or type a command (Ctrl + K)"
+          className="h-9 w-full rounded-md bg-background pl-9 border-border focus-visible:ring-primary text-sm"
+        />
+      </div>
+
+      <div className="flex items-center gap-2 sm:gap-3"> {/* Adjusted gap for closer items */}
         {user && (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className={cn("h-5 w-5", unreadCount > 0 && "text-primary animate-ring-bell")} />
+                <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9">
+                  <Bell className={cn("h-5 w-5 text-muted-foreground", unreadCount > 0 && "text-primary animate-ring-bell")} />
                   {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
                       className={cn(
-                        "absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full",
-                        unreadCount > 0 && "animate-pulse" 
+                        "absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-xs rounded-full",
+                        unreadCount > 0 && "animate-pulse"
                       )}
                     >
                       {unreadCount > 9 ? "9+" : unreadCount}
@@ -100,9 +121,9 @@ export function Header() {
               <DropdownMenuContent align="end" className="w-80 sm:w-96">
                 <DropdownMenuLabel className="flex justify-between items-center">
                   <span>Notificaciones ({unreadCount})</span>
-                  {alertNotifications.length > 0 && ( // Show "Ver todas" if there are any alerts at all, even if all are read in dropdown
-                     <Link href="/dashboard#recent-activity" className="text-xs text-primary hover:underline">
-                        Ver todas las alertas activas ({alertNotifications.length})
+                  {alertNotifications.length > 0 && (
+                     <Link href="/dashboard#recent-activity-card" className="text-xs text-primary hover:underline">
+                        Ver todas ({alertNotifications.length})
                      </Link>
                   )}
                 </DropdownMenuLabel>
@@ -112,16 +133,8 @@ export function Header() {
                     <DropdownMenuGroup>
                     {unreadNotifications.slice(0, 5).map((alert: AlertNotificationItem) => (
                       <DropdownMenuItem key={alert.id} asChild className="cursor-pointer"
-                        // onClick alone won't work well with `asChild` and Link navigation.
-                        // We need to handle the click on the Link itself or wrap it.
-                        // For simplicity, let's make the entire DropdownMenuItem clickable
-                        // and have it call markAsSeen then navigate.
-                        // This requires the Link to not preventDefault if the action is done here.
-                        // A cleaner way might be a small button inside or more complex event handling.
-                        // For now, direct click on DropdownMenuItem with Link as child.
-                        onSelect={(e) => { // onSelect is better for DropdownMenuItem
+                        onSelect={(e) => {
                           markNotificationAsSeen(alert.id);
-                          // Navigation will be handled by the Link component
                         }}
                       >
                         <Link href={alert.link || "/dashboard"} className="flex items-start gap-2.5 p-2.5 w-full h-full">
@@ -139,7 +152,7 @@ export function Header() {
                   </ScrollArea>
                 ) : (
                   <div className="p-4 text-center text-sm text-muted-foreground">
-                    {alertNotifications.length > 0 ? "Has visto todas las notificaciones de esta sesión." : "No hay notificaciones nuevas."}
+                    {alertNotifications.length > 0 ? "Has visto todas las notificaciones." : "No hay notificaciones nuevas."}
                   </div>
                 )}
               </DropdownMenuContent>
@@ -147,12 +160,12 @@ export function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage 
-                      src={`https://placehold.co/100x100.png?text=${avatarPlaceholder}`} 
-                      alt={user.name || "Usuario"} 
-                      data-ai-hint={avatarHint} 
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+                  <Avatar className="h-8 w-8"> {/* Slightly smaller avatar */}
+                    <AvatarImage
+                      src={`https://placehold.co/100x100.png?text=${avatarPlaceholder}`}
+                      alt={user.name || "Usuario"}
+                      data-ai-hint={avatarHint}
                     />
                     <AvatarFallback>{avatarPlaceholder}</AvatarFallback>
                   </Avatar>
@@ -174,7 +187,7 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/settings" className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
-                    <span>Configuración de Cuenta</span>
+                    <span>Configuración</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
