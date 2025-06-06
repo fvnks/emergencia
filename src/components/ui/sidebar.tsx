@@ -190,7 +190,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-[hsl(var(--sidebar-background))] p-0 text-sidebar-foreground [&>button]:hidden" // Ensure white background for mobile sheet
+            className="w-[--sidebar-width] bg-[hsl(var(--sidebar-background))] p-0 text-sidebar-foreground [&>button]:hidden border border-[hsl(var(--sidebar-floating-panel-border))]" 
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -215,7 +215,7 @@ const Sidebar = React.forwardRef<
       >
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear", // outer spacer is transparent
+            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear", 
             "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
@@ -226,21 +226,25 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex", // container for the floating panel
-            "bg-transparent", // This container is also transparent
+            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex", 
+            "bg-transparent", 
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
             variant === "floating" || variant === "inset"
-              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]" // +2px for potential border visibility
-              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]", // No border on this outer one if not floating
+              ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]" 
+              : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]", 
             className
           )}
           {...props}
         >
           <div
-            data-sidebar="sidebar" // This is the actual floating panel content
-            className="flex h-full w-full flex-col bg-[hsl(var(--sidebar-background))] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-lg" // Removed border classes
+            data-sidebar="sidebar" 
+            className={cn(
+                "flex h-full w-full flex-col bg-[hsl(var(--sidebar-background))]", 
+                "group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-lg",
+                "group-data-[variant=floating]:border group-data-[variant=floating]:border-[hsl(var(--sidebar-floating-panel-border))]" 
+              )}
           >
             {children}
           </div>
@@ -351,7 +355,7 @@ const SidebarHeader = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="header"
-      className={cn("flex flex-col gap-2 p-4 h-16 items-center", className)} // Adjusted padding & height for TailAdmin
+      className={cn("flex flex-col gap-2 p-4 h-16 items-center", className)} 
       {...props}
     />
   )
@@ -366,7 +370,7 @@ const SidebarFooter = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="footer"
-      className={cn("flex flex-col gap-2 p-2", className)} // Removed border-t
+      className={cn("flex flex-col gap-2 p-2", className)} 
       {...props}
     />
   )
@@ -397,7 +401,7 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2", // Added p-2 for consistent padding
+        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2", 
         className
       )}
       {...props}
@@ -568,14 +572,14 @@ const SidebarMenuButton = React.forwardRef<
       >
         
         {React.Children.map(children, child => {
-          if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) { // Check if child is a Lucide icon
+          if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) { 
             return React.cloneElement(child as React.ReactElement<any>, { 
               className: cn(
-                child.props.className, // Keep existing classes on icon
+                child.props.className, 
                 isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' 
                          : 'text-[hsl(var(--sidebar-item-icon-fg))]',
-                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]', // Icon color on parent button hover
-                'group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]' // Icon color on parent button focus
+                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]', 
+                'group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]' 
               )
             });
           }
