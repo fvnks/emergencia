@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context"; // Importar useAppData y AlertNotificationItem
+import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context"; 
 
 const chartConfig = {
   ops: {
@@ -58,7 +58,7 @@ interface DailyOpsChartDataItem {
 
 export default function DashboardPage() {
   const { user: currentUser } = useAuth();
-  const { setActiveAlertsCount, setAlertNotifications } = useAppData(); // Usar el contexto
+  const { setActiveAlertsCount, setAlertNotifications } = useAppData(); 
 
   const [operativeVehicles, setOperativeVehicles] = useState<number | string>("N/A");
   const [totalVehicles, setTotalVehicles] = useState<number | string>("N/A");
@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const [totalReadyEquipmentCount, setTotalReadyEquipmentCount] = useState<number | string>("N/A");
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [dailyOpsChartData, setDailyOpsChartData] = useState<DailyOpsChartDataItem[]>([]);
-  const [internalActiveAlertsCount, setInternalActiveAlertsCount] = useState<number | string>("N/A"); // Estado interno para el StatCard
+  const [internalActiveAlertsCount, setInternalActiveAlertsCount] = useState<number | string>("N/A"); 
   const [currentUserTasks, setCurrentUserTasks] = useState<Task[]>([]);
 
 
@@ -226,8 +226,8 @@ export default function DashboardPage() {
 
         const currentActiveAlerts = activities.filter(a => a.type.startsWith('alert_')).length;
         setInternalActiveAlertsCount(currentActiveAlerts);
-        setActiveAlertsCount(currentActiveAlerts); // Actualizar contexto
-        setAlertNotifications(alertsForContext.sort((a,b) => b.date.getTime() - a.date.getTime())); // Actualizar contexto
+        setActiveAlertsCount(currentActiveAlerts); 
+        setAlertNotifications(alertsForContext.sort((a,b) => b.date.getTime() - a.date.getTime())); 
 
 
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -276,8 +276,8 @@ export default function DashboardPage() {
         setReadyExtinguisherCount("Error");
         setTotalReadyEquipmentCount("Error");
         setInternalActiveAlertsCount("Error");
-        setActiveAlertsCount(0); // Contexto
-        setAlertNotifications([]); // Contexto
+        setActiveAlertsCount(0); 
+        setAlertNotifications([]); 
         setRecentActivity([]);
         setCurrentUserTasks([]);
         setDailyOpsChartData( Array(7).fill(null).map((_, i) => ({ name: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).charAt(0).toUpperCase() + format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).slice(1,3), ops: 0, maint: 0 })) );
@@ -491,3 +491,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
