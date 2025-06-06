@@ -401,11 +401,11 @@ export default function DashboardPage() {
               <ul className="space-y-3 text-sm">
                 {currentUserTasks.slice(0, 5).map((task) => ( 
                   <li key={`user-task-${task.id_tarea}`} className="flex flex-col p-2 border rounded-md hover:bg-muted/50">
-                    <div className="flex justify-between items-start">
-                       <Link href={`/tasks#task-${task.id_tarea}`} className="font-medium hover:underline flex-grow pr-2">
-                         <span className="block truncate" title={task.descripcion_tarea}>{task.descripcion_tarea}</span>
+                    <div className="flex justify-between items-start gap-2">
+                       <Link href={`/tasks#task-${task.id_tarea}`} className="font-medium hover:underline flex-grow min-w-0" title={task.descripcion_tarea}>
+                         <span className="block truncate">{task.descripcion_tarea}</span>
                        </Link>
-                       <Badge className={cn("text-xs whitespace-nowrap", getTaskStatusBadgeClassName(task.estado_tarea))}>
+                       <Badge className={cn("text-xs whitespace-nowrap flex-shrink-0", getTaskStatusBadgeClassName(task.estado_tarea))}>
                           {task.estado_tarea}
                         </Badge>
                     </div>
@@ -491,3 +491,6 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+    
