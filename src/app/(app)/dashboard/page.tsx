@@ -115,8 +115,8 @@ export default function DashboardPage() {
               id: `alert-stock-${item.id_item}`,
               date: new Date(), // Alert is current
               description: `Stock bajo: ${item.nombre_item} (${item.codigo_item}). Actual: ${item.cantidad_actual}, Mín: ${item.stock_minimo}.`,
-              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be ArchiveX
-              iconClassName: "text-red-500",
+              icon: AlertTriangle,
+              iconClassName: "text-orange-500", // Changed to orange for differentiation
               type: 'alert_stock',
               severity: 'warning',
             });
@@ -130,7 +130,7 @@ export default function DashboardPage() {
               id: `alert-maint-${maint.id_mantencion}`,
               date: parseISO(maint.fecha_programada), // Date of the overdue event
               description: `Mantención Vencida: ${maint.nombre_item_mantenimiento}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
-              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be Wrench or CalendarClock
+              icon: Wrench, 
               iconClassName: "text-red-500",
               type: 'alert_maintenance_overdue',
               severity: 'error',
@@ -144,7 +144,7 @@ export default function DashboardPage() {
               id: `alert-vehicle-${vehicle.id_vehiculo}`,
               date: new Date(), // Alert is current
               description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
-              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be TruckOff
+              icon: TruckOff, 
               iconClassName: "text-red-500",
               type: 'alert_vehicle_oos',
               severity: 'error',
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               id: `maint-log-${maint.id_mantencion}`,
               date: parseISO(maint.fecha_completada!),
               description: `Mantención para "${maint.nombre_item_mantenimiento.substring(0,20)}..." completada.`,
-              icon: Wrench,
+              icon: CheckCircle2, // Changed from Wrench to CheckCircle2 for completed
               iconClassName: "text-green-500",
               type: 'maintenance_log',
               severity: 'info',
@@ -395,5 +395,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
