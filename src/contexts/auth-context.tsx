@@ -4,21 +4,21 @@
 import type { ReactNode } from "react";
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserByEmail, verifyPassword, User as DbUser, UserRole } from '@/services/userService';
+import { getUserByEmail, verifyPassword, User as DbUser, UserRole as UserRoleKey } from '@/services/userService'; // Renombrado UserRole a UserRoleKey para claridad
 
-// User type for the context, derived from DbUser but without password_hash
+// User type for the context
 export interface AuthUser {
-  id: number; // Corresponds to id_usuario
-  name: string; // Corresponds to nombre_completo
+  id: number;
+  name: string;
   email: string;
-  role: UserRole;
-  avatarSeed?: string | null; // Added from DbUser
+  role: UserRoleKey; // 'admin' | 'usuario'
+  avatarSeed?: string | null;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
-  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>; // To allow updating user from EditPersonnelDialog
-  login: (email: string, password_plaintext: string) => Promise<void>; 
+  setUser: React.Dispatch<React.SetStateAction<AuthUser | null>>;
+  login: (email: string, password_plaintext: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
   authError: string | null;
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsedUser && typeof parsedUser.id === 'number' && parsedUser.email && parsedUser.role) {
            setUser(parsedUser);
         } else {
-          localStorage.removeItem('brigadeUser'); 
+          localStorage.removeItem('brigadeUser');
         }
       } catch (e) {
         console.error("Failed to parse stored user:", e);
@@ -65,11 +65,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('Contraseña incorrecta.');
       }
 
+      // Mapear el nombre_rol de la BD al UserRoleKey del contexto
+      let roleKey: UserRoleKey = 'usuario'; // Default to 'usuario'
+      if (dbUser.nombre_rol === 'Administrador') {
+        roleKey = 'admin';
+      }
+      // Se podrían añadir más mapeos si hubiera más roles que equivalen a 'admin' o 'usuario' en la UI
+
       const authUser: AuthUser = {
         id: dbUser.id_usuario,
         name: dbUser.nombre_completo,
         email: dbUser.email,
-        role: dbUser.rol,
+        role: roleKey, // Usar el roleKey mapeado
         avatarSeed: dbUser.avatar_seed,
       };
 

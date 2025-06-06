@@ -1,7 +1,8 @@
 
 "use client";
 
-import type { User } from "@/services/userService";
+import type { User, UserUpdateInput, UserRole as UserRoleKey } from "@/services/userService";
+import type { Role } from "@/services/roleService";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,14 +33,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { updateUserProfile, UserUpdateInput, UserRole } from "@/services/userService";
+import { updateUserProfile } from "@/services/userService";
+import { getAllRoles } from "@/services/roleService";
 import { Loader2, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
 const editFormSchema = z.object({
   nombre_completo: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres." }),
   email: z.string().email({ message: "Correo electrónico inválido." }),
-  rol: z.enum(["admin", "usuario"], { required_error: "Debe seleccionar un rol." }),
+  id_rol_fk: z.string().min(1, { message: "Debe seleccionar un rol." }), // ID del rol como string
   telefono: z.string().optional().nullable(),
 });
 
@@ -54,58 +56,90 @@ interface EditPersonnelDialogProps {
 
 export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenChange }: EditPersonnelDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const { toast } = useToast();
-  const { user: currentUser, setUser: setCurrentUser } = useAuth(); // For updating current user info if they edit themselves
+  const { user: currentUser, setUser: setCurrentUserInAuth } = useAuth();
 
   const form = useForm<EditPersonnelFormValues>({
     resolver: zodResolver(editFormSchema),
     defaultValues: {
       nombre_completo: "",
       email: "",
-      rol: "usuario",
+      id_rol_fk: "",
       telefono: "",
     },
   });
 
   useEffect(() => {
-    if (person && open) {
-      form.reset({
-        nombre_completo: person.nombre_completo,
-        email: person.email,
-        rol: person.rol,
-        telefono: person.telefono || "",
-      });
+    async function fetchRolesAndSetDefaults() {
+        if (open && person) {
+            try {
+                const roles = await getAllRoles();
+                // Permitir ver el rol actual del sistema, pero no seleccionar otros roles del sistema si no es el actual.
+                setAvailableRoles(roles.filter(r => !r.es_rol_sistema || r.id_rol === person.id_rol_fk));
+                form.reset({
+                    nombre_completo: person.nombre_completo,
+                    email: person.email,
+                    id_rol_fk: person.id_rol_fk ? person.id_rol_fk.toString() : "",
+                    telefono: person.telefono || "",
+                });
+            } catch (error) {
+                console.error("Error fetching roles for personnel edit dialog:", error);
+                toast({ title: "Error", description: "No se pudieron cargar los roles disponibles.", variant: "destructive" });
+            }
+        }
     }
-  }, [person, open, form]);
+    fetchRolesAndSetDefaults();
+  }, [person, open, form, toast]);
 
   async function onSubmit(values: EditPersonnelFormValues) {
     setIsSubmitting(true);
     try {
+      const selectedRole = availableRoles.find(r => r.id_rol.toString() === values.id_rol_fk);
+      if (!selectedRole) {
+          toast({ title: "Error", description: "Rol seleccionado no válido.", variant: "destructive" });
+          setIsSubmitting(false);
+          return;
+      }
+      // Verificar si se intenta cambiar el rol del usuario actual si es el único administrador
+      if (currentUser?.id === person.id_usuario && currentUser.role === 'admin' && selectedRole.nombre_rol !== 'Administrador') {
+        // Podríamos añadir una verificación más compleja para ver si hay otros admins.
+        // Por ahora, si es el admin actual y el rol seleccionado NO es 'Administrador', lo prevenimos.
+        const admins = (await getAllUsers()).filter(u => u.nombre_rol === 'Administrador');
+        if (admins.length <= 1 && admins[0].id_usuario === currentUser.id) {
+             toast({ title: "Acción no permitida", description: "No puedes cambiar tu propio rol si eres el único administrador.", variant: "destructive" });
+             setIsSubmitting(false);
+             return;
+        }
+      }
+
+
       const updateData: UserUpdateInput = {
         nombre_completo: values.nombre_completo,
         email: values.email,
-        rol: values.rol as UserRole,
+        id_rol_fk: parseInt(values.id_rol_fk, 10),
         telefono: values.telefono || null,
+        // avatar_seed se actualiza automáticamente en el backend si el nombre cambia y no se provee explícitamente
       };
-      
+
       const updatedUser = await updateUserProfile(person.id_usuario, updateData);
-      
+
       toast({
         title: "Personal Actualizado",
         description: `Los datos de ${values.nombre_completo} han sido actualizados exitosamente.`,
       });
 
       if (updatedUser && currentUser && currentUser.id === updatedUser.id_usuario) {
-         // Update user in AuthContext if they edited themselves
-        const authUser = {
+        const roleKey: UserRoleKey = updatedUser.nombre_rol === 'Administrador' ? 'admin' : 'usuario';
+        const authUserToUpdate = {
             id: updatedUser.id_usuario,
             name: updatedUser.nombre_completo,
             email: updatedUser.email,
-            role: updatedUser.rol,
+            role: roleKey,
             avatarSeed: updatedUser.avatar_seed
         };
-        setCurrentUser(authUser); // This would require setUser in AuthContext, or a dedicated updateUser function
-        localStorage.setItem('brigadeUser', JSON.stringify(authUser));
+        setCurrentUserInAuth(authUserToUpdate);
+        localStorage.setItem('brigadeUser', JSON.stringify(authUserToUpdate));
       }
 
       onPersonnelUpdated();
@@ -124,9 +158,9 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (isSubmitting && !isOpen) return; // Prevent closing while submitting
+      if (isSubmitting && !isOpen) return;
       onOpenChange(isOpen);
-      if (!isOpen) form.reset(); // Reset form if dialog is closed
+      if (!isOpen) form.reset();
     }}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
@@ -166,14 +200,14 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                 control={form.control}
-                name="rol"
+                name="id_rol_fk"
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Rol</FormLabel>
-                    <Select 
-                        onValueChange={field.onChange} 
-                        value={field.value} 
-                        disabled={currentUser?.id === person.id_usuario && person.rol === 'admin'} // Admin cannot demote self
+                    <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={(currentUser?.id === person.id_usuario && person.nombre_rol === 'Administrador')}
                     >
                         <FormControl>
                         <SelectTrigger>
@@ -181,12 +215,16 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                        <SelectItem value="usuario">Usuario</SelectItem>
-                        <SelectItem value="admin">Administrador</SelectItem>
+                          {availableRoles.length === 0 && <SelectItem value="" disabled>Cargando roles...</SelectItem>}
+                          {availableRoles.map(role => (
+                            <SelectItem key={role.id_rol} value={role.id_rol.toString()} disabled={role.es_rol_sistema && role.id_rol !== person.id_rol_fk}>
+                              {role.nombre_rol} {role.es_rol_sistema ? "(Sistema)" : ""}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                     </Select>
-                    {currentUser?.id === person.id_usuario && person.rol === 'admin' && (
-                        <p className="text-xs text-muted-foreground pt-1">No puedes cambiar tu propio rol de administrador.</p>
+                     {currentUser?.id === person.id_usuario && person.nombre_rol === 'Administrador' && (
+                        <p className="text-xs text-muted-foreground pt-1">No puedes cambiar tu propio rol de Administrador.</p>
                     )}
                     <FormMessage />
                     </FormItem>
@@ -210,7 +248,7 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || availableRoles.length === 0}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Edit className="mr-2 h-4 w-4" /> Actualizar Datos</>}
               </Button>
             </DialogFooter>

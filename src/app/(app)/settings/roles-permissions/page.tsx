@@ -4,7 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
-import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2, Users, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2, Edit as EditIcon, Trash2, Users, Loader2, AlertTriangle, DatabaseZap } from "lucide-react";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
 import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog";
@@ -103,12 +103,12 @@ export default function RolesPermissionsPage() {
         return;
     }
     try {
-        setLoadingRoles(true); 
+        setLoadingRoles(true);
         const fullRoleDetails = await getRoleById(role.id_rol);
         if (!fullRoleDetails) {
             throw new Error("No se pudo cargar la información completa del rol para editar.");
         }
-        setCurrentEditingRole(fullRoleDetails); 
+        setCurrentEditingRole(fullRoleDetails);
         setIsEditMode(true);
         setIsAddRoleDialogOpen(true);
     } catch (err) {
@@ -137,7 +137,7 @@ export default function RolesPermissionsPage() {
       try {
         await deleteRole(roleToDelete.id_rol);
         toast({ title: "Rol Eliminado", description: `El rol "${roleToDelete.nombre_rol}" ha sido eliminado.` });
-        fetchRolesAndPermissions(); 
+        fetchRolesAndPermissions();
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "No se pudo eliminar el rol.";
         toast({ title: "Error al Eliminar Rol", description: errorMessage, variant: "destructive" });
@@ -185,11 +185,30 @@ export default function RolesPermissionsPage() {
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
         </Button>
       </div>
-      <p className="text-muted-foreground -mt-2 px-1"> 
+      <p className="text-muted-foreground -mt-2 px-1">
         Define roles personalizados y asigna permisos específicos a cada módulo.
         {loadingPermissions && allAvailablePermissions.length === 0 && <span className="text-destructive"> (Cargando permisos disponibles...)</span>}
          {allAvailablePermissions.length === 0 && !loadingPermissions && <span className="text-orange-600"> (No hay permisos definidos en la base de datos. Por favor, ejecute el script SQL de roles y permisos.)</span>}
       </p>
+
+      {rolesData.length === 0 && !loadingRoles && !loadingPermissions && !error && (
+        <Card className="shadow-md text-center">
+          <CardHeader>
+            <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
+                <DatabaseZap className="h-10 w-10" />
+            </div>
+            <CardTitle className="mt-4">No hay Roles Definidos</CardTitle>
+            <CardDescription>
+              No se encontraron roles en el sistema. Comienza agregando uno para gestionar los permisos de los usuarios.
+            </CardDescription>
+          </CardHeader>
+           <CardContent>
+              <Button onClick={openAddDialog} disabled={loadingPermissions || allAvailablePermissions.length === 0}>
+                  <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
+              </Button>
+           </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         {rolesData.map((role) => {
@@ -228,7 +247,7 @@ export default function RolesPermissionsPage() {
                         Usuarios con este Rol: {role.user_count ?? 'N/A'}
                     </div>
                 </div>
-                
+
                 {role.es_rol_sistema ? (
                   <div className="pt-1 text-xs text-muted-foreground italic">
                     (Rol del sistema - no editable/eliminable)
