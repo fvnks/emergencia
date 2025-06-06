@@ -24,6 +24,10 @@ import { EditChecklistDialog, type EditChecklistData } from "@/components/checkl
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
 import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
 
+export type ChecklistStatus = 'Nuevo' | 'En Progreso' | 'Completado';
+export const ALL_CHECKLIST_STATUSES: ChecklistStatus[] = ['Nuevo', 'En Progreso', 'Completado'];
+
+
 export interface Checklist {
   id: string;
   name: string;
@@ -31,7 +35,7 @@ export interface Checklist {
   itemCount: number;
   category?: string;
   lastModified: string;
-  status: 'Nuevo' | 'En Progreso' | 'Completado';
+  status: ChecklistStatus;
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
@@ -43,10 +47,10 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Placeholder for future async operations
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all"); // Can be 'all' or a ChecklistStatus
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
@@ -63,9 +67,9 @@ export default function ChecklistsPage() {
       name: newChecklistData.name,
       description: newChecklistData.description,
       category: newChecklistData.category,
-      itemCount: 0, // Nuevos checklists comienzan sin ítems
+      itemCount: 0, 
       lastModified: new Date().toISOString(),
-      status: "Nuevo",
+      status: "Nuevo", // Default status for new checklists
     };
     setChecklists(prev => [newChecklist, ...prev]);
   };
@@ -79,7 +83,8 @@ export default function ChecklistsPage() {
               name: updatedData.name,
               description: updatedData.description,
               category: updatedData.category,
-              itemCount: updatedData.itemCount, // Actualizar itemCount
+              itemCount: updatedData.itemCount,
+              status: updatedData.status as ChecklistStatus, // Ensure status is updated
               lastModified: new Date().toISOString(),
             }
           : c
@@ -123,7 +128,8 @@ export default function ChecklistsPage() {
   });
 
   const uniqueCategories = Array.from(new Set(checklists.map(c => c.category).filter(Boolean))) as string[];
-  const uniqueStatuses = Array.from(new Set(SIMULATED_CHECKLISTS.map(c => c.status))) as string[];
+  const uniqueStatuses = Array.from(new Set(checklists.map(c => c.status))) as ChecklistStatus[];
+
 
   const getStatusBadgeClassName = (status: Checklist['status']) => {
     switch (status) {

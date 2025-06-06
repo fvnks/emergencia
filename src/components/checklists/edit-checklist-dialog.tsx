@@ -25,15 +25,26 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Edit } from "lucide-react";
-import type { Checklist } from "@/app/(app)/checklists/page"; // Importar el tipo Checklist
+import type { Checklist, ChecklistStatus } from "@/app/(app)/checklists/page"; // Importar ChecklistStatus
+import { ALL_CHECKLIST_STATUSES } from "@/app/(app)/checklists/page"; // Importar los estados
 
 const editChecklistFormSchema = z.object({
   name: z.string().min(3, { message: "El nombre del checklist debe tener al menos 3 caracteres." }),
   description: z.string().optional(),
   category: z.string().optional(),
   itemCount: z.coerce.number().min(0, { message: "El número de ítems no puede ser negativo." }).default(0),
+  status: z.enum(ALL_CHECKLIST_STATUSES as [ChecklistStatus, ...ChecklistStatus[]], {
+    required_error: "Debe seleccionar un estado.",
+  }),
 });
 
 export type EditChecklistData = z.infer<typeof editChecklistFormSchema>;
@@ -57,6 +68,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
       description: "",
       category: "",
       itemCount: 0,
+      status: "Nuevo",
     },
   });
 
@@ -67,6 +79,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
         description: checklist.description || "",
         category: checklist.category || "",
         itemCount: checklist.itemCount || 0,
+        status: checklist.status,
       });
     }
   }, [checklist, open, form]);
@@ -76,7 +89,6 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     setIsSubmitting(true);
     
     try {
-      // Simular guardado (no hay backend real aquí)
       onChecklistUpdated(checklist.id, values);
       // El toast y el cierre del diálogo se manejan en el componente padre
     } catch (error) {
@@ -101,7 +113,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
             <Edit className="mr-2 h-5 w-5 text-primary" /> Editar Checklist: {checklist.name}
           </DialogTitle>
           <DialogDescription>
-            Modifique los detalles del checklist. Los ítems específicos se gestionarán en una etapa posterior.
+            Modifique los detalles del checklist.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -169,6 +181,28 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                 )}
               />
             </div>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estado del Checklist</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un estado" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ALL_CHECKLIST_STATUSES.map(status => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
