@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/auth-context";
 import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context";
-import { LogOut, Settings, Bell, AlertTriangle } from "lucide-react";
+import { LogOut, Settings, Bell } from "lucide-react"; // Removed AlertTriangle as it's not used here
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ const getPageTitle = (pathname: string) => {
 
 export function Header() {
   const { user, logout } = useAuth();
-  const { activeAlertsCount, alertNotifications, seenNotificationIds, markNotificationAsSeen } = useAppData();
+  const { alertNotifications, seenNotificationIds, markNotificationAsSeen, activeAlertsCount } = useAppData(); // Get activeAlertsCount for the "Ver todas" link logic
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
 
@@ -68,6 +68,7 @@ export function Header() {
   const avatarHint = user?.role === 'admin' ? "administrador avatar" : "usuario avatar";
 
   const unreadNotifications = alertNotifications.filter(alert => !seenNotificationIds.includes(alert.id));
+  const unreadCount = unreadNotifications.length;
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
@@ -81,16 +82,16 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full">
-                  <Bell className={cn("h-5 w-5", activeAlertsCount > 0 && "text-primary animate-ring-bell")} />
-                  {activeAlertsCount > 0 && (
+                  <Bell className={cn("h-5 w-5", unreadCount > 0 && "text-primary animate-ring-bell")} />
+                  {unreadCount > 0 && (
                     <Badge
                       variant="destructive"
                       className={cn(
                         "absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full",
-                        activeAlertsCount > 0 && "animate-pulse" 
+                        unreadCount > 0 && "animate-pulse" 
                       )}
                     >
-                      {activeAlertsCount > 9 ? "9+" : activeAlertsCount}
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </Badge>
                   )}
                   <span className="sr-only">Notificaciones</span>
@@ -98,10 +99,10 @@ export function Header() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 sm:w-96">
                 <DropdownMenuLabel className="flex justify-between items-center">
-                  <span>Notificaciones ({unreadNotifications.length > 0 ? unreadNotifications.length : activeAlertsCount})</span>
-                  {activeAlertsCount > 0 && (
+                  <span>Notificaciones ({unreadCount})</span>
+                  {alertNotifications.length > 0 && ( // Show "Ver todas" if there are any alerts at all, even if all are read in dropdown
                      <Link href="/dashboard#recent-activity" className="text-xs text-primary hover:underline">
-                        Ver todas las alertas
+                        Ver todas las alertas activas ({alertNotifications.length})
                      </Link>
                   )}
                 </DropdownMenuLabel>
@@ -111,9 +112,19 @@ export function Header() {
                     <DropdownMenuGroup>
                     {unreadNotifications.slice(0, 5).map((alert: AlertNotificationItem) => (
                       <DropdownMenuItem key={alert.id} asChild className="cursor-pointer"
-                        onClick={() => markNotificationAsSeen(alert.id)}
+                        // onClick alone won't work well with `asChild` and Link navigation.
+                        // We need to handle the click on the Link itself or wrap it.
+                        // For simplicity, let's make the entire DropdownMenuItem clickable
+                        // and have it call markAsSeen then navigate.
+                        // This requires the Link to not preventDefault if the action is done here.
+                        // A cleaner way might be a small button inside or more complex event handling.
+                        // For now, direct click on DropdownMenuItem with Link as child.
+                        onSelect={(e) => { // onSelect is better for DropdownMenuItem
+                          markNotificationAsSeen(alert.id);
+                          // Navigation will be handled by the Link component
+                        }}
                       >
-                        <Link href={alert.link || "/dashboard"} className="flex items-start gap-2.5 p-2.5">
+                        <Link href={alert.link || "/dashboard"} className="flex items-start gap-2.5 p-2.5 w-full h-full">
                           <alert.icon className={cn("h-4 w-4 mt-0.5 flex-shrink-0", alert.iconClassName)} />
                           <div className="flex-grow">
                             <p className="text-sm leading-snug whitespace-normal">{alert.description}</p>
@@ -128,7 +139,7 @@ export function Header() {
                   </ScrollArea>
                 ) : (
                   <div className="p-4 text-center text-sm text-muted-foreground">
-                    {activeAlertsCount > 0 ? "Todas las notificaciones han sido vistas en esta sesión." : "No hay notificaciones nuevas."}
+                    {alertNotifications.length > 0 ? "Has visto todas las notificaciones de esta sesión." : "No hay notificaciones nuevas."}
                   </div>
                 )}
               </DropdownMenuContent>
@@ -155,7 +166,7 @@ export function Header() {
                       {user.email}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground capitalize pt-1">
-                      Rol: {user.role === 'admin' ? 'Administrador' : 'Usuario'}
+                       Rol: {user.role}
                     </p>
                   </div>
                 </DropdownMenuLabel>
