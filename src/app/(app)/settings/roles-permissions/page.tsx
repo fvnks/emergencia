@@ -8,7 +8,7 @@ import { ArrowLeft, Fingerprint, PlusCircle, ShieldCheck, UserCircle2, Settings2
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { AddRoleDialog } from "@/components/settings/roles/add-role-dialog";
 import { DeleteRoleDialog } from "@/components/settings/roles/delete-role-dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Added import
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getAllRoles, getAllPermissions, createRole, updateRole, deleteRole, getRoleById, type Role, type Permission } from "@/services/roleService";
 import { useToast } from "@/hooks/use-toast";
 
@@ -50,12 +50,11 @@ export default function RolesPermissionsPage() {
       console.error("Error fetching roles or permissions:", err);
       const errorMessage = err instanceof Error ? err.message : "No se pudieron cargar los datos de roles y permisos.";
       setError(errorMessage);
-      // Toast removed from here to avoid duplicate toasts if error component is shown
     } finally {
       setLoadingRoles(false);
       setLoadingPermissions(false);
     }
-  }, []); // Removed toast from dependencies
+  }, []);
 
   useEffect(() => {
     fetchRolesAndPermissions();
@@ -82,7 +81,7 @@ export default function RolesPermissionsPage() {
         });
         toast({ title: "Rol Creado", description: `El rol "${roleData.name}" ha sido creado.` });
       }
-      fetchRolesAndPermissions(); // Re-fetch all data to reflect changes
+      fetchRolesAndPermissions();
       setIsAddRoleDialogOpen(false);
       setCurrentEditingRole(null);
       setIsEditMode(false);
@@ -172,11 +171,11 @@ export default function RolesPermissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+      <Button variant="outline" asChild className="mb-4">
+        <Link href="/settings"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Configuración</Link>
+      </Button>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 bg-card border rounded-lg shadow-sm">
         <div className="flex-grow">
-          <Button variant="outline" asChild className="mb-2 sm:mb-0 sm:mr-4">
-            <Link href="/settings"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Configuración</Link>
-          </Button>
           <h1 className="text-2xl font-headline font-bold inline-block align-middle">
             <Fingerprint className="mr-3 h-7 w-7 inline-block align-middle text-primary" />
             Gestión de Roles y Permisos
@@ -186,7 +185,7 @@ export default function RolesPermissionsPage() {
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Rol
         </Button>
       </div>
-      <p className="text-muted-foreground -mt-2 px-1"> {/* Ajuste de margen superior si es necesario */}
+      <p className="text-muted-foreground -mt-2 px-1"> 
         Define roles personalizados y asigna permisos específicos a cada módulo.
         {loadingPermissions && allAvailablePermissions.length === 0 && <span className="text-destructive"> (Cargando permisos disponibles...)</span>}
          {allAvailablePermissions.length === 0 && !loadingPermissions && <span className="text-orange-600"> (No hay permisos definidos en la base de datos. Por favor, ejecute el script SQL de roles y permisos.)</span>}
@@ -263,7 +262,3 @@ export default function RolesPermissionsPage() {
     </div>
   );
 }
-
-
-
-    

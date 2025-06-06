@@ -9,11 +9,9 @@ import { ArrowLeft, Users } from "lucide-react";
 export default function ManageUsersRedirectPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-         <Button variant="outline" asChild>
-            <Link href="/settings"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Configuración</Link>
-         </Button>
-      </div>
+       <Button variant="outline" asChild className="mb-6">
+          <Link href="/settings"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Configuración</Link>
+       </Button>
       <Card className="shadow-md text-center">
         <CardHeader>
           <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit mb-4">
