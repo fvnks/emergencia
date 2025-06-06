@@ -3,7 +3,7 @@
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock, TruckOff } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
@@ -116,7 +116,7 @@ export default function DashboardPage() {
               date: new Date(), // Alert is current
               description: `Stock bajo: ${item.nombre_item} (${item.codigo_item}). Actual: ${item.cantidad_actual}, Mín: ${item.stock_minimo}.`,
               icon: AlertTriangle,
-              iconClassName: "text-orange-500", // Changed to orange for differentiation
+              iconClassName: "text-orange-500",
               type: 'alert_stock',
               severity: 'warning',
             });
@@ -144,7 +144,7 @@ export default function DashboardPage() {
               id: `alert-vehicle-${vehicle.id_vehiculo}`,
               date: new Date(), // Alert is current
               description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
-              icon: TruckOff, 
+              icon: ArchiveX, 
               iconClassName: "text-red-500",
               type: 'alert_vehicle_oos',
               severity: 'error',
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               id: `maint-log-${maint.id_mantencion}`,
               date: parseISO(maint.fecha_completada!),
               description: `Mantención para "${maint.nombre_item_mantenimiento.substring(0,20)}..." completada.`,
-              icon: CheckCircle2, // Changed from Wrench to CheckCircle2 for completed
+              icon: CheckCircle2, 
               iconClassName: "text-green-500",
               type: 'maintenance_log',
               severity: 'info',
@@ -194,11 +194,10 @@ export default function DashboardPage() {
         
         setRecentActivity(
           activities
-            .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort all activities including new alerts
-            .slice(0, 7) // Show more items if alerts are present
+            .sort((a, b) => b.date.getTime() - a.date.getTime()) 
+            .slice(0, 7) 
         );
 
-        // Update Active Alerts Count for StatCard
         const currentActiveAlerts = activities.filter(a => a.type.startsWith('alert_')).length;
         setActiveAlertsCount(currentActiveAlerts);
 
@@ -256,11 +255,11 @@ export default function DashboardPage() {
       }
     }
     fetchDashboardData();
-    const intervalId = setInterval(fetchDashboardData, 60000); // Refresh dashboard data every minute
+    const intervalId = setInterval(fetchDashboardData, 60000); 
     return () => clearInterval(intervalId);
   }, []);
 
-  if (loading && recentActivity.length === 0) { // Show loading only on initial load
+  if (loading && recentActivity.length === 0) { 
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
@@ -269,7 +268,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (error && recentActivity.length === 0) { // Show error only if it's the initial load error
+  if (error && recentActivity.length === 0) { 
     return (
       <div className="flex items-center justify-center h-64 text-destructive">
         <AlertTriangle className="h-8 w-8 mr-2" />
@@ -395,6 +394,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
 
     
 
