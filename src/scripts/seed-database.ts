@@ -25,19 +25,32 @@ async function seedDatabase() {
     const adminCredentials = {
       nombre_completo: "Administrador Del Sistema",
       email: "admin@example.com",
-      password_plaintext: "password123", 
-      rol: "admin" as "admin",
+      password_plaintext: "password123",
+      id_rol_fk: 1, // Asegura que se asigna el ID del rol Administrador (asumiendo que es 1)
       telefono: "987654321",
-      avatar_seed: "AS"
+      // avatar_seed se genera automáticamente en createUser
     };
 
-    const admin = await createUser(adminCredentials);
+    // No necesitamos pasar avatar_seed directamente a createUser si se genera dentro.
+    // Sin embargo, si createUser lo espera, podemos mantenerlo o quitarlo si ya no es un param.
+    // La versión actual de createUser no toma avatar_seed como param.
+
+    const adminUserCreateData = {
+        nombre_completo: adminCredentials.nombre_completo,
+        email: adminCredentials.email,
+        password_plaintext: adminCredentials.password_plaintext,
+        id_rol_fk: adminCredentials.id_rol_fk,
+        telefono: adminCredentials.telefono,
+    };
+
+
+    const admin = await createUser(adminUserCreateData);
     
     if (admin) {
-      console.log(`Usuario administrador creado exitosamente:`);
+      console.log(`Usuario administrador creado/verificado exitosamente:`);
       console.log(`  Nombre: ${admin.nombre_completo}`);
       console.log(`  Email: ${admin.email}`);
-      console.log(`  Rol: ${admin.rol}`);
+      console.log(`  Rol Asignado (desde BD): ${admin.nombre_rol || 'No especificado'}`); // nombre_rol viene del JOIN en getUserById
       console.log(`  Contraseña (para login): ${adminCredentials.password_plaintext}`);
     } else {
       console.log("El usuario administrador podría ya existir o hubo un error no capturado al crearlo.");
@@ -49,7 +62,7 @@ async function seedDatabase() {
     if (error instanceof Error) {
       console.error(error.message);
       if (error.message.includes('El correo electrónico ya está registrado')) {
-        console.log("El usuario 'admin@example.com' ya existe en la base de datos.");
+        console.log("El usuario 'admin@example.com' ya existe en la base de datos. Verifica su id_rol_fk.");
       } else if (error.message.toLowerCase().includes('connect etimedout') || error.message.toLowerCase().includes('access denied') || error.message.toLowerCase().includes('econnrefused')) {
         console.error("Error de conexión a la base de datos. Verifica tus credenciales y la accesibilidad de la BD en .env.local.");
         console.error(`Intentando conectar a: ${process.env.DB_HOST}:${process.env.DB_PORT} con usuario ${process.env.DB_USER} a la BD ${process.env.DB_NAME}`);
@@ -60,7 +73,7 @@ async function seedDatabase() {
       console.error("Un error desconocido ocurrió:", error);
     }
     console.error("------------------------------------------------------");
-    process.exit(1); 
+    process.exit(1);
   } finally {
     console.log('Proceso de seeding finalizado.');
     // MySQL pool in db.ts should handle connection closing gracefully.
