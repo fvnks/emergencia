@@ -66,8 +66,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Mapear el nombre_rol de la BD al UserRoleKey del contexto
+      // Hacemos la comparación insensible a mayúsculas/minúsculas.
       let roleKey: UserRoleKey = 'usuario'; // Default to 'usuario'
-      if (dbUser.nombre_rol === 'Administrador') {
+      if (dbUser.nombre_rol && dbUser.nombre_rol.toLowerCase() === 'administrador') {
         roleKey = 'admin';
       }
       // Se podrían añadir más mapeos si hubiera más roles que equivalen a 'admin' o 'usuario' en la UI
