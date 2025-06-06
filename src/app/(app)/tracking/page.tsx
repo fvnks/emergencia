@@ -12,14 +12,12 @@ import { cn } from "@/lib/utils";
 import { ALL_VEHICLE_TYPES, type VehicleType } from "@/types/vehicleTypes";
 import type L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { getVehicleUpdates, type SimulatedVehicle as FlowSimulatedVehicle } from "@/ai/flows/vehicle-tracking-flow"; // Import from Genkit flow
+import { getVehicleUpdates, type SimulatedVehicle as FlowSimulatedVehicle } from "@/ai/flows/vehicle-tracking-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
 
 type VehicleStatus = "En Base" | "En Ruta" | "En Emergencia" | "Necesita Mantención" | "Fuera de Servicio";
 const ALL_VEHICLE_STATUSES: VehicleStatus[] = ["En Base", "En Ruta", "En Emergencia", "Necesita Mantención", "Fuera de Servicio"];
 
-// Keep SimulatedVehicle type in frontend for map and list rendering
 interface SimulatedVehicle {
   id: string;
   name: string;
@@ -29,7 +27,6 @@ interface SimulatedVehicle {
   location: { lat: number; lon: number };
   assignedIncident?: string | null;
 }
-
 
 export default function TrackingPage() {
   const [vehicles, setVehicles] = useState<SimulatedVehicle[]>([]);
@@ -43,8 +40,12 @@ export default function TrackingPage() {
   const markersRef = useRef<Record<string, L.Marker>>({});
 
   useEffect(() => {
-    if (typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
+    // This effect now depends on 'loading'.
+    // It will run when 'loading' changes.
+    if (!loading && typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
+      // If not loading, and container is available, and map not yet initialized, then initialize.
       import('leaflet').then(L => {
+        // Workaround for default icon paths in Next.js with Leaflet
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
           iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
@@ -52,34 +53,37 @@ export default function TrackingPage() {
           shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
-        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
+        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12); // Santiago, Chile
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapInstance);
         mapRef.current = mapInstance;
       });
     }
+
+    // The cleanup function will run:
+    // 1. When the component unmounts.
+    // 2. Before the effect runs again if 'loading' changes.
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      markersRef.current = {};
+      markersRef.current = {}; // Reset markers too, as they are tied to the map instance
     };
-  }, []);
+  }, [loading]); // Key change: added 'loading' dependency
 
   useEffect(() => {
     async function fetchVehicleData() {
       try {
         setError(null);
         const result = await getVehicleUpdates({});
-        // Map FlowSimulatedVehicle to frontend SimulatedVehicle if necessary,
-        // but they should be compatible if defined consistently.
         setVehicles(result.vehicles as SimulatedVehicle[]);
       } catch (err) {
         console.error("Error fetching vehicle updates:", err);
         setError(err instanceof Error ? err.message : "No se pudieron cargar los datos de los vehículos.");
       } finally {
+        // Ensure loading is set to false only once after the initial fetch attempt
         if (loading) setLoading(false);
       }
     }
@@ -88,7 +92,7 @@ export default function TrackingPage() {
     const intervalId = setInterval(fetchVehicleData, 5000); // Poll every 5 seconds
 
     return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, [loading]); // Added loading to dependencies to ensure initial setLoading(false)
+  }, [loading]); // Depend on loading to re-initiate fetch on retry (if setLoading(true) is called)
 
   useEffect(() => {
     if (mapRef.current && typeof window !== "undefined") {
@@ -105,8 +109,15 @@ export default function TrackingPage() {
             marker.bindPopup(popupContent);
             markersRef.current[vehicle.id] = marker;
           }
-          if (vehicle.status === "En Emergencia" && markersRef.current[vehicle.id]) {
+          if (vehicle.status === "En Emergencia" && markersRef.current[vehicle.id] && mapRef.current?.hasLayer(markersRef.current[vehicle.id])) {
             markersRef.current[vehicle.id].openPopup();
+          }
+        });
+        // Optional: Remove markers for vehicles no longer in the list
+        Object.keys(markersRef.current).forEach(vehicleId => {
+          if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
+            mapRef.current.removeLayer(markersRef.current[vehicleId]);
+            delete markersRef.current[vehicleId];
           }
         });
       });
@@ -129,6 +140,15 @@ export default function TrackingPage() {
       (statusFilter === "all" || v.status === statusFilter) &&
       (typeFilter === "all" || v.type === typeFilter)
   );
+
+  if (loading && vehicles.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        Cargando datos de vehículos...
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4">
@@ -174,25 +194,18 @@ export default function TrackingPage() {
         </CardHeader>
       </Card>
 
-      {loading && vehicles.length === 0 && (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
-          Cargando datos de vehículos...
-        </div>
-      )}
-
       {error && (
         <Alert variant="destructive" className="my-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error al Cargar Datos</AlertTitle>
           <AlertDescription>
             {error}
-            <Button onClick={() => setLoading(true)} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
+            <Button onClick={() => { setError(null); setLoading(true); }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
           </AlertDescription>
         </Alert>
       )}
 
-      {!loading && !error && (
+      {!error && (
         <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
           <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
             <CardHeader>
