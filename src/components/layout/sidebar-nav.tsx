@@ -20,6 +20,7 @@ import {
   LucideIcon,
   Map,
   Fingerprint,
+  BarChart3, // Importado
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const navItems: NavItem[] = [
   { href: "/maintenance", label: "Mantención", icon: Wrench },
   { href: "/inventory", label: "Inventario", icon: Archive },
   { href: "/tasks", label: "Tareas", icon: ClipboardList },
+  { href: "/reports", label: "Informes", icon: BarChart3 }, // Añadido
   { href: "/personnel", label: "Personal", icon: Users },
   { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true },
   { href: "/settings", label: "Configuración", icon: SettingsIcon },
