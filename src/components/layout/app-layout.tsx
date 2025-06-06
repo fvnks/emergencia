@@ -31,20 +31,20 @@ export function AppLayout({ children }: AppLayoutProps) {
       <Sidebar
         variant="floating" 
         collapsible="icon"
-        className="bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))]"
+        className="bg-transparent" // Outer sidebar container is transparent or matches page bg
       >
-        <SidebarHeader className="p-4 h-16 flex items-center">
+        <SidebarHeader className="p-4 h-16 flex items-center"> {/* Ensure consistent padding */}
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-7" />
           </Link>
         </SidebarHeader>
-        <SidebarContent className="p-2 flex-grow">
+        <SidebarContent className="p-2 flex-grow"> {/* p-2 for padding around menu items */}
           <SidebarNav />
         </SidebarContent>
-        <SidebarFooter className="p-2 border-t border-[hsl(var(--sidebar-border))]">
+        <SidebarFooter className="p-2"> {/* Removed border-t */}
            <SidebarMenuButton
               onClick={logout}
-              className="justify-start w-full" // Let CVA handle styling
+              className="justify-start w-full" 
               tooltip={{children: "Cerrar Sesión", className: "bg-popover text-popover-foreground border-border"}}
             >
               <LogOut />
