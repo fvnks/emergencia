@@ -10,18 +10,19 @@ import { MapPin, Clock, AlertTriangle, Truck, ListFilter, Crosshair } from "luci
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { ALL_VEHICLE_TYPES, type VehicleType } from "@/types/vehicleTypes"; // Importar tipos y constantes
 
 type VehicleStatus = "En Base" | "En Ruta" | "En Emergencia" | "Necesita Mantención" | "Fuera de Servicio";
 const ALL_VEHICLE_STATUSES: VehicleStatus[] = ["En Base", "En Ruta", "En Emergencia", "Necesita Mantención", "Fuera de Servicio"];
 
 interface SimulatedVehicle {
   id: string;
-  name: string; // Ej: B-01, M-02
-  type: string; // Ej: Bomba, Ambulancia
+  name: string; 
+  type: VehicleType; // Usar el tipo importado
   status: VehicleStatus;
-  lastUpdate: string; // Hora simulada
-  location: { lat: number; lon: number }; // Coordenadas simuladas
-  assignedIncident?: string | null; // Ej: "Incendio en Av. Principal"
+  lastUpdate: string; 
+  location: { lat: number; lon: number }; 
+  assignedIncident?: string | null; 
 }
 
 const initialVehicles: SimulatedVehicle[] = [
@@ -30,6 +31,8 @@ const initialVehicles: SimulatedVehicle[] = [
   { id: "v3", name: "R-03", type: "Rescate", status: "En Emergencia", lastUpdate: "00:00:00", location: { lat: -33.460, lon: -70.670 }, assignedIncident: "Derrumbe sector El Salto" },
   { id: "v4", name: "UT-04", type: "Utilitario", status: "Necesita Mantención", lastUpdate: "00:00:00", location: { lat: -33.465, lon: -70.675 }, assignedIncident: null },
   { id: "v5", name: "Q-05", type: "HazMat", status: "Fuera de Servicio", lastUpdate: "00:00:00", location: { lat: -33.470, lon: -70.680 }, assignedIncident: null },
+  { id: "v6", name: "B-02", type: "Bomba", status: "En Ruta", lastUpdate: "00:00:00", location: { lat: -33.475, lon: -70.685 }, assignedIncident: null },
+  { id: "v7", name: "F-01", type: "Forestal", status: "En Base", lastUpdate: "00:00:00", location: { lat: -33.480, lon: -70.690 }, assignedIncident: null },
 ];
 
 function getRandomStatus(currentStatus: VehicleStatus): VehicleStatus {
@@ -46,6 +49,7 @@ function getRandomIncident(): string | null {
 export default function TrackingPage() {
   const [vehicles, setVehicles] = useState<SimulatedVehicle[]>(initialVehicles);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all"); // Nuevo estado para filtro de tipo
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -56,7 +60,7 @@ export default function TrackingPage() {
             ...v,
             status: newStatus,
             lastUpdate: new Date().toLocaleTimeString('es-CL'),
-            location: { // Simular pequeño movimiento
+            location: { 
               lat: v.location.lat + (Math.random() - 0.5) * 0.001,
               lon: v.location.lon + (Math.random() - 0.5) * 0.001,
             },
@@ -64,7 +68,7 @@ export default function TrackingPage() {
           };
         })
       );
-    }, 5000); // Actualizar cada 5 segundos
+    }, 5000); 
 
     return () => clearInterval(interval);
   }, []);
@@ -81,15 +85,17 @@ export default function TrackingPage() {
   };
 
   const filteredVehicles = vehicles.filter(
-    (v) => statusFilter === "all" || v.status === statusFilter
+    (v) =>
+      (statusFilter === "all" || v.status === statusFilter) &&
+      (typeFilter === "all" || v.type === typeFilter) // Añadir filtro por tipo
   );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4"> {/* Ajustar altura */}
+    <div className="flex flex-col h-[calc(100vh-var(--header-height,4rem)-2rem)] gap-4">
       <Card className="shadow-md">
         <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex-grow">
                     <CardTitle className="text-2xl font-headline flex items-center">
                     <Crosshair className="mr-2 h-6 w-6 text-primary" />
                     Seguimiento de Flota (Simulación)
@@ -98,24 +104,37 @@ export default function TrackingPage() {
                     Visualización simulada del estado y ubicación de los vehículos.
                     </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <ListFilter className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[200px] bg-background">
-                        <SelectValue placeholder="Filtrar por estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                        <SelectItem value="all">Todos los Estados</SelectItem>
-                        {ALL_VEHICLE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <ListFilter className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="w-full sm:w-[180px] bg-background">
+                            <SelectValue placeholder="Estado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="all">Todos los Estados</SelectItem>
+                            {ALL_VEHICLE_STATUSES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <ListFilter className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                         <Select value={typeFilter} onValueChange={setTypeFilter}>
+                            <SelectTrigger className="w-full sm:w-[180px] bg-background">
+                            <SelectValue placeholder="Tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            <SelectItem value="all">Todos los Tipos</SelectItem>
+                            {ALL_VEHICLE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
         </CardHeader>
       </Card>
 
       <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
-        {/* Mapa Simulado */}
         <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
           <CardHeader>
             <CardTitle className="text-xl font-headline">Mapa de Operaciones</CardTitle>
@@ -140,7 +159,6 @@ export default function TrackingPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Vehículos */}
         <Card className="lg:flex-[1] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
           <CardHeader>
             <CardTitle className="text-xl font-headline">Estado de Vehículos</CardTitle>
@@ -153,9 +171,9 @@ export default function TrackingPage() {
                   {filteredVehicles.map((vehicle) => (
                     <div key={vehicle.id} className="p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors">
                       <div className="flex justify-between items-center mb-1">
-                        <h4 className="font-semibold text-md text-primary">
-                          <Truck className="inline h-4 w-4 mr-1.5" />
-                          {vehicle.name} <span className="text-xs text-muted-foreground">({vehicle.type})</span>
+                        <h4 className="font-semibold text-md text-primary flex items-center">
+                          <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
+                          {vehicle.name} <span className="text-xs text-muted-foreground ml-1">({vehicle.type})</span>
                         </h4>
                         <Badge className={cn("text-xs text-white", getStatusBadgeColor(vehicle.status))}>
                           {vehicle.status}
@@ -184,7 +202,7 @@ export default function TrackingPage() {
                     <ListFilter className="h-12 w-12 text-muted-foreground mb-3" />
                     <p className="text-md font-medium">No hay vehículos</p>
                     <p className="text-sm text-muted-foreground">
-                      No se encontraron vehículos que coincidan con el filtro actual.
+                      No se encontraron vehículos que coincidan con los filtros actuales.
                     </p>
                   </div>
               )}
