@@ -147,8 +147,8 @@ export default function VehiclesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Gestión de Vehículos</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+        <h1 className="text-2xl font-headline font-bold">Gestión de Vehículos</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
         </Button>
@@ -163,11 +163,11 @@ export default function VehiclesPage() {
               placeholder="Buscar por marca, modelo, patente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-card"
+              className="pl-10 bg-background" /* Cambiado bg-card a bg-background */
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-card">
+            <SelectTrigger className="w-full sm:w-[180px] bg-background"> {/* Cambiado bg-card a bg-background */}
               <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -179,7 +179,7 @@ export default function VehiclesPage() {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-card">
+            <SelectTrigger className="w-full sm:w-[200px] bg-background"> {/* Cambiado bg-card a bg-background */}
                <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
@@ -389,3 +389,6 @@ export default function VehiclesPage() {
     </div>
   );
 }
+
+
+    

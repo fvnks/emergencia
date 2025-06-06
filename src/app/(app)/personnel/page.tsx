@@ -138,7 +138,7 @@ export default function PersonnelPage() {
       return (
         person.nombre_completo.toLowerCase().includes(lowercasedFilter) ||
         person.email.toLowerCase().includes(lowercasedFilter) ||
-        (person.rol && person.rol.toLowerCase().includes(lowercasedFilter))
+        (person.nombre_rol && person.nombre_rol.toLowerCase().includes(lowercasedFilter))
       );
     });
   }, [personnel, searchTerm]);
@@ -167,8 +167,8 @@ export default function PersonnelPage() {
   
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Directorio de Personal</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+        <h1 className="text-2xl font-headline font-bold">Directorio de Personal</h1>
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
             <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -177,7 +177,7 @@ export default function PersonnelPage() {
                 placeholder="Buscar por nombre, email, rol..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-full sm:w-[280px] bg-card"
+                className="pl-10 w-full sm:w-[280px] bg-background" /* Cambiado bg-card a bg-background */
                 />
             </div>
             <AddPersonnelDialog onPersonnelAdded={handlePersonnelAddedOrUpdatedOrDeleted} />
@@ -215,12 +215,12 @@ export default function PersonnelPage() {
                 <AvatarImage 
                   src={`https://placehold.co/100x100.png?text=${person.avatar_seed || getInitials(person.nombre_completo)}`} 
                   alt={person.nombre_completo}
-                  data-ai-hint={person.rol === 'admin' ? "administrador avatar" : "usuario avatar"}
+                  data-ai-hint={person.nombre_rol === 'Administrador' ? "administrador avatar" : "usuario avatar"}
                 />
                 <AvatarFallback>{person.avatar_seed || getInitials(person.nombre_completo)}</AvatarFallback>
               </Avatar>
               <CardTitle className="font-headline text-xl">{person.nombre_completo}</CardTitle>
-              <CardDescription className="capitalize">{person.rol}</CardDescription>
+              <CardDescription className="capitalize">{person.nombre_rol || "Rol no asignado"}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-2 text-sm">
               <div className="flex items-center">
@@ -276,7 +276,7 @@ export default function PersonnelPage() {
                 variant="destructive" 
                 size="sm" 
                 onClick={() => openDeleteDialog(person)}
-                disabled={currentUser?.id_usuario === person.id_usuario} 
+                disabled={currentUser?.id === person.id_usuario} 
               >
                 <Trash2 className="mr-1 h-4 w-4" /> Eliminar
               </Button>
@@ -304,3 +304,6 @@ export default function PersonnelPage() {
   );
 }
 
+
+
+    

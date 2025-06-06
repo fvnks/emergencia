@@ -88,16 +88,16 @@ export default function WarehousesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <Button variant="outline" asChild className="mb-2 sm:mb-0 sm:mr-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+        <div className="flex-grow">
+           <Button variant="outline" asChild className="mb-2 sm:mb-0 sm:mr-4">
             <Link href="/settings"><ArrowLeft className="mr-2 h-4 w-4" /> Volver a Configuración</Link>
           </Button>
-          <h1 className="text-3xl font-headline font-bold inline-block align-middle">Gestión de Bodegas</h1>
+          <h1 className="text-2xl font-headline font-bold inline-block align-middle">Gestión de Bodegas</h1>
         </div>
         <AddBodegaDialog onBodegaAdded={handleBodegaAddedOrUpdatedOrDeleted} />
       </div>
-      <p className="text-muted-foreground">
+      <p className="text-muted-foreground -mt-2 px-1"> {/* Ajuste de margen superior si es necesario */}
         Administra las bodegas y centros de almacenamiento para tu inventario.
       </p>
 
@@ -184,3 +184,6 @@ export default function WarehousesPage() {
     </div>
   );
 }
+
+
+    

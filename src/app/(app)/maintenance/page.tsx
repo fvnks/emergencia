@@ -174,8 +174,8 @@ export default function MaintenancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Mantención de Equipos</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+        <h1 className="text-2xl font-headline font-bold">Mantención de Equipos</h1>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <PlusCircle className="mr-2 h-5 w-5" /> Programar Nueva Mantención
         </Button>
@@ -364,3 +364,6 @@ export default function MaintenancePage() {
     </div>
   );
 }
+
+
+    

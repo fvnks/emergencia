@@ -154,11 +154,11 @@ export default function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-headline font-bold">Gestión de Tareas</h1>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
+        <h1 className="text-2xl font-headline font-bold">Gestión de Tareas</h1>
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
           <Select value={selectedUserIdFilter} onValueChange={setSelectedUserIdFilter}>
-            <SelectTrigger className="w-full sm:w-[220px] bg-card">
+            <SelectTrigger className="w-full sm:w-[220px] bg-background"> {/* Cambiado bg-card a bg-background */}
               <SelectValue placeholder="Filtrar por asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -280,5 +280,7 @@ export default function TasksPage() {
     </div>
   );
 }
+
+    
 
     
