@@ -66,7 +66,7 @@ export default function TrackingPage() {
       }
       markersRef.current = {};
     };
-  }, [loading]);
+  }, [loading]); // Depend on loading to ensure map container is ready
 
   useEffect(() => {
     async function fetchVehicleData() {
@@ -86,11 +86,19 @@ export default function TrackingPage() {
     const intervalId = setInterval(fetchVehicleData, 5000);
 
     return () => clearInterval(intervalId);
-  }, [loading]); // Depend on loading to re-initiate fetch on retry
+  }, [loading]); // Keep loading dependency for initial fetch logic
 
   useEffect(() => {
     if (mapRef.current && typeof window !== "undefined") {
       import('leaflet').then(L => {
+        // Ensure Leaflet default icon paths are set for this instance of L
+        delete (L.Icon.Default.prototype as any)._getIconUrl;
+        L.Icon.Default.mergeOptions({
+          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
+          iconUrl: require('leaflet/dist/images/marker-icon.png').default,
+          shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
+        });
+
         vehicles.forEach(vehicle => {
           const { lat, lon } = vehicle.location;
           const popupContent = `<b>${vehicle.name} (${vehicle.type})</b><br>${vehicle.status}${vehicle.assignedIncident ? `<br>Incidente: ${vehicle.assignedIncident}` : ''}<br>Actualizado: ${vehicle.lastUpdate}`;
@@ -103,13 +111,8 @@ export default function TrackingPage() {
             marker.bindPopup(popupContent);
             markersRef.current[vehicle.id] = marker;
           }
-          // Si el vehículo está en emergencia Y es el seleccionado desde la lista O no hay ninguno seleccionado desde la lista (comportamiento original)
-          if (vehicle.status === "En Emergencia" && markersRef.current[vehicle.id] && mapRef.current?.hasLayer(markersRef.current[vehicle.id])) {
-            if (selectedVehicleIdFromList === vehicle.id || (!selectedVehicleIdFromList && vehicle.status === "En Emergencia")) {
-                 // markersRef.current[vehicle.id].openPopup(); // Se abre con handleVehicleSelect
-            }
-          }
         });
+        // Remove markers for vehicles that no longer exist in the vehicles array
         Object.keys(markersRef.current).forEach(vehicleId => {
           if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
             mapRef.current.removeLayer(markersRef.current[vehicleId]);
@@ -118,13 +121,13 @@ export default function TrackingPage() {
         });
       });
     }
-  }, [vehicles, selectedVehicleIdFromList]);
+  }, [vehicles, selectedVehicleIdFromList]); // Run when vehicles or selection changes
 
   const handleVehicleSelect = (vehicle: SimulatedVehicle) => {
     setSelectedVehicleIdFromList(vehicle.id);
     if (mapRef.current && markersRef.current[vehicle.id]) {
       const { lat, lon } = vehicle.location;
-      mapRef.current.setView([lat, lon], 16); // Centrar y hacer zoom más cercano
+      mapRef.current.setView([lat, lon], 16); 
       markersRef.current[vehicle.id].openPopup();
     }
   };
@@ -205,7 +208,7 @@ export default function TrackingPage() {
           <AlertTitle>Error al Cargar Datos</AlertTitle>
           <AlertDescription>
             {error}
-            <Button onClick={() => { setError(null); setLoading(true); }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
+            <Button onClick={() => { setError(null); setLoading(true); setVehicles([]); }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
           </AlertDescription>
         </Alert>
       )}
