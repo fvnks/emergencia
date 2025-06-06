@@ -45,7 +45,7 @@ body {
     --radius: 0.5rem;
 
     /* Sidebar specific colors */
-    --sidebar-background: 220 13% 95%;      /* #F1F5F9 - Page background (same as page) */
+    --sidebar-background: 0 0% 100%;      /* #FFFFFF - White sidebar background */
     --sidebar-foreground: 224 71% 4%;        /* #020617 - General text in sidebar (like "MENU") */
     --sidebar-border: 220 13% 84%;          /* #CBD5E1 - Border for sidebar (e.g., right border) */
 
@@ -54,8 +54,8 @@ body {
     --sidebar-item-icon-fg: 220 9% 46%;             /* #64748B - Default icon color */
 
     --sidebar-item-hover-bg: hsl(var(--secondary));        /* #E2E8F0 - Light gray background on hover */
-    --sidebar-item-hover-fg: hsl(217 91% 50%);        /* #3B82F6 - Primary blue for text on hover */
-    --sidebar-item-hover-icon-fg: hsl(217 91% 50%);   /* #3B82F6 - Primary blue for icon on hover */
+    --sidebar-item-hover-fg: hsl(var(--primary));        /* #3B82F6 - Primary blue for text on hover */
+    --sidebar-item-hover-icon-fg: hsl(var(--primary));   /* #3B82F6 - Primary blue for icon on hover */
 
     --sidebar-item-active-bg: hsl(217 91% 90%);      /* #DBEAFE - Light blue for active item background (solid) */
     --sidebar-item-active-fg: hsl(217 91% 55%);      /* #3B82F6 - Primary blue for active text */
