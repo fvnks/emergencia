@@ -512,9 +512,9 @@ const sidebarMenuButtonVariants = cva(
            hover:text-[hsl(var(--sidebar-item-hover-fg))] \
            focus-visible:text-[hsl(var(--sidebar-item-hover-fg))] \
            data-[state=open]:bg-[hsl(var(--sidebar-item-hover-bg))] data-[state=open]:text-[hsl(var(--sidebar-item-hover-fg))] \
-           data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-semibold",
+           data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-[var(--sidebar-item-active-font-weight)]",
         outline:
-          "bg-background text-[hsl(var(--sidebar-item-fg))] shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:text-[hsl(var(--sidebar-item-hover-fg))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-item-hover-bg))] data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-semibold",
+          "bg-background text-[hsl(var(--sidebar-item-fg))] shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:text-[hsl(var(--sidebar-item-hover-fg))] hover:shadow-[0_0_0_1px_hsl(var(--sidebar-item-hover-bg))] data-[active=true]:bg-[hsl(var(--sidebar-item-active-bg))] data-[active=true]:text-[hsl(var(--sidebar-item-active-fg))] data-[active=true]:font-[var(--sidebar-item-active-font-weight)]",
       },
       size: {
         default: "h-9 text-[15px]", 
@@ -565,14 +565,11 @@ const SidebarMenuButton = React.forwardRef<
         
         {React.Children.map(children, child => {
           if (React.isValidElement(child) && typeof child.type !== 'string' && (child.type as any).displayName?.includes('Luci')) {
-            // Icon color is handled by parent's text color change (hover:text-..., focus-visible:text-...)
-            // due to `currentColor` inheritance by SVGs, and the specific active state color.
             return React.cloneElement(child as React.ReactElement<any>, { 
               className: cn(
                 child.props.className,
                 isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' : 'text-[hsl(var(--sidebar-item-icon-fg))]',
-                // group-hover is not needed if parent has hover:text-... and icon inherits
-                // group-focus-visible is not needed if parent has focus-visible:text-... and icon inherits
+                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))] group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]'
               )
             });
           }
