@@ -45,9 +45,9 @@ export default function TrackingPage() {
       import('leaflet').then(L => {
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
-          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-          iconUrl: require('leaflet/dist/images/marker-icon.png'),
-          shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
+          iconUrl: require('leaflet/dist/images/marker-icon.png').default,
+          shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
         const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
@@ -81,21 +81,20 @@ export default function TrackingPage() {
       }
     }
 
-    fetchVehicleData(); // Initial fetch
-    const intervalId = setInterval(fetchVehicleData, 5000); // Poll every 5 seconds
+    fetchVehicleData(); 
+    const intervalId = setInterval(fetchVehicleData, 5000);
 
-    return () => clearInterval(intervalId); // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
   }, [loading]);
 
   useEffect(() => {
     if (mapRef.current && typeof window !== "undefined") {
       import('leaflet').then(L => {
-        // Ensure Leaflet default icon paths are set correctly
         delete (L.Icon.Default.prototype as any)._getIconUrl;
         L.Icon.Default.mergeOptions({
-          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-          iconUrl: require('leaflet/dist/images/marker-icon.png'),
-          shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
+          iconUrl: require('leaflet/dist/images/marker-icon.png').default,
+          shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
         vehicles.forEach(vehicle => {
@@ -111,7 +110,6 @@ export default function TrackingPage() {
             markersRef.current[vehicle.id] = marker;
           }
         });
-        // Remove markers for vehicles that no longer exist
         Object.keys(markersRef.current).forEach(vehicleId => {
           if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
             mapRef.current.removeLayer(markersRef.current[vehicleId]);

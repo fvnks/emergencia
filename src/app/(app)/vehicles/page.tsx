@@ -94,7 +94,7 @@ export default function VehiclesPage() {
     switch (status) {
       case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
       case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
-      case "Fuera de Servicio": return "bg-red-600 hover:bg-red-700 text-white";
+      case "Fuera de Servicio": return "bg-red-500 hover:bg-red-600 text-white"; // Adjusted for better dark mode visibility
       default: return "bg-gray-400 text-white";
     }
   };
@@ -163,11 +163,11 @@ export default function VehiclesPage() {
               placeholder="Buscar por marca, modelo, patente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-background" /* Cambiado bg-card a bg-background */
+              className="pl-10 bg-background"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px] bg-background"> {/* Cambiado bg-card a bg-background */}
+            <SelectTrigger className="w-full sm:w-[180px] bg-background">
               <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
@@ -179,7 +179,7 @@ export default function VehiclesPage() {
             </SelectContent>
           </Select>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[200px] bg-background"> {/* Cambiado bg-card a bg-background */}
+            <SelectTrigger className="w-full sm:w-[200px] bg-background">
                <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Tipo" />
             </SelectTrigger>
@@ -194,7 +194,7 @@ export default function VehiclesPage() {
       </Card>
 
       {filteredVehicles.length === 0 && !loading && (
-         <Card className="text-center"> {/* Removed shadow-md as base Card now has it */}
+         <Card className="text-center">
           <CardHeader>
             <div className="mx-auto bg-primary/10 text-primary p-3 rounded-full w-fit">
                 <Truck className="h-10 w-10" />
@@ -223,7 +223,7 @@ export default function VehiclesPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredVehicles.map((vehicle) => {
             const today = new Date();
-            today.setHours(0,0,0,0); // Normalize today to the beginning of the day
+            today.setHours(0,0,0,0);
 
             let isMaintenanceOverdue = false;
             let isMaintenanceUpcoming = false;
@@ -265,7 +265,7 @@ export default function VehiclesPage() {
 
             return (
               <Link key={vehicle.id_vehiculo} href={`/vehicles/${vehicle.id_vehiculo}`} passHref>
-                <Card className="flex flex-col h-full cursor-pointer"> {/* Removed transition and shadow classes, base Card has them */}
+                <Card className="flex flex-col h-full cursor-pointer">
                   <CardHeader className="p-0">
                     <div className="relative h-48 w-full rounded-t-lg overflow-hidden bg-muted">
                       <Image 

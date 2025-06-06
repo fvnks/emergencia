@@ -15,15 +15,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
 import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context";
-import { LogOut, Settings, Bell, Search } from "lucide-react"; // Added Search
+import { LogOut, Settings, Bell, Search, Sun, Moon } from "lucide-react"; // Added Sun, Moon
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Input } from "@/components/ui/input"; // Added Input
+import { Input } from "@/components/ui/input";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 const getPageTitle = (pathname: string) => {
   const segments = pathname.split('/').filter(Boolean);
@@ -40,17 +43,17 @@ const getPageTitle = (pathname: string) => {
     case 'personnel': return "Personal";
     case 'settings': return "Configuración";
     case 'tracking': return "Seguimiento GPS (Beta)";
+    case 'reports': return "Informes";
+    case 'checklists': return "Checklists";
     default:
       if (segments.includes('settings')) {
         const settingSubPage = segments[segments.length -1].replace(/-/g, ' ');
         return `Configuración - ${settingSubPage.charAt(0).toUpperCase() + settingSubPage.slice(1)}`;
       }
-      // For detailed views like /vehicles/123, show "Vehículos"
       if (segments.length > 1 && !isNaN(Number(mainSegment))) {
         const parentSegment = segments[segments.length - 2];
          switch (parentSegment) {
             case 'vehicles': return "Vehículos";
-            // Add other parent segments if needed for their detail pages
             default: break;
          }
       }
@@ -64,9 +67,15 @@ export function Header() {
   const { alertNotifications, seenNotificationIds, markNotificationAsSeen } = useAppData();
   const pathname = usePathname();
   const pageTitle = getPageTitle(pathname);
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const getInitials = (name?: string) => {
-    if (!name) return 'AP'; // Admin Panel
+    if (!name) return 'AP';
     const nameParts = name.split(' ');
     if (nameParts.length > 1) {
       return (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase();
@@ -80,26 +89,55 @@ export function Header() {
   const unreadNotifications = alertNotifications.filter(alert => !seenNotificationIds.includes(alert.id));
   const unreadCount = unreadNotifications.length;
 
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  if (!mounted) {
+    // Render placeholder or null for theme button to avoid hydration mismatch
+    // Or better, ensure the whole header conditional rendering based on mounted
+    return (
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 md:px-6">
+         <div><SidebarTrigger /></div>
+        <h1 className="text-xl font-headline font-semibold text-foreground">{pageTitle}</h1>
+        <div className="ml-auto"></div> {/* Spacer */}
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 md:px-6">
-      <div> {/* Removed md:hidden from this div */}
+      <div>
         <SidebarTrigger />
       </div>
       <h1 className="text-xl font-headline font-semibold text-foreground">{pageTitle}</h1>
 
-      {/* Placeholder Search Bar */}
       <div className="relative ml-auto hidden flex-1 sm:flex-grow-0 sm:flex-shrink-0 sm:basis-auto sm:block max-w-xs md:max-w-sm lg:max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
-          placeholder="Buscar..." // TailAdmin uses "Search or type a command (Ctrl + K)"
-          className="h-9 w-full rounded-md bg-background pl-9 border-border focus-visible:ring-primary text-sm"
+          placeholder="Buscar..."
+          className="h-9 w-full rounded-md bg-background pl-9 border-input focus-visible:ring-primary text-sm"
         />
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3"> {/* Adjusted gap for closer items */}
+      <div className="flex items-center gap-1 sm:gap-2">
         {user && (
           <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full h-9 w-9">
+                    {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    <span className="sr-only">Cambiar tema</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Cambiar a tema {resolvedTheme === 'dark' ? 'claro' : 'oscuro'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9">
@@ -161,7 +199,7 @@ export function Header() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
-                  <Avatar className="h-8 w-8"> {/* Slightly smaller avatar */}
+                  <Avatar className="h-8 w-8">
                     <AvatarImage
                       src={`https://placehold.co/100x100.png?text=${avatarPlaceholder}`}
                       alt={user.name || "Usuario"}

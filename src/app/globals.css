@@ -4,38 +4,39 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Inter', sans-serif; /* Ensure Inter is primary */
+  font-family: 'PT Sans', sans-serif;
 }
 
 @layer base {
   :root {
-    --background: 220 13% 95%; /* #F1F5F9 - TailAdmin Light Gray Page Background */
-    --foreground: 224 71% 4%; /* #020617 - TailAdmin Dark Text */
+    /* PRD Light Theme */
+    --background: 209 85% 94%; /* #E8F4FD - Light grayish blue */
+    --foreground: 210 25% 25%; /* Dark grayish blue for text */
 
-    --card: 0 0% 100%; /* #FFFFFF - White cards */
-    --card-foreground: 224 71% 4%;
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 210 25% 25%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
+    --popover-foreground: 210 25% 25%;
 
-    --primary: 217 91% 60%; /* #3B82F6 - TailAdmin Blue */
-    --primary-foreground: 210 20% 98%; /* #FAFAFB - Light text on primary */
+    --primary: 210 92% 59%; /* #3294F8 - Deep sky blue */
+    --primary-foreground: 210 20% 98%; /* Almost white text on primary */
 
-    --secondary: 220 14% 91%; /* #E2E8F0 - Lighter gray for secondary elements */
-    --secondary-foreground: 220 9% 46%; /* #64748B - Medium gray text */
+    --secondary: 210 60% 90%; /* Very light blue */
+    --secondary-foreground: 210 25% 25%;
 
-    --muted: 220 14% 91%;
-    --muted-foreground: 220 9% 46%; /* #64748B */
+    --muted: 210 40% 90%; /* Light grayish blue */
+    --muted-foreground: 210 30% 50%; /* Medium gray-blue text */
 
-    --accent: 220 13% 89%; /* #DEE4EC - Light gray for hover, etc. (general accent) */
-    --accent-foreground: 224 71% 4%; /* Dark text on accent */
+    --accent: 174 72% 56%; /* #40E0D0 - Slightly desaturated turquoise */
+    --accent-foreground: 174 72% 15%; /* Dark text for accent */
 
-    --destructive: 0 72% 51%; /* #EF4444 - Red */
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%; /* Standard red */
+    --destructive-foreground: 0 0% 98%; /* Light text on destructive */
 
-    --border: 220 13% 84%; /* #CBD5E1 - Gray border */
-    --input: 220 13% 89%; /* #DEE4EC - Used for input borders or subtle backgrounds */
-    --ring: 217 91% 60%; /* Primary blue for focus rings */
+    --border: 210 30% 85%; /* Light gray-blue border */
+    --input: 210 40% 90%; /* Similar to muted for input backgrounds */
+    --ring: 210 92% 59%; /* Primary color for focus rings */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -44,26 +45,68 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
 
-    /* Sidebar specific colors */
-    --sidebar-background: 0 0% 100%;      /* #FFFFFF - White sidebar (floating panel content) background */
-    --sidebar-foreground: 224 71% 4%;        /* #020617 - General text in sidebar (like "MENU") */
-    --sidebar-border: 220 13% 84%;          /* #CBD5E1 - General border for sidebar elements if needed (e.g. footer if it had one) */
-    --sidebar-floating-panel-border: 220 13% 84%; /* #CBD5E1 - Very light gray border for floating panel */
+    /* Sidebar Light Theme */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 210 25% 25%;
+    --sidebar-border: 210 30% 85%;
+    --sidebar-floating-panel-border: 210 30% 85%;
+    --sidebar-item-fg: 210 30% 50%;
+    --sidebar-item-icon-fg: 210 30% 50%;
+    --sidebar-item-hover-bg: hsl(var(--secondary));
+    --sidebar-item-hover-fg: hsl(var(--primary));
+    --sidebar-item-hover-icon-fg: hsl(var(--primary));
+    --sidebar-item-active-bg: hsl(var(--primary) / 0.1); /* Primary with opacity */
+    --sidebar-item-active-fg: hsl(var(--primary));
+    --sidebar-item-active-icon-fg: hsl(var(--primary));
+    --sidebar-item-active-font-weight: 600;
+    --sidebar-ring: hsl(var(--primary));
+  }
 
-    /* Sidebar Item Colors - TailAdmin style */
-    --sidebar-item-fg:  220 9% 46%;                   /* #64748B - Default text color for items */
-    --sidebar-item-icon-fg: 220 9% 46%;             /* #64748B - Default icon color */
+  :root.dark {
+    /* Dark Theme derived from PRD */
+    --background: 210 25% 12%; /* #18232F - Very dark blue */
+    --foreground: 210 25% 90%; /* #DBE4EE - Almost white text */
 
-    --sidebar-item-hover-bg: hsl(var(--secondary));        /* #E2E8F0 - Light gray background on hover */
-    --sidebar-item-hover-fg: hsl(var(--primary));        /* #3B82F6 - Primary blue for text on hover */
-    --sidebar-item-hover-icon-fg: hsl(var(--primary));   /* #3B82F6 - Primary blue for icon on hover */
+    --card: 210 25% 16%; /* #202B3A - Dark blue, slightly lighter than background */
+    --card-foreground: 210 25% 90%;
 
-    --sidebar-item-active-bg: hsl(217 91% 90%);      /* #DBEAFE - Light blue for active item background (solid) */
-    --sidebar-item-active-fg: hsl(217 91% 55%);      /* #3B82F6 - Primary blue for active text */
-    --sidebar-item-active-icon-fg: hsl(217 91% 55%); /* #3B82F6 - Primary blue for active icon */
-    --sidebar-item-active-font-weight: 600;          /* Semibold for active item text */
+    --popover: 210 25% 16%;
+    --popover-foreground: 210 25% 90%;
 
-    --sidebar-ring: 217 91% 60%; /* Primary blue for focus rings within sidebar */
+    --primary: 210 92% 59%; /* #3294F8 - Same Deep sky blue */
+    --primary-foreground: 210 20% 98%; /* Light text on primary */
+
+    --secondary: 210 25% 22%; /* #2C3A4B - Dark grayish blue */
+    --secondary-foreground: 210 25% 90%;
+
+    --muted: 210 25% 22%;
+    --muted-foreground: 210 20% 65%; /* #8D9FBB - Lighter gray-blue text */
+
+    --accent: 174 72% 56%; /* #40E0D0 - Same turquoise */
+    --accent-foreground: 174 72% 10%; /* Very dark text for accent */
+
+    --destructive: 0 70% 50%; /* Slightly darker red for contrast */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 20% 28%; /* #3A4B5F - Dark gray-blue border */
+    --input: 210 20% 28%;
+    --ring: 210 92% 59%; /* Primary color for focus rings */
+
+    /* Sidebar Dark Theme */
+    --sidebar-background: hsl(var(--card));
+    --sidebar-foreground: hsl(var(--foreground));
+    --sidebar-border: hsl(var(--border));
+    --sidebar-floating-panel-border: hsl(var(--border));
+    --sidebar-item-fg: hsl(var(--muted-foreground));
+    --sidebar-item-icon-fg: hsl(var(--muted-foreground));
+    --sidebar-item-hover-bg: hsl(var(--secondary));
+    --sidebar-item-hover-fg: hsl(var(--primary));
+    --sidebar-item-hover-icon-fg: hsl(var(--primary));
+    --sidebar-item-active-bg: hsl(var(--primary));
+    --sidebar-item-active-fg: hsl(var(--primary-foreground));
+    --sidebar-item-active-icon-fg: hsl(var(--primary-foreground));
+    --sidebar-item-active-font-weight: 600;
+    --sidebar-ring: hsl(var(--primary));
   }
 }
 
@@ -73,7 +116,7 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: 'PT Sans', sans-serif;
   }
 }
 

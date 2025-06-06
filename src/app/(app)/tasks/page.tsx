@@ -89,8 +89,6 @@ export default function TasksPage() {
     if (selectedUserIdFilter === "all") {
       return tasks;
     }
-    // No filter for "unassigned" yet, as DB schema does not directly support it without a specific value.
-    // For now, filtering by specific user ID.
     const userId = parseInt(selectedUserIdFilter, 10);
     return tasks.filter(task => task.id_usuario_asignado === userId);
   }, [tasks, selectedUserIdFilter]);
@@ -98,11 +96,10 @@ export default function TasksPage() {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
-      // Ensure date is parsed correctly if only YYYY-MM-DD
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
       return format(date, "dd-MM-yyyy", { locale: es });
     } catch (e) {
-      return dateString; // Fallback to original string if formatting fails
+      return dateString;
     }
   };
 
@@ -123,7 +120,7 @@ export default function TasksPage() {
       case "En Proceso": return "bg-yellow-500 hover:bg-yellow-600 text-black";
       case "Programada": return "bg-blue-500 hover:bg-blue-600 text-white";
       case "Pendiente": return "bg-slate-400 hover:bg-slate-500 text-white"; 
-      case "Atrasada": return "border-red-700 bg-red-600 hover:bg-red-700 text-white";
+      case "Atrasada": return "border-red-700 bg-red-600 hover:bg-red-700 text-white"; // Consistent red for Atrasada
       default: return "";
     }
   }
@@ -131,7 +128,7 @@ export default function TasksPage() {
   if (loading && tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-10">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <Loader2 className="h-12 w-12 animate-cool-loader-spin text-primary mb-4" />
         <p className="text-lg font-semibold">Cargando tareas...</p>
       </div>
     );
@@ -158,7 +155,7 @@ export default function TasksPage() {
         <h1 className="text-2xl font-headline font-bold">Gestión de Tareas</h1>
         <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center w-full sm:w-auto">
           <Select value={selectedUserIdFilter} onValueChange={setSelectedUserIdFilter}>
-            <SelectTrigger className="w-full sm:w-[220px] bg-background"> {/* Cambiado bg-card a bg-background */}
+            <SelectTrigger className="w-full sm:w-[220px] bg-background">
               <SelectValue placeholder="Filtrar por asignado" />
             </SelectTrigger>
             <SelectContent>
@@ -168,7 +165,6 @@ export default function TasksPage() {
                   {user.nombre_completo}
                 </SelectItem>
               ))}
-              {/* <SelectItem value="unassigned">Sin Asignar</SelectItem>  // TODO: Implementar si la lógica de "Sin Asignar" es necesaria */}
             </SelectContent>
           </Select>
           <Button className="w-full sm:w-auto" onClick={() => setIsAddDialogOpen(true)}>
@@ -228,7 +224,7 @@ export default function TasksPage() {
                         {task.estado_tarea}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right space-x-1"> {/* Ajustado space-x-1 */}
+                    <TableCell className="text-right space-x-1">
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => openViewDialog(task)}>
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -280,8 +276,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
-    
-
-    
-

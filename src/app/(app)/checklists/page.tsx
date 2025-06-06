@@ -46,10 +46,10 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
-  const [loading, setLoading] = useState(false); // Placeholder for future async operations
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all"); // Can be 'all' or a ChecklistStatus
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
@@ -68,7 +68,7 @@ export default function ChecklistsPage() {
       category: newChecklistData.category,
       itemCount: 0, 
       lastModified: new Date().toISOString(),
-      status: "Nuevo", // Default status for new checklists
+      status: "Nuevo",
     };
     setChecklists(prev => [newChecklist, ...prev]);
   };
@@ -83,7 +83,7 @@ export default function ChecklistsPage() {
               description: updatedData.description,
               category: updatedData.category,
               itemCount: updatedData.itemCount,
-              status: updatedData.status as ChecklistStatus, // Ensure status is updated
+              status: updatedData.status as ChecklistStatus,
               lastModified: new Date().toISOString(),
             }
           : c
@@ -132,8 +132,8 @@ export default function ChecklistsPage() {
 
   const getStatusBadgeClassName = (status: Checklist['status']) => {
     switch (status) {
-      case 'Completado': return 'bg-green-500 text-white hover:bg-green-600';
-      case 'En Progreso': return 'bg-yellow-500 text-black hover:bg-yellow-600';
+      case 'Completado': return 'bg-green-500 text-primary-foreground hover:bg-green-600';
+      case 'En Progreso': return 'bg-yellow-500 text-black hover:bg-yellow-600'; // text-black for yellow bg
       case 'Nuevo': return 'border-primary text-primary hover:bg-primary/10';
       default: return 'border-muted text-muted-foreground';
     }
@@ -298,4 +298,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-

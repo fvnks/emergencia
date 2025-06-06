@@ -23,7 +23,6 @@ export function LoginForm() {
     setIsSubmitting(true);
     try {
       await login(email, password);
-      // Navigation is handled by the login function in AuthContext on success
     } catch (error) {
       console.error("Login form submission error:", error);
     } finally {
@@ -35,7 +34,7 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      <header className="py-3 px-4 sm:px-6 shadow-sm bg-card border-b border-border">
+      <header className="py-3 px-4 sm:px-6 shadow-sm bg-card border-border">
         <div className="container mx-auto flex items-center gap-2">
           <Shield className="h-5 w-5 text-primary" />
           <span className="font-semibold text-md text-foreground/80">Gestor de Brigada</span>
@@ -73,7 +72,7 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="h-11 text-base" // Ensuring consistent height and text size
+                className="h-11 text-base bg-background" 
               />
             </div>
 
@@ -86,7 +85,7 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="h-11 text-base"
+                className="h-11 text-base bg-background"
               />
             </div>
 

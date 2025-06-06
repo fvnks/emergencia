@@ -21,7 +21,7 @@ import {
   Map,
   Fingerprint,
   BarChart3,
-  ClipboardCheck, // Añadido
+  ClipboardCheck as ChecklistIcon, // Renombrado para evitar colisión
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ const navItems: NavItem[] = [
   { href: "/inventory", label: "Inventario", icon: Archive },
   { href: "/tasks", label: "Tareas", icon: ClipboardList },
   { href: "/reports", label: "Informes", icon: BarChart3 },
-  { href: "/checklists", label: "Checklists", icon: ClipboardCheck }, // Añadido
+  { href: "/checklists", label: "Checklists", icon: ChecklistIcon },
   { href: "/personnel", label: "Personal", icon: Users },
   { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true },
   { href: "/settings", label: "Configuración", icon: SettingsIcon },

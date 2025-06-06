@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { Button } from "../ui/button";
 import { LogOut } from "lucide-react";
 import Link from "next/link";
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -31,30 +32,38 @@ export function AppLayout({ children }: AppLayoutProps) {
       <Sidebar
         variant="floating" 
         collapsible="icon"
-        className="bg-transparent" // Outer sidebar container is transparent or matches page bg
+        className="bg-transparent"
       >
-        <SidebarHeader className="p-4 h-16 flex items-center"> {/* Ensure consistent padding */}
+        <SidebarHeader className="p-4 h-16 flex items-center">
           <Link href="/dashboard" className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center">
             <Logo className="h-8 w-auto group-data-[collapsible=icon]:h-7" />
           </Link>
         </SidebarHeader>
-        <SidebarContent className="p-2 flex-grow"> {/* p-2 for padding around menu items */}
+        <SidebarContent className="p-2 flex-grow">
           <SidebarNav />
         </SidebarContent>
-        <SidebarFooter className="p-2"> {/* Removed border-t */}
-           <SidebarMenuButton
-              onClick={logout}
-              className="justify-start w-full" 
-              tooltip={{children: "Cerrar Sesión", className: "bg-popover text-popover-foreground border-border"}}
-            >
-              <LogOut />
-              <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesión</span>
-            </SidebarMenuButton>
+        <SidebarFooter className="p-2">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <SidebarMenuButton
+                  onClick={logout}
+                  className="justify-start w-full" 
+                >
+                  <LogOut />
+                  <span className="group-data-[collapsible=icon]:hidden">Cerrar Sesión</span>
+                </SidebarMenuButton>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center" className="bg-popover text-popover-foreground border-border">
+                Cerrar Sesión
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
         <Header />
-        <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8 overflow-auto bg-background">
           <div className="flex-grow">
             {children}
           </div>

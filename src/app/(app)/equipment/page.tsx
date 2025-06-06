@@ -4,19 +4,19 @@
 import type { EraEquipment } from "@/components/equipment/era-types";
 import type { User } from "@/services/userService";
 import { useEffect, useState, useCallback } from "react";
-import { getAllEraEquipments, getEraEquipmentById } from "@/services/eraService"; // getEraEquipmentById no se usa pero está ok
+import { getAllEraEquipments, getEraEquipmentById } from "@/services/eraService";
 import { getAllUsers } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, UserCheck, Loader2, AlertTriangle, ShieldQuestion, Eye } from "lucide-react"; // Added Eye
+import { Edit, Trash2, UserCheck, Loader2, AlertTriangle, ShieldQuestion, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddEraDialog } from "@/components/equipment/add-era-dialog";
 import { EditEraDialog } from "@/components/equipment/edit-era-dialog";
 import { DeleteEraDialog } from "@/components/equipment/delete-era-dialog";
 import { AssignEraDialog } from "@/components/equipment/assign-era-dialog";
-import { ViewEraDialog } from "@/components/equipment/view-era-dialog"; // Added ViewEraDialog import
+import { ViewEraDialog } from "@/components/equipment/view-era-dialog";
 
 
 export default function EquipmentPage() {
@@ -32,8 +32,8 @@ export default function EquipmentPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedEraForAssign, setSelectedEraForAssign] = useState<EraEquipment | null>(null);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [selectedEraForView, setSelectedEraForView] = useState<EraEquipment | null>(null); // State for View Dialog
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for View Dialog
+  const [selectedEraForView, setSelectedEraForView] = useState<EraEquipment | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const fetchPageData = useCallback(async () => {
     setLoading(true);
@@ -76,7 +76,7 @@ export default function EquipmentPage() {
     setIsAssignDialogOpen(true);
   };
 
-  const openViewDialog = (era: EraEquipment) => { // Function to open View Dialog
+  const openViewDialog = (era: EraEquipment) => {
     setSelectedEraForView(era);
     setIsViewDialogOpen(true);
   };
@@ -93,11 +93,11 @@ export default function EquipmentPage() {
   };
   const getStatusBadgeClassName = (status: EraEquipment["estado_era"]) => {
     switch (status) {
-      case "Operativo": return "bg-green-500 hover:bg-green-600 text-white";
-      case "Disponible": return "bg-blue-500 hover:bg-blue-600 text-white";
-      case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black";
-      case "Requiere Inspección": return "bg-orange-500 hover:bg-orange-600 text-white";
-      case "Fuera de Servicio": return "bg-slate-600 hover:bg-slate-700 text-white";
+      case "Operativo": return "bg-green-500 hover:bg-green-600 text-primary-foreground";
+      case "Disponible": return "bg-blue-500 hover:bg-blue-600 text-primary-foreground";
+      case "En Mantención": return "bg-yellow-500 hover:bg-yellow-600 text-black"; // text-black for yellow
+      case "Requiere Inspección": return "bg-orange-500 hover:bg-orange-600 text-primary-foreground";
+      case "Fuera de Servicio": return "bg-slate-600 hover:bg-slate-700 text-primary-foreground";
       default: return "";
     }
   };
@@ -105,7 +105,6 @@ export default function EquipmentPage() {
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return "N/A";
     try {
-      // Asegurar que la fecha se parsea correctamente como local si solo es YYYY-MM-DD
       const date = new Date(dateString.includes('T') ? dateString : dateString + "T00:00:00");
       return date.toLocaleDateString('es-CL');
     } catch (e) {
@@ -159,7 +158,6 @@ export default function EquipmentPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Este espacio está intencionalmente vacío para eliminar el botón redundante */}
           </CardContent>
         </Card>
       )}
@@ -196,7 +194,7 @@ export default function EquipmentPage() {
                         {item.estado_era}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right space-x-1"> {/* Ajustado space-x-1 */}
+                    <TableCell className="text-right space-x-1">
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => openViewDialog(item)}>
                         <Eye className="h-4 w-4" />
                       </Button>

@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddMaintenanceDialog } from "@/components/maintenance/add-maintenance-dialog";
 import { EditMaintenanceDialog } from "@/components/maintenance/edit-maintenance-dialog";
 import { DeleteMaintenanceDialog } from "@/components/maintenance/delete-maintenance-dialog";
-import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog"; // Added ViewMaintenanceDialog
+import { ViewMaintenanceDialog } from "@/components/maintenance/view-maintenance-dialog";
 import { format, parseISO, isValid, isPast, differenceInDays, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
@@ -33,8 +33,8 @@ export default function MaintenancePage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<MaintenanceTask | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null); // State for View Dialog
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for View Dialog
+  const [selectedTaskForView, setSelectedTaskForView] = useState<MaintenanceTask | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
@@ -73,7 +73,7 @@ export default function MaintenancePage() {
       })
       .filter(task => {
         if (!dateRange.from && !dateRange.to) return true;
-        if (!task.fecha_programada) return false; // Tasks without a programmed date are hidden if a date filter is active
+        if (!task.fecha_programada) return false;
 
         let taskDate: Date;
         try {
@@ -108,7 +108,7 @@ export default function MaintenancePage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const openViewDialog = (task: MaintenanceTask) => { // Function to open View Dialog
+  const openViewDialog = (task: MaintenanceTask) => {
     setSelectedTaskForView(task);
     setIsViewDialogOpen(true);
   };
@@ -137,12 +137,12 @@ export default function MaintenancePage() {
 
   const getStatusBadgeClassName = (status: MaintenanceStatus): string => {
     switch (status) {
-      case "Completada": return "bg-green-500 hover:bg-green-600 text-white";
-      case "Programada": return "bg-blue-500 hover:bg-blue-600 text-white";
-      case "En Progreso": return "bg-yellow-500 hover:bg-yellow-600 text-black";
-      case "Pendiente": return "bg-orange-500 hover:bg-orange-600 text-white";
-      case "Atrasada": return "bg-red-600 hover:bg-red-700 text-white";
-      case "Cancelada": return "bg-slate-500 hover:bg-slate-600 text-white";
+      case "Completada": return "bg-green-500 hover:bg-green-600 text-primary-foreground";
+      case "Programada": return "bg-blue-500 hover:bg-blue-600 text-primary-foreground";
+      case "En Progreso": return "bg-yellow-500 hover:bg-yellow-600 text-black"; // text-black for yellow bg
+      case "Pendiente": return "bg-orange-500 hover:bg-orange-600 text-primary-foreground";
+      case "Atrasada": return "bg-red-600 hover:bg-red-700 text-destructive-foreground";
+      case "Cancelada": return "bg-slate-500 hover:bg-slate-600 text-primary-foreground";
       default: return "";
     }
   };
@@ -191,7 +191,7 @@ export default function MaintenancePage() {
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full sm:w-[240px] justify-start text-left font-normal",
+                  "w-full sm:w-[240px] justify-start text-left font-normal bg-background",
                   !dateRange.from && "text-muted-foreground"
                 )}
               >
@@ -213,7 +213,7 @@ export default function MaintenancePage() {
               <Button
                 variant={"outline"}
                 className={cn(
-                  "w-full sm:w-[240px] justify-start text-left font-normal",
+                  "w-full sm:w-[240px] justify-start text-left font-normal bg-background",
                   !dateRange.to && "text-muted-foreground"
                 )}
               >
@@ -300,7 +300,7 @@ export default function MaintenancePage() {
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDateTable(task.fecha_ultima_realizada)}</TableCell>
-                    <TableCell className="text-right space-x-1"> {/* Adjusted space-x-1 for new button */}
+                    <TableCell className="text-right space-x-1">
                       <Button 
                         variant="outline" 
                         size="icon" 
@@ -364,4 +364,3 @@ export default function MaintenancePage() {
     </div>
   );
 }
-
