@@ -116,3 +116,4 @@ export function ViewTaskDialog({ task, open, onOpenChange }: ViewTaskDialogProps
     </Dialog>
   );
 }
+

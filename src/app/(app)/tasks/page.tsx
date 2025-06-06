@@ -215,7 +215,7 @@ export default function TasksPage() {
               </TableHeader>
               <TableBody>
                 {filteredTasks.map((task) => (
-                  <TableRow key={task.id_tarea}>
+                  <TableRow key={task.id_tarea} id={`task-${task.id_tarea}`}>
                     <TableCell className="font-medium">{`T-${task.id_tarea.toString().padStart(3, '0')}`}</TableCell>
                     <TableCell>{task.descripcion_tarea}</TableCell>
                     <TableCell>{task.nombre_usuario_asignado || <span className="text-muted-foreground italic">Sin Asignar</span>}</TableCell>
@@ -284,3 +284,4 @@ export default function TasksPage() {
     
 
     
+
