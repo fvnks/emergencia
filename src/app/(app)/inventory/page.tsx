@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle, PlusCircle } from "lucide-react";
+import { Edit, Trash2, ArrowRightLeft, UserPlus, PackageSearch, Loader2, AlertTriangle, PlusCircle, Eye } from "lucide-react"; // Added Eye
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AddInventoryItemDialog } from "@/components/inventory/add-inventory-item-dialog";
@@ -23,6 +23,7 @@ import { EditInventoryItemDialog } from "@/components/inventory/edit-inventory-i
 import { DeleteInventoryItemDialog } from "@/components/inventory/delete-inventory-item-dialog";
 import { AssignEppDialog } from "@/components/inventory/assign-epp-dialog";
 import { InventoryMovementHistoryDialog } from "@/components/inventory/inventory-movement-history-dialog";
+import { ViewInventoryItemDialog } from "@/components/inventory/view-inventory-item-dialog"; // Added View Dialog
 
 
 declare module "@/components/ui/button" {
@@ -51,6 +52,8 @@ export default function InventoryPage() {
   const [selectedItemForHistory, setSelectedItemForHistory] = useState<InventoryItem | null>(null);
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
 
+  const [selectedItemForView, setSelectedItemForView] = useState<InventoryItem | null>(null); // State for View Dialog
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false); // State for View Dialog
 
   const fetchPageData = useCallback(async () => {
     try {
@@ -122,6 +125,11 @@ export default function InventoryPage() {
   const openHistoryDialog = (item: InventoryItem) => {
     setSelectedItemForHistory(item);
     setIsHistoryDialogOpen(true);
+  };
+
+  const openViewDialog = (item: InventoryItem) => { // Function to open View Dialog
+    setSelectedItemForView(item);
+    setIsViewDialogOpen(true);
   };
 
   const filteredInventoryItems = useMemo(() => {
@@ -271,7 +279,10 @@ export default function InventoryPage() {
                           <Badge variant="outline">No EPP</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-right space-x-2">
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="outline" size="icon" className="h-8 w-8" title="Ver Detalles" onClick={() => openViewDialog(item)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" size="icon" className="h-8 w-8" title="Historial Movimiento" onClick={() => openHistoryDialog(item)}>
                         <ArrowRightLeft className="h-4 w-4" />
                       </Button>
@@ -321,9 +332,18 @@ export default function InventoryPage() {
             onOpenChange={setIsHistoryDialogOpen}
         />
       )}
+      {selectedItemForView && (
+        <ViewInventoryItemDialog
+            item={selectedItemForView}
+            open={isViewDialogOpen}
+            onOpenChange={setIsViewDialogOpen}
+        />
+      )}
     </div>
   );
 }
 
+
+    
 
     
