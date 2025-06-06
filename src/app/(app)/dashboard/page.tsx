@@ -3,7 +3,7 @@
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock, TruckOff } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService"
 import { getAllMaintenanceTasks, type MaintenanceTask } from "@/services/maintenanceService";
 import { getAllEraEquipments, type EraEquipment } from "@/services/eraService";
 import { getAllInventoryItems, type InventoryItem } from "@/services/inventoryService";
-import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays } from 'date-fns';
+import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, isBefore, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 
@@ -38,7 +38,10 @@ interface ActivityItem {
   description: string;
   icon: LucideIcon;
   iconClassName: string;
-  type: 'task' | 'maintenance' | 'vehicle' | 'equipment' | 'personnel' | 'inventory' | 'alert';
+  type: 'task' | 'maintenance_log' | 'vehicle_log' | 'equipment_log' | 'personnel_log' | 'inventory_log' |
+        'alert_stock' | 'alert_maintenance_overdue' | 'alert_vehicle_oos';
+  details?: string;
+  severity?: 'info' | 'warning' | 'error';
 }
 
 interface DailyOpsChartDataItem {
@@ -60,6 +63,7 @@ export default function DashboardPage() {
   const [totalReadyEquipmentCount, setTotalReadyEquipmentCount] = useState<number | string>("N/A");
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [dailyOpsChartData, setDailyOpsChartData] = useState<DailyOpsChartDataItem[]>([]);
+  const [activeAlertsCount, setActiveAlertsCount] = useState<number | string>("N/A");
 
 
   const [loading, setLoading] = useState(true);
@@ -79,26 +83,21 @@ export default function DashboardPage() {
           getAllMaintenanceTasks(),
         ]);
 
-        // Process vehicle data
         const operative = vehiclesData.filter(v => v.estado_vehiculo === 'Operativo').length;
         setOperativeVehicles(operative);
         setTotalVehicles(vehiclesData.length);
 
-        // Process personnel data
         setPersonnelCount(usersData.length);
         setTotalPersonnel(usersData.length);
 
-        // Process tasks data
         const activeTasks = tasksData.filter(task => ACTIVE_TASK_STATUSES.includes(task.estado_tarea));
         const overdueTasks = activeTasks.filter(task => task.estado_tarea === 'Atrasada');
         setActiveTasksCount(activeTasks.length);
         setOverdueTasksCount(overdueTasks.length);
 
-        // Process ERA data
         const erasReady = eraData.filter(era => READY_ERA_STATUSES.includes(era.estado_era)).length;
         setReadyEraCount(erasReady);
         
-        // Process Inventory data for Extinguishers
         const extinguishersReady = inventoryData.filter(
           item => item.categoria_item?.toLowerCase() === EXTINGUISHER_CATEGORY.toLowerCase() && item.cantidad_actual > 0
         ).length;
@@ -106,12 +105,57 @@ export default function DashboardPage() {
 
         setTotalReadyEquipmentCount(erasReady + extinguishersReady);
 
-        // Process Recent Activity
         const activities: ActivityItem[] = [];
+        const today = startOfDay(new Date());
 
+        // Generate Specific Alerts
+        inventoryData.forEach(item => {
+          if (item.stock_minimo && item.stock_minimo > 0 && item.cantidad_actual <= item.stock_minimo) {
+            activities.push({
+              id: `alert-stock-${item.id_item}`,
+              date: new Date(), // Alert is current
+              description: `Stock bajo: ${item.nombre_item} (${item.codigo_item}). Actual: ${item.cantidad_actual}, Mín: ${item.stock_minimo}.`,
+              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be ArchiveX
+              iconClassName: "text-red-500",
+              type: 'alert_stock',
+              severity: 'warning',
+            });
+          }
+        });
+
+        maintenanceData.forEach(maint => {
+          if (maint.fecha_programada && isBefore(parseISO(maint.fecha_programada), today) && 
+              maint.estado_mantencion !== 'Completada' && maint.estado_mantencion !== 'Cancelada') {
+            activities.push({
+              id: `alert-maint-${maint.id_mantencion}`,
+              date: parseISO(maint.fecha_programada), // Date of the overdue event
+              description: `Mantención Vencida: ${maint.nombre_item_mantenimiento}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
+              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be Wrench or CalendarClock
+              iconClassName: "text-red-500",
+              type: 'alert_maintenance_overdue',
+              severity: 'error',
+            });
+          }
+        });
+
+        vehiclesData.forEach(vehicle => {
+          if (vehicle.estado_vehiculo === 'Fuera de Servicio') {
+            activities.push({
+              id: `alert-vehicle-${vehicle.id_vehiculo}`,
+              date: new Date(), // Alert is current
+              description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
+              icon: AlertTriangle, // Using generic AlertTriangle, specific icon can be TruckOff
+              iconClassName: "text-red-500",
+              type: 'alert_vehicle_oos',
+              severity: 'error',
+            });
+          }
+        });
+        
+        // Add other activity logs (tasks, maintenance completions, etc.)
         tasksData
           .sort((a, b) => new Date(b.fecha_actualizacion).getTime() - new Date(a.fecha_actualizacion).getTime())
-          .slice(0, 3)
+          .slice(0, 3) // Limit non-alert activities to avoid clutter if many alerts
           .forEach(task => {
             let taskDesc = `Tarea T-${task.id_tarea.toString().padStart(3,'0')}`;
             if (task.fecha_actualizacion !== task.fecha_creacion && task.estado_tarea === 'Completada') {
@@ -128,79 +172,43 @@ export default function DashboardPage() {
               icon: Activity,
               iconClassName: "text-blue-500",
               type: 'task',
+              severity: 'info',
             });
           });
 
         maintenanceData
-          .sort((a, b) => {
-            const dateAValue = a.fecha_completada || a.fecha_programada || a.fecha_actualizacion;
-            const dateBValue = b.fecha_completada || b.fecha_programada || b.fecha_actualizacion;
-            return new Date(dateBValue).getTime() - new Date(dateAValue).getTime();
-          })
+          .filter(m => m.estado_mantencion === 'Completada' && m.fecha_completada) // Only completed for recent activity list
+          .sort((a, b) => new Date(b.fecha_completada!).getTime() - new Date(a.fecha_completada!).getTime())
           .slice(0, 2)
           .forEach(maint => {
-            let maintDesc = `Mantención para "${maint.nombre_item_mantenimiento.substring(0,20)}..."`;
-            let activityDate: Date;
-
-            if (maint.estado_mantencion === 'Completada' && maint.fecha_completada) {
-              maintDesc += ` completada.`;
-              activityDate = parseISO(maint.fecha_completada);
-            } else if (maint.fecha_programada) {
-              maintDesc += ` programada.`;
-              activityDate = parseISO(maint.fecha_programada);
-            } else {
-              maintDesc += ` registrada.`;
-              activityDate = new Date(maint.fecha_actualizacion);
-            }
             activities.push({
-              id: `maint-${maint.id_mantencion}`,
-              date: activityDate,
-              description: maintDesc,
+              id: `maint-log-${maint.id_mantencion}`,
+              date: parseISO(maint.fecha_completada!),
+              description: `Mantención para "${maint.nombre_item_mantenimiento.substring(0,20)}..." completada.`,
               icon: Wrench,
-              iconClassName: "text-yellow-600",
-              type: 'maintenance',
+              iconClassName: "text-green-500",
+              type: 'maintenance_log',
+              severity: 'info',
             });
           });
         
-        vehiclesData
-            .sort((a,b) => new Date(b.fecha_creacion).getTime() - new Date(a.fecha_creacion).getTime())
-            .slice(0,1)
-            .forEach(vehicle => {
-                activities.push({
-                    id: `vehicle-${vehicle.id_vehiculo}`,
-                    date: new Date(vehicle.fecha_creacion),
-                    description: `Nuevo vehículo ${vehicle.marca} ${vehicle.modelo} (ID: ${vehicle.identificador_interno || vehicle.patente || vehicle.id_vehiculo}) agregado.`,
-                    icon: Truck,
-                    iconClassName: "text-green-500",
-                    type: 'vehicle',
-                });
-            });
-        
-         activities.push({
-              id: 'alert-fuel-low',
-              date: new Date(Date.now() - 2 * 60 * 60 * 1000), 
-              description: "Alerta de combustible bajo para Vehículo #5 (Patente XYZ-789).",
-              icon: AlertTriangle,
-              iconClassName: "text-red-500",
-              type: 'alert',
-            });
-
-
         setRecentActivity(
           activities
-            .sort((a, b) => b.date.getTime() - a.date.getTime())
-            .slice(0, 5) 
+            .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort all activities including new alerts
+            .slice(0, 7) // Show more items if alerts are present
         );
 
-        // Process Daily Operations Chart Data
-        const today = new Date();
-        // Ensure week starts on Monday for 'es' locale typically
-        const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
+        // Update Active Alerts Count for StatCard
+        const currentActiveAlerts = activities.filter(a => a.type.startsWith('alert_')).length;
+        setActiveAlertsCount(currentActiveAlerts);
+
+
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
         const daysInWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
         const chartData: DailyOpsChartDataItem[] = daysInWeek.map(day => ({
-            name: format(day, 'E', { locale: es }).charAt(0).toUpperCase() + format(day, 'E', { locale: es }).slice(1,3), // Ej: Lun, Mar
+            name: format(day, 'E', { locale: es }).charAt(0).toUpperCase() + format(day, 'E', { locale: es }).slice(1,3),
             ops: 0,
             maint: 0
         }));
@@ -208,7 +216,6 @@ export default function DashboardPage() {
         tasksData.forEach(task => {
             const taskCreationDate = new Date(task.fecha_creacion);
             chartData.forEach(dayData => {
-                // Ensure dayData.name corresponds to a date object for comparison
                 const dayDate = daysInWeek.find(d => (format(d, 'E', { locale: es }).charAt(0).toUpperCase() + format(d, 'E', { locale: es }).slice(1,3)) === dayData.name);
                 if (dayDate && isValid(taskCreationDate) && isSameDay(taskCreationDate, dayDate)) {
                     dayData.ops += 1;
@@ -218,7 +225,7 @@ export default function DashboardPage() {
 
         maintenanceData.forEach(maint => {
             if (maint.fecha_completada) {
-                const maintCompletionDate = parseISO(maint.fecha_completada); // Assuming YYYY-MM-DD
+                const maintCompletionDate = parseISO(maint.fecha_completada);
                  chartData.forEach(dayData => {
                     const dayDate = daysInWeek.find(d => (format(d, 'E', { locale: es }).charAt(0).toUpperCase() + format(d, 'E', { locale: es }).slice(1,3)) === dayData.name);
                     if (dayDate && isValid(maintCompletionDate) && isSameDay(maintCompletionDate, dayDate)) {
@@ -228,7 +235,6 @@ export default function DashboardPage() {
             }
         });
         setDailyOpsChartData(chartData);
-
 
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
@@ -242,6 +248,7 @@ export default function DashboardPage() {
         setReadyEraCount("Error");
         setReadyExtinguisherCount("Error");
         setTotalReadyEquipmentCount("Error");
+        setActiveAlertsCount("Error");
         setRecentActivity([]);
         setDailyOpsChartData( Array(7).fill(null).map((_, i) => ({ name: format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).charAt(0).toUpperCase() + format(addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), i), 'E', { locale: es }).slice(1,3), ops: 0, maint: 0 })) );
       } finally {
@@ -249,9 +256,11 @@ export default function DashboardPage() {
       }
     }
     fetchDashboardData();
+    const intervalId = setInterval(fetchDashboardData, 60000); // Refresh dashboard data every minute
+    return () => clearInterval(intervalId);
   }, []);
 
-  if (loading) {
+  if (loading && recentActivity.length === 0) { // Show loading only on initial load
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
@@ -260,7 +269,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (error) {
+  if (error && recentActivity.length === 0) { // Show error only if it's the initial load error
     return (
       <div className="flex items-center justify-center h-64 text-destructive">
         <AlertTriangle className="h-8 w-8 mr-2" />
@@ -315,10 +324,18 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Alertas Activas"
-          value={recentActivity.filter(a => a.type === 'alert').length.toString()}
+          value={activeAlertsCount.toString()}
           icon={AlertTriangle}
-          description="Requieren atención inmediata"
-          iconClassName="text-red-500"
+          description={
+            typeof activeAlertsCount === 'number' && activeAlertsCount > 0 
+            ? "Requieren atención inmediata" 
+            : "Sin alertas críticas"
+          }
+          iconClassName={
+            typeof activeAlertsCount === 'number' && activeAlertsCount > 0 
+            ? "text-red-500 animate-pulse" 
+            : "text-green-500"
+          }
         />
       </div>
 
@@ -349,8 +366,8 @@ export default function DashboardPage() {
 
         <Card className="shadow-md">
           <CardHeader>
-            <CardTitle className="font-headline">Actividad Reciente</CardTitle>
-            <CardDescription>Registro de eventos importantes recientes.</CardDescription>
+            <CardTitle className="font-headline">Actividad Reciente y Alertas</CardTitle>
+            <CardDescription>Registro de eventos importantes y alertas activas.</CardDescription>
           </CardHeader>
           <CardContent>
             {recentActivity.length > 0 ? (
@@ -359,10 +376,10 @@ export default function DashboardPage() {
                   <li key={activity.id} className="flex items-start">
                     <activity.icon className={cn("h-4 w-4 mr-2 mt-0.5 flex-shrink-0", activity.iconClassName)} />
                     <div className="flex-grow">
-                      <span>{activity.description}</span>
+                      <span className={cn(activity.type.startsWith('alert_') && "font-semibold")}>{activity.description}</span>
                       {isValid(activity.date) && (
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(activity.date, { addSuffix: true, locale: es })}
+                          {activity.type.startsWith('alert_') ? `Detectada ${formatDistanceToNow(activity.date, { addSuffix: true, locale: es })}` : formatDistanceToNow(activity.date, { addSuffix: true, locale: es })}
                         </p>
                       )}
                     </div>
@@ -370,7 +387,7 @@ export default function DashboardPage() {
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">No hay actividad reciente para mostrar.</p>
+              <p className="text-sm text-muted-foreground">No hay actividad reciente ni alertas para mostrar.</p>
             )}
           </CardContent>
         </Card>
@@ -378,3 +395,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
