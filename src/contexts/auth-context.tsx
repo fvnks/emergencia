@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthError(null);
     try {
       const dbUser = await getUserByEmail(email);
-      console.log('AuthContext - dbUser.nombre_rol:', dbUser?.nombre_rol); // Log para depuración
+      // console.log('AuthContext - dbUser.nombre_rol:', dbUser?.nombre_rol); // Log para depuración eliminado
       if (!dbUser || !dbUser.password_hash) {
         throw new Error('Usuario no encontrado o cuenta no activa.');
       }
@@ -115,3 +115,4 @@ export function useAuth() {
   }
   return context;
 }
+
