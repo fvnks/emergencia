@@ -34,8 +34,9 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Edit } from "lucide-react";
-import type { Checklist, ChecklistStatus } from "@/app/(app)/checklists/page"; // Importar ChecklistStatus
-import { ALL_CHECKLIST_STATUSES } from "@/app/(app)/checklists/page"; // Importar los estados
+import type { Checklist } from "@/app/(app)/checklists/page";
+import type { ChecklistStatus } from "@/types/checklistTypes";
+import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
 
 const editChecklistFormSchema = z.object({
   name: z.string().min(3, { message: "El nombre del checklist debe tener al menos 3 caracteres." }),
@@ -217,3 +218,4 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     </Dialog>
   );
 }
+

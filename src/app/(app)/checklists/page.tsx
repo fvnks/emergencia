@@ -23,9 +23,8 @@ import { AddChecklistDialog, type NewChecklistData } from "@/components/checklis
 import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
 import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
-
-export type ChecklistStatus = 'Nuevo' | 'En Progreso' | 'Completado';
-export const ALL_CHECKLIST_STATUSES: ChecklistStatus[] = ['Nuevo', 'En Progreso', 'Completado'];
+import type { ChecklistStatus } from "@/types/checklistTypes";
+import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
 
 
 export interface Checklist {
@@ -299,3 +298,4 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
