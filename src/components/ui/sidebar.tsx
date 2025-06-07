@@ -207,7 +207,7 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-[hsl(var(--sidebar-foreground))]"
+        className={cn("peer hidden md:block text-[hsl(var(--sidebar-foreground))]", className)} // Removida la clase 'group' de aquí
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
@@ -578,8 +578,8 @@ const SidebarMenuButton = React.forwardRef<
                 child.props.className, 
                 isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' 
                          : 'text-[hsl(var(--sidebar-item-icon-fg))]',
-                'group-hover:text-[hsl(var(--sidebar-item-hover-icon-fg))]',  // Changed to group-hover
-                'group-focus-visible:text-[hsl(var(--sidebar-item-hover-icon-fg))]' // Changed to group-focus-visible
+                'group-hover:text-[hsl(var(--sidebar-item-hover-icon-fg))]',
+                'group-focus-visible:text-[hsl(var(--sidebar-item-hover-icon-fg))]'
               )
             });
           }
