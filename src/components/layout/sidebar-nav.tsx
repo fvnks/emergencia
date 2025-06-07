@@ -21,7 +21,7 @@ import {
   Map,
   Fingerprint,
   BarChart3,
-  ClipboardCheck as ChecklistIcon, // Renombrado para evitar colisión
+  ClipboardCheck as ChecklistIcon, 
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -35,18 +35,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover/menu-button:scale-110" },
-  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map, animationClass: "group-hover/menu-button:scale-110 group-hover/menu-button:rotate-3" },
-  { href: "/vehicles", label: "Vehículos", icon: Truck, animationClass: "group-hover/menu-button:translate-x-0.5" },
-  { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck, animationClass: "group-hover/menu-button:scale-110" },
-  { href: "/maintenance", label: "Mantención", icon: Wrench, animationClass: "group-hover/menu-button:rotate-[-15deg]" },
-  { href: "/inventory", label: "Inventario", icon: Archive, animationClass: "group-hover/menu-button:rotate-2 group-hover/menu-button:translate-y-[-1px]" },
-  { href: "/tasks", label: "Tareas", icon: ClipboardList, animationClass: "group-hover/menu-button:translate-y-[-1.5px]" },
-  { href: "/reports", label: "Informes", icon: BarChart3, animationClass: "group-hover/menu-button:scale-105" },
-  { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover/menu-button:translate-y-[-1.5px]" },
-  { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover/menu-button:scale-105" },
-  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, animationClass: "group-hover/menu-button:scale-110 group-hover/menu-button:opacity-80" },
-  { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover/menu-button:rotate-45" },
+  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover:scale-110" },
+  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map, animationClass: "group-hover:scale-110 group-hover:rotate-3" },
+  { href: "/vehicles", label: "Vehículos", icon: Truck, animationClass: "group-hover:translate-x-0.5" },
+  { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck, animationClass: "group-hover:scale-110" },
+  { href: "/maintenance", label: "Mantención", icon: Wrench, animationClass: "group-hover:rotate-[-15deg]" },
+  { href: "/inventory", label: "Inventario", icon: Archive, animationClass: "group-hover:rotate-2 group-hover:translate-y-[-1px]" },
+  { href: "/tasks", label: "Tareas", icon: ClipboardList, animationClass: "group-hover:translate-y-[-1.5px]" },
+  { href: "/reports", label: "Informes", icon: BarChart3, animationClass: "group-hover:scale-105" },
+  { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover:translate-y-[-1.5px]" },
+  { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover:scale-105" },
+  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, animationClass: "group-hover:scale-110 group-hover:opacity-80" },
+  { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover:rotate-45" },
 ];
 
 export function SidebarNav() {

@@ -508,7 +508,7 @@ const SidebarMenuItem = React.forwardRef<
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button relative flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left outline-none ring-[hsl(var(--sidebar-ring))] transition-colors focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button relative flex w-full items-center gap-2.5 overflow-hidden rounded-md p-2 text-left outline-none ring-[hsl(var(--sidebar-ring))] transition-colors focus-visible:ring-2 active:bg-[hsl(var(--sidebar-item-active-bg))] active:text-[hsl(var(--sidebar-item-active-fg))] disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-[1.125rem] [&>svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -567,7 +567,7 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+        className={cn(sidebarMenuButtonVariants({ variant, size }), "group", className)} // Added "group" here
         {...props}
       >
         
@@ -578,8 +578,8 @@ const SidebarMenuButton = React.forwardRef<
                 child.props.className, 
                 isActive ? 'text-[hsl(var(--sidebar-item-active-icon-fg))]' 
                          : 'text-[hsl(var(--sidebar-item-icon-fg))]',
-                'group-hover/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]', 
-                'group-focus-visible/menu-button:text-[hsl(var(--sidebar-item-hover-icon-fg))]' 
+                'group-hover:text-[hsl(var(--sidebar-item-hover-icon-fg))]',  // Changed to group-hover
+                'group-focus-visible:text-[hsl(var(--sidebar-item-hover-icon-fg))]' // Changed to group-focus-visible
               )
             });
           }
