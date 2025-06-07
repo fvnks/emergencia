@@ -31,21 +31,22 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   adminOnly?: boolean;
+  animationClass?: string;
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Panel Principal", icon: Home },
-  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map },
-  { href: "/vehicles", label: "Vehículos", icon: Truck },
-  { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck },
-  { href: "/maintenance", label: "Mantención", icon: Wrench },
-  { href: "/inventory", label: "Inventario", icon: Archive },
-  { href: "/tasks", label: "Tareas", icon: ClipboardList },
-  { href: "/reports", label: "Informes", icon: BarChart3 },
-  { href: "/checklists", label: "Checklists", icon: ChecklistIcon },
-  { href: "/personnel", label: "Personal", icon: Users },
-  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true },
-  { href: "/settings", label: "Configuración", icon: SettingsIcon },
+  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover/menu-button:scale-110" },
+  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map, animationClass: "group-hover/menu-button:scale-110 group-hover/menu-button:rotate-3" },
+  { href: "/vehicles", label: "Vehículos", icon: Truck, animationClass: "group-hover/menu-button:translate-x-0.5" },
+  { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck, animationClass: "group-hover/menu-button:scale-110" },
+  { href: "/maintenance", label: "Mantención", icon: Wrench, animationClass: "group-hover/menu-button:rotate-[-15deg]" },
+  { href: "/inventory", label: "Inventario", icon: Archive, animationClass: "group-hover/menu-button:rotate-2 group-hover/menu-button:translate-y-[-1px]" },
+  { href: "/tasks", label: "Tareas", icon: ClipboardList, animationClass: "group-hover/menu-button:translate-y-[-1.5px]" },
+  { href: "/reports", label: "Informes", icon: BarChart3, animationClass: "group-hover/menu-button:scale-105" },
+  { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover/menu-button:translate-y-[-1.5px]" },
+  { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover/menu-button:scale-105" },
+  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, animationClass: "group-hover/menu-button:scale-110 group-hover/menu-button:opacity-80" },
+  { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover/menu-button:rotate-45" },
 ];
 
 export function SidebarNav() {
@@ -73,7 +74,10 @@ export function SidebarNav() {
                 className="justify-start w-full"
                 tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
               >
-                <item.icon />
+                <item.icon className={cn(
+                  'transition-transform duration-200 ease-in-out',
+                  item.animationClass
+                )} />
                 <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
               </SidebarMenuButton>
             </Link>
