@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image"; // Import next/image
 import { usePathname } from "next/navigation";
 import {
   SidebarMenu,
@@ -21,7 +22,7 @@ import {
   Map,
   Fingerprint,
   BarChart3,
-  ClipboardCheck as ChecklistIcon, 
+  ClipboardCheck as ChecklistIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -29,13 +30,24 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
-  adminOnly?: boolean;
+  icon: LucideIcon | React.FC<any>; // Allow React functional components for icons
   animationClass?: string;
+  adminOnly?: boolean;
 }
 
+// Placeholder Base64 para el icono del monitor (reemplazar con el real si se proporciona)
+const MonitorIconPlaceholder = () => (
+  <Image
+    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAsQAAALEBxi1JjAAAAAd0SU1FB+YMFBMyMRgA804AAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAACXUlEQVRYw+2Xv0sbcRTHP7/NZrJFNJUEYUAQh4BEBTsoBURxcBFUPARxFKxEQRGnZNXQSiToZCChKIdaOToEoSgiiEMQBEFRClRaFBsV3//z/o8jef9q94U7YOLO3fP7ved87979Q861/P8YQJaJt0/nNg7QJk0A8sK03zU/gH7MvNOYfJ4XvQ0fXg0N+58s8A00wTzzBTP519m2iW7P08+H1W8JjN5tX9PZGZ3RkK0hYqX/sH91m0M1pYjK8XW1c41m3iV/wV905WwH7R5LpGq4mC1gE/R0c5XjQbhbE76/2uJcYFVBR0BvV9fE+g1QZfN63zLdFm3FzE+l0HkEwG9H0+jA37zwywDTbVLeGf9Wz4XNFPwUe3L0hZJ6jXUq0lWkvJtK1Uq2lVKtJWStVq7KkVSWtSlKdpZ89y4xU0H32LBrT/e4t1024d2mG/zK2O7M6I6G9A1E379zV+v2+K0xNT9x59k8A00wTzzBTP51+2u7P08+H1x+K0xKjA8k9x2Z5yYnO+nZf44KkBquf6C/i5x9i3W/eZm5iYnPJ/v8Z7T9bW5gZ1eO9b+7NlDqBqgKq8j0FfK92G942sF2r3gWwG9H0+X8T5w00wzzTBzP1M2dZsfzz6vK+RUZGZ3THK/k+1VOpVpKxKUnalVSvaVUq2lVKtJWStVq7KlVSVtStKkp1lf4s9k8Qo6M6XvQ0/gH7MvNMYgP8H0A/pX5vml/AP2beaQpA4rUAAAAASUVORK5CYII="
+    alt="Panel Principal"
+    width={22} // Ajustar según el tamaño deseado (ej. 1.125rem * 16px/rem)
+    height={22}
+    className="transition-transform duration-200 ease-in-out group-hover:scale-110"
+  />
+);
+
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover:scale-110" },
+  { href: "/dashboard", label: "Panel Principal", icon: MonitorIconPlaceholder, animationClass: "group-hover:scale-110" }, // Icono reemplazado
   { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map, animationClass: "group-hover:scale-110 group-hover:rotate-3" },
   { href: "/vehicles", label: "Vehículos", icon: Truck, animationClass: "group-hover:translate-x-0.5" },
   { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck, animationClass: "group-hover:scale-110" },
@@ -66,23 +78,32 @@ export function SidebarNav() {
         MENU
       </div>
       <SidebarMenu>
-        {filteredNavItems.map((item) => (
-          <SidebarMenuItem key={item.href}>
-            <Link href={item.href} passHref legacyBehavior>
-              <SidebarMenuButton
-                isActive={pathname.startsWith(item.href)}
-                className="justify-start w-full"
-                tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
-              >
-                <item.icon className={cn(
-                  'transition-transform duration-200 ease-in-out',
-                  item.animationClass
-                )} />
-                <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
-              </SidebarMenuButton>
-            </Link>
-          </SidebarMenuItem>
-        ))}
+        {filteredNavItems.map((item) => {
+          const IconComponent = item.icon;
+          // La clase de animación se aplica directamente en el componente Image si es un APNG,
+          // o se mantiene en el elemento IconComponent si es Lucide.
+          // Para el icono de Dashboard (MonitorIconPlaceholder), la animación ya está en su definición.
+          // Para los demás, animationClass se aplica al IconComponent.
+          const iconClasses = cn(
+            'transition-transform duration-200 ease-in-out',
+            item.href === "/dashboard" ? "" : item.animationClass // No aplicar animationClass externa al de APNG
+          );
+
+          return (
+            <SidebarMenuItem key={item.href}>
+              <Link href={item.href} passHref legacyBehavior>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith(item.href)}
+                  className="justify-start w-full"
+                  tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
+                >
+                  <IconComponent className={iconClasses} />
+                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          );
+        })}
       </SidebarMenu>
     </>
   );
