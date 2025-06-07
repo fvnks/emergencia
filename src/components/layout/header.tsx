@@ -10,7 +10,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
   DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,7 +17,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
 import { useAppData, type AlertNotificationItem } from "@/contexts/app-data-context";
-import { LogOut, Settings, Bell, Search, Sun, Moon } from "lucide-react"; // Added Sun, Moon
+import { LogOut, Settings, Bell, Search, Sun, Moon } from "lucide-react"; 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -27,6 +26,7 @@ import { es } from 'date-fns/locale';
 import { Input } from "@/components/ui/input";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const getPageTitle = (pathname: string) => {
   const segments = pathname.split('/').filter(Boolean);
@@ -92,10 +92,14 @@ export function Header() {
   const toggleTheme = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
+  
+  const iconVariants = {
+    initial: { opacity: 0, rotate: -90, scale: 0 },
+    animate: { opacity: 1, rotate: 0, scale: 1 },
+    exit: { opacity: 0, rotate: 90, scale: 0 },
+  };
 
   if (!mounted) {
-    // Render placeholder or null for theme button to avoid hydration mismatch
-    // Or better, ensure the whole header conditional rendering based on mounted
     return (
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 md:px-6">
          <div><SidebarTrigger /></div>
@@ -127,9 +131,38 @@ export function Header() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={toggleTheme} className="rounded-full h-9 w-9">
-                    {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    <span className="sr-only">Cambiar tema</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    className="rounded-full h-9 w-9 flex items-center justify-center overflow-hidden"
+                    aria-label={resolvedTheme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {resolvedTheme === 'dark' ? (
+                        <motion.div
+                          key="moon"
+                          variants={iconVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                        >
+                          <Moon className="h-5 w-5" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="sun"
+                          variants={iconVariants}
+                          initial="initial"
+                          animate="animate"
+                          exit="exit"
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
+                        >
+                          <Sun className="h-5 w-5" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
