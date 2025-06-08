@@ -41,7 +41,6 @@ const editVehicleFormSchema = z.object({
   fecha_adquisicion: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   proxima_mantencion_programada: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
   vencimiento_documentacion: z.string().nullable().optional().refine(val => !val || val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), { message: "Formato de fecha inválido (AAAA-MM-DD)." }),
-  url_imagen: z.string().url("URL de imagen inválida si se provee.").nullable().optional(),
   imagen_archivo: z.custom<File | null | undefined>(
       (val) => val === undefined || val === null || val instanceof File,
       "Debe ser un archivo"
@@ -90,7 +89,6 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
       fecha_adquisicion: "",
       proxima_mantencion_programada: "",
       vencimiento_documentacion: "",
-      url_imagen: "",
       imagen_archivo: null,
       notas: "",
       assignedEraIds: [],
@@ -130,14 +128,14 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
               nombre_item: `${item.nombre_item} (${item.codigo_item}) - Disp: ${item.cantidad_actual} ${item.unidad_medida}`,
               cantidad: assignedItem ? assignedItem.cantidad : 1,
               selected: !!assignedItem,
-              max_cantidad: stockConsideringAssignment > 0 ? stockConsideringAssignment : 1 // Ensure max_cantidad is at least 1 if it's assignable
+              max_cantidad: stockConsideringAssignment > 0 ? stockConsideringAssignment : 1
             };
           });
 
           form.reset({
             identificador_interno: vehicle.identificador_interno || "",
-            marca: vehicle.marca || "", // Ensure string
-            modelo: vehicle.modelo || "", // Ensure string
+            marca: vehicle.marca || "", 
+            modelo: vehicle.modelo || "", 
             patente: vehicle.patente || "",
             tipo_vehiculo: vehicle.tipo_vehiculo || null,
             estado_vehiculo: vehicle.estado_vehiculo || "Operativo",
@@ -145,8 +143,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
             fecha_adquisicion: vehicle.fecha_adquisicion || "",
             proxima_mantencion_programada: vehicle.proxima_mantencion_programada || "",
             vencimiento_documentacion: vehicle.vencimiento_documentacion || "",
-            url_imagen: vehicle.url_imagen || "",
-            imagen_archivo: null,
+            imagen_archivo: null, // Always reset file input
             notas: vehicle.notas || "",
             assignedEraIds: currentAssignedEraIds,
             assignedInventoryItems: initialInventoryItemsForForm,
@@ -173,12 +170,12 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     if (!vehicle) return;
     setIsSubmitting(true);
 
-    let finalUrlImagen = values.url_imagen;
     let imageUploadMessage = "";
+    let urlImagenParaEnviar: string | null | undefined = vehicle.url_imagen; // Default to original URL
 
     if (values.imagen_archivo) {
       console.log("Nuevo archivo de imagen seleccionado para editar (backend no implementado):", values.imagen_archivo.name);
-      finalUrlImagen = null; 
+      urlImagenParaEnviar = null; // Signal backend to use new file, remove old URL
       imageUploadMessage = "La subida de la nueva imagen seleccionada requiere implementación de backend. La URL de imagen actual se eliminará o actualizará si el backend está preparado.";
     }
     
@@ -198,8 +195,8 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
         fecha_adquisicion: values.fecha_adquisicion || null,
         proxima_mantencion_programada: values.proxima_mantencion_programada || null,
         vencimiento_documentacion: values.vencimiento_documentacion || null,
-        url_imagen: finalUrlImagen,
-        ai_hint_imagen: null, 
+        url_imagen: urlImagenParaEnviar, // Send original or null if new file
+        ai_hint_imagen: null, // ai_hint_imagen se puede re-generar en backend si es necesario
         notas: values.notas || null,
         assignedEraIds: values.assignedEraIds,
         assignedInventoryItems: finalAssignedInventoryItems,
@@ -305,10 +302,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                 <FormItem><FormLabel>Venc. Documentos</FormLabel><FormControl><Input type="date" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
               )} />
             </div>
-            <FormField control={form.control} name="url_imagen" render={({ field }) => (
-                <FormItem><FormLabel>URL Imagen Actual (Opcional)</FormLabel><FormControl><Input {...field} value={field.value ?? ''} placeholder="https://ejemplo.com/imagen.png" /></FormControl>
-                <FormDescription>Mantener o editar URL existente si no se sube una nueva imagen.</FormDescription><FormMessage /></FormItem>
-            )} />
+            
             <FormField
               control={form.control}
               name="imagen_archivo"
@@ -325,7 +319,8 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                     />
                   </FormControl>
                   <FormDescription>
-                    Si selecciona un archivo, reemplazará la URL de imagen actual (subida de archivo requiere backend). Máx. {MAX_FILE_SIZE_MB}MB.
+                    Si selecciona un archivo, reemplazará la imagen actual (subida de archivo requiere backend). Máx. {MAX_FILE_SIZE_MB}MB.
+                    {vehicle?.url_imagen && !value && <span className="block mt-1">Imagen actual: <a href={vehicle.url_imagen} target="_blank" rel="noopener noreferrer" className="text-primary underline">{vehicle.url_imagen.substring(0,50)}...</a></span>}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -439,11 +434,11 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                                       type="number"
                                       placeholder="Cant."
                                       {...field}
-                                      value={field.value ?? 1} // Ensure controlled with a default if somehow null/undefined
+                                      value={field.value ?? 1} 
                                       min={1}
                                       max={itemInForm.max_cantidad}
                                       disabled={!form.watch(`assignedInventoryItems.${originalIndex}.selected`)}
-                                      className="h-8"
+                                      className="h-8 text-sm"
                                       onChange={(e) => {
                                           const val = parseInt(e.target.value, 10);
                                           const maxVal = itemInForm.max_cantidad ?? Infinity;
@@ -459,7 +454,7 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
                                       }}
                                     />
                                   </FormControl>
-                                  <FormMessage className="text-xs" />
+                                  <FormMessage className="text-xs mt-1" />
                                 </FormItem>
                               )}
                             />
@@ -485,5 +480,4 @@ export function EditVehicleDialog({ vehicle, onVehicleUpdated, open, onOpenChang
     </Dialog>
   );
 }
-
     
