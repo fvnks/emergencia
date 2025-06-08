@@ -37,10 +37,10 @@ function hexToHsl(hex: string): [number, number, number] | null {
   let b = parseInt(result[3], 16) / 255;
 
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s, l = (max + min) / 2; // Initialize h to 0
+  let h = 0, s, l = (max + min) / 2;
 
   if (max === min) {
-    s = 0; // achromatic
+    s = 0; 
   } else {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -74,8 +74,7 @@ export default function AppearanceSettingsPage() {
 
   const [primaryColorHex, setPrimaryColorHex] = useState(hslToHex(...DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
   const [accentColorHex, setAccentColorHex] = useState(hslToHex(...DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
-  const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD");
-
+  const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD"); // Default light background
 
   const applyCustomColorsToDOM = (primaryHslStr: string | null, accentHslStr: string | null) => {
     const root = document.documentElement;
@@ -112,16 +111,12 @@ export default function AppearanceSettingsPage() {
     const storedPrimaryHsl = localStorage.getItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
     const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_THEME_ACCENT_HSL);
 
-    let initialPrimaryHsl = DEFAULT_PRIMARY_HSL_STRING;
-    let initialAccentHsl = DEFAULT_ACCENT_HSL_STRING;
-
     if (storedPrimaryHsl) {
       const [h,s,l] = storedPrimaryHsl.split(" ").map(v => parseFloat(v.replace('%','')));
       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
         setPrimaryColorHex(hslToHex(h,s,l));
-        initialPrimaryHsl = storedPrimaryHsl;
       } else {
-         localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
+         localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL); // Clean up invalid stored value
       }
     } else {
       const [h,s,l] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
@@ -132,18 +127,16 @@ export default function AppearanceSettingsPage() {
       const [h,s,l] = storedAccentHsl.split(" ").map(v => parseFloat(v.replace('%','')));
       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
         setAccentColorHex(hslToHex(h,s,l));
-        initialAccentHsl = storedAccentHsl;
       } else {
-         localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL); 
+         localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);  // Clean up invalid stored value
       }
     } else {
        const [h,s,l] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
     }
     
-    // La aplicación inicial ahora es manejada por ClientThemeInitializer
-    // applyCustomColorsToDOM(initialPrimaryHsl, initialAccentHsl);
-
+    // ClientThemeInitializer handles the initial DOM application.
+    // This useEffect only sets the initial state of the color pickers on this page.
   }, []);
 
   const handleSaveLogo = () => {
@@ -152,7 +145,7 @@ export default function AppearanceSettingsPage() {
         localStorage.setItem(LOCALSTORAGE_LOGO_URL_KEY, logoUrl);
         localStorage.setItem(LOCALSTORAGE_LOGO_TEXT_KEY, logoText);
         toast({ title: "Logo Actualizado", description: "Los cambios en el logo se han guardado en este navegador." });
-        window.dispatchEvent(new Event('customLogoChanged'));
+        window.dispatchEvent(new Event('customLogoChanged')); // Notify other components
     } catch (e) {
         toast({ title: "Error", description: "No se pudo guardar el logo.", variant: "destructive" });
     } finally {
@@ -283,7 +276,7 @@ export default function AppearanceSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center"><PaletteIcon className="mr-2 h-5 w-5 text-primary" /> Colores del Tema</CardTitle>
           <CardDescription>
-            Ajusta los colores primario y de acento de la interfaz.
+            Ajusta los colores primario y de acento de la interfaz. Los cambios son locales a tu navegador.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -318,12 +311,12 @@ export default function AppearanceSettingsPage() {
                 value={backgroundColorHex}
                 onChange={(e) => setBackgroundColorHex(e.target.value)}
                 className="h-10 p-1"
-                disabled // Personalización de fondo más compleja, deshabilitada por ahora
+                disabled // Personalización de fondo más compleja, deshabilitada
               />
             </div>
           </div>
           <p className="text-xs text-muted-foreground">
-            Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos.
+            Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos. El color de fondo es solo demostrativo.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
@@ -340,6 +333,4 @@ export default function AppearanceSettingsPage() {
     </div>
   );
 }
-    
-
     
