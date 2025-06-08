@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Users, Database, ShieldAlert, Warehouse, Fingerprint } from "lucide-react";
-import Link from "next/link";
+import { KeyRound, Database, ShieldAlert } from "lucide-react"; // Removed Users, Warehouse, Fingerprint
+// import Link from "next/link"; // No longer needed
 import { useState } from "react";
 import { performSystemBackup } from "@/ai/flows/backup-system-flow"; // Import the Genkit flow
 
@@ -111,21 +111,6 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
-                  <Link href="/personnel">
-                    <Users className="mr-2 h-4 w-4" /> Gestionar Usuarios
-                  </Link>
-                </Button>
-                 <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
-                  <Link href="/settings/roles-permissions">
-                    <Fingerprint className="mr-2 h-4 w-4" /> Gestionar Roles y Permisos
-                  </Link>
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto justify-start" asChild>
-                  <Link href="/settings/warehouses">
-                    <Warehouse className="mr-2 h-4 w-4" /> Gestionar Bodegas
-                  </Link>
-                </Button>
                 <Button 
                   variant="outline" 
                   className="w-full sm:w-auto justify-start"
