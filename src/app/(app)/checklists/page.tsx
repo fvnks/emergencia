@@ -170,6 +170,17 @@ export default function ChecklistsPage() {
       notes: data.notes,
     };
     setChecklistCompletions(prev => [newCompletion, ...prev].sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()));
+    
+    // Actualizar el estado de la plantilla si era "Nuevo"
+    setChecklists(prevChecklists => 
+      prevChecklists.map(cl => {
+        if (cl.id === data.checklistId && cl.status === "Nuevo") {
+          return { ...cl, status: "En Progreso", lastModified: new Date().toISOString() };
+        }
+        return cl;
+      })
+    );
+
     toast({
       title: "Revisión Guardada",
       description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}.`,
@@ -252,7 +263,7 @@ export default function ChecklistsPage() {
   });
 
   const uniqueCategories = Array.from(new Set(checklists.map(c => c.category).filter(Boolean))) as string[];
-  const uniqueStatuses = Array.from(new Set(checklists.map(c => c.status))) as ChecklistStatus[];
+  const uniqueStatuses = ALL_CHECKLIST_STATUSES;
 
   const getStatusBadgeClassName = (status: Checklist['status']) => {
     switch (status) {
@@ -296,7 +307,7 @@ export default function ChecklistsPage() {
               {uniqueCategories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
             </SelectContent>
           </Select>
-           <Select value={statusFilter} onValueChange={setStatusFilter} disabled={uniqueStatuses.length === 0}>
+           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px] bg-background">
               <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
               <SelectValue placeholder="Estado Plantilla" />
@@ -415,7 +426,7 @@ export default function ChecklistsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">
-                      {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
+                      {isValid(parseISO(checklist.lastModified)) ? format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es }) : checklist.lastModified}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="inline-flex flex-col space-y-1 items-end">
