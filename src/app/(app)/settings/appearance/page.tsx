@@ -24,8 +24,9 @@ const DEFAULT_LOGO_TEXT = "Gestor Brigada";
 const LOCALSTORAGE_THEME_PRIMARY_HSL = "customThemePrimaryHsl";
 const LOCALSTORAGE_THEME_ACCENT_HSL = "customThemeAccentHsl";
 
-const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%"; // #3294F8
-const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";  // #40E0D0
+// Values from globals.css (light theme defaults)
+const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%"; // Approx #3294F8
+const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";  // Approx #40E0D0
 
 function hexToHsl(hex: string): [number, number, number] | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -36,10 +37,10 @@ function hexToHsl(hex: string): [number, number, number] | null {
   let b = parseInt(result[3], 16) / 255;
 
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h, s, l = (max + min) / 2;
+  let h = 0, s, l = (max + min) / 2; // Initialize h to 0
 
   if (max === min) {
-    h = s = 0; // achromatic
+    s = 0; // achromatic
   } else {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -47,7 +48,6 @@ function hexToHsl(hex: string): [number, number, number] | null {
       case r: h = (g - b) / d + (g < b ? 6 : 0); break;
       case g: h = (b - r) / d + 2; break;
       case b: h = (r - g) / d + 4; break;
-      default: h = 0; 
     }
     h /= 6;
   }
@@ -141,7 +141,8 @@ export default function AppearanceSettingsPage() {
        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
     }
     
-    applyCustomColorsToDOM(initialPrimaryHsl, initialAccentHsl);
+    // La aplicación inicial ahora es manejada por ClientThemeInitializer
+    // applyCustomColorsToDOM(initialPrimaryHsl, initialAccentHsl);
 
   }, []);
 
@@ -267,8 +268,9 @@ export default function AppearanceSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button onClick={handleSaveLogo} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Guardar Logo"}
+            <Button variant="secondary" onClick={handleSaveLogo} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
+              Guardar Logo
             </Button>
             <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
@@ -325,15 +327,19 @@ export default function AppearanceSettingsPage() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button onClick={handleApplyColors} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Aplicar Colores"}
+            <Button variant="secondary" onClick={handleApplyColors} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PaletteIcon className="mr-2 h-4 w-4" />}
+              Aplicar Colores
             </Button>
             <Button variant="outline" onClick={handleRestoreDefaultColors} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Restaurar Colores"}
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              Restaurar Colores
             </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
+    
+
     
