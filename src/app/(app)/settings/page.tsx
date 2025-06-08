@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Database, ShieldAlert, Fingerprint, Users, Warehouse, Palette } from "lucide-react"; 
+import { KeyRound, Database, ShieldAlert, Fingerprint, Users, Warehouse, Palette, Loader2 } from "lucide-react"; 
 import Link from "next/link";
 import { useState } from "react";
 import { performSystemBackup } from "@/ai/flows/backup-system-flow";
@@ -142,8 +142,8 @@ export default function SettingsPage() {
                 disabled={isBackupLoading}
                 className="w-full sm:w-auto"
               >
-                  <Database className="mr-2 h-4 w-4" /> 
-                  {isBackupLoading ? "Respaldando..." : "Respaldo de Datos del Sistema"}
+                {isBackupLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                {isBackupLoading ? "Respaldando Datos..." : "Respaldo de Datos del Sistema"}
               </Button>
                <p className="text-xs text-muted-foreground mt-3">Opciones adicionales como registros del sistema, configuración de módulos e importación/exportación de datos podrían aparecer aquí.</p>
             </CardContent>
