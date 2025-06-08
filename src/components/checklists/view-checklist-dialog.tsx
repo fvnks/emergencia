@@ -15,6 +15,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { format, parseISO, isValid } from 'date-fns';
@@ -24,18 +25,20 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Truck, ShieldAlert, CalendarIcon, FileText, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import type { ChecklistItemState } from "@/types/checklistTypes";
 
-export interface ChecklistCompletionData {
+export interface ViewChecklistCompletionData {
   checklistId: string;
   assetName?: string;
   completionDate: Date;
   notes: string;
+  itemStates: ChecklistItemState[];
 }
 interface ViewChecklistDialogProps {
   checklist: Checklist | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSaveCompletion: (data: ChecklistCompletionData) => void;
+  onSaveCompletion: (data: ViewChecklistCompletionData) => void;
 }
 
 const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactNode }> = ({ label, value }) => (
@@ -52,14 +55,24 @@ const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactN
 export function ViewChecklistDialog({ checklist, open, onOpenChange, onSaveCompletion }: ViewChecklistDialogProps) {
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date());
   const [completionNotes, setCompletionNotes] = useState<string>("");
+  const [itemCompletionStates, setItemCompletionStates] = useState<ChecklistItemState[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (open) {
+    if (open && checklist) {
       setCompletionDate(new Date());
       setCompletionNotes("");
+      const initialItemStates = (checklist.assetType === 'Vehicle'
+        ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS]
+        : checklist.assetType === 'ERA'
+        ? ERA_STANDARD_ITEMS
+        : checklist.items
+      ).map(itemText => ({ itemText, checked: false }));
+      setItemCompletionStates(initialItemStates);
+    } else {
+      setItemCompletionStates([]); // Clear when dialog closes or no checklist
     }
-  }, [open]);
+  }, [open, checklist]);
 
   if (!checklist) return null;
 
@@ -73,28 +86,34 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange, onSaveCompl
   };
 
   const itemsToDisplay = checklist.assetType === 'Vehicle'
-    ? VEHICLE_STANDARD_ITEMS
+    ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS]
     : checklist.assetType === 'ERA'
     ? ERA_STANDARD_ITEMS
     : checklist.items;
 
   const isAssetChecklist = !!checklist.assetId;
 
+  const handleItemCheckChange = (index: number, checked: boolean) => {
+    setItemCompletionStates(prevStates =>
+      prevStates.map((item, i) => (i === index ? { ...item, checked } : item))
+    );
+  };
+
   const handleSaveCompletionAction = () => {
     if (!completionDate) {
       toast({ title: "Error", description: "Por favor, seleccione una fecha de revisión.", variant: "destructive" });
       return;
     }
-    if (!checklist) return; // Should not happen if dialog is open
+    if (!checklist) return;
 
     onSaveCompletion({
       checklistId: checklist.id,
       assetName: checklist.assetName,
       completionDate: completionDate,
       notes: completionNotes,
+      itemStates: itemCompletionStates,
     });
-    // Toast is now handled by the parent page (ChecklistsPage)
-    onOpenChange(false);
+    onOpenChange(false); // Toast is handled by parent page
   };
 
   return (
@@ -183,23 +202,31 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange, onSaveCompl
                 <FileText className="mr-2 h-5 w-5 text-primary" /> Ítems del Checklist
               </h4>
               {(itemsToDisplay && itemsToDisplay.length > 0) ? (
-                  <ul className="space-y-1.5 list-decimal list-inside pl-2">
-                    {itemsToDisplay.map((item, index) => (
-                      <li key={`${checklist.id}-item-${index}`} className="text-sm">
-                        {item}
-                        {/* Aquí irían los inputs (checkbox, OK/NOK, campo de nota) para cada ítem en una futura iteración */}
-                      </li>
+                  <div className="space-y-2">
+                    {itemCompletionStates.map((itemState, index) => (
+                      <div key={`${checklist.id}-item-${index}`} className="flex items-center space-x-2 p-2 border rounded-md bg-muted/20">
+                        {isAssetChecklist ? (
+                           <Checkbox
+                            id={`${checklist.id}-item-check-${index}`}
+                            checked={itemState.checked}
+                            onCheckedChange={(checked) => handleItemCheckChange(index, !!checked)}
+                          />
+                        ) : (
+                           <span className="mr-2 text-muted-foreground">•</span>
+                        )}
+                        <label
+                          htmlFor={isAssetChecklist ? `${checklist.id}-item-check-${index}` : undefined}
+                          className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1"
+                        >
+                          {itemState.itemText}
+                        </label>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
               ) : (
                   <p className="text-sm text-muted-foreground">
                   Este checklist aún no tiene ítems definidos.
                   </p>
-              )}
-              {itemsToDisplay.length > 0 && isAssetChecklist && (
-                <p className="text-xs text-muted-foreground mt-3">
-                    (La funcionalidad para marcar cada ítem individualmente se implementará próximamente. Por ahora, use las notas generales.)
-                </p>
               )}
             </div>
           </div>
@@ -218,6 +245,3 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange, onSaveCompl
     </Dialog>
   );
 }
-
-
-    

@@ -19,18 +19,17 @@ import { format, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } fr
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-// AddChecklistDialog ya no se usa
 import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
-import { ViewChecklistDialog, type ChecklistCompletionData } from "@/components/checklists/view-checklist-dialog";
+import { ViewChecklistDialog, type ViewChecklistCompletionData } from "@/components/checklists/view-checklist-dialog";
 import { ChecklistHistoryDialog } from "@/components/checklists/checklist-history-dialog";
-import type { ChecklistStatus, ChecklistCompletion, ChecklistCompletionStatus } from "@/types/checklistTypes";
+import type { ChecklistStatus, ChecklistCompletion, ChecklistCompletionStatus, ChecklistItemState } from "@/types/checklistTypes";
 import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
+import { useAuth } from "@/contexts/auth-context";
 
-// Ítems estándar para checklists de activos
 export const VEHICLE_STANDARD_ITEMS: string[] = [
   "Revisar nivel de aceite motor",
   "Verificar presión de neumáticos",
@@ -59,10 +58,9 @@ export interface Checklist {
   category?: string;
   lastModified: string;
   status: ChecklistStatus;
-  // Nuevos campos para vincular a activos
-  assetId?: string; // Ej: "veh1", "era2"
+  assetId?: string;
   assetType?: 'Vehicle' | 'ERA';
-  assetName?: string; // Ej: "Bomba B-01", "ERA MSA-003"
+  assetName?: string;
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
@@ -74,7 +72,7 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
     category: "Vehicular", 
     lastModified: "2024-07-30T08:00:00Z", 
     status: "Nuevo",
-    assetId: "veh1", // Asumir que existe un vehículo con este ID
+    assetId: "veh1",
     assetType: "Vehicle",
     assetName: "Bomba B-01"
   },
@@ -86,7 +84,7 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
     category: "Equipos ERA", 
     lastModified: "2024-07-28T14:30:00Z", 
     status: "En Progreso",
-    assetId: "era3", // Asumir que existe un ERA con este ID
+    assetId: "era3",
     assetType: "ERA",
     assetName: "ERA MSA-003"
   },
@@ -98,13 +96,12 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
     category: "Procedimientos", 
     lastModified: "2024-06-15T09:00:00Z", 
     status: "Completado" 
-    // Sin assetId, es una plantilla general
   },
   { 
     id: "chk-veh-ambu01", 
     name: "Checklist Operacional - Ambulancia SAMU-01", 
     description: "Revisión de equipamiento médico y estado general de la ambulancia.", 
-    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS], // Actualizado para usar solo los ítems estándar combinados
+    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS],
     category: "Vehicular", 
     lastModified: "2024-07-29T08:15:00Z", 
     status: "Nuevo",
@@ -115,14 +112,26 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 ];
 
 const INITIAL_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
-  { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Todo OK en Bomba B-01." },
-  { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z", status: "Incompleto", completedByUserName: "Juan Pérez", notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite." },
-  { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z", status: "Completado", completedByUserName: "Ana Gómez", notes: "ERA MSA-003 operativo." },
-  { id: "comp-proc-hazmat-1", checklistTemplateId: "chk-proc-hazmat", completionDate: "2024-06-10T11:00:00Z", status: "Pendiente Revisión", completedByUserName: "Equipo HazMat Alfa", notes: "Protocolo ejecutado, pendiente revisión de supervisor." },
+  { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z", 
+    status: "Completado", completedByUserId: 1, completedByUserName: "Juan Pérez", 
+    itemStates: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS].map(item => ({itemText: item, checked: true})), 
+    notes: "Todo OK en Bomba B-01." 
+  },
+  { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z", 
+    status: "Incompleto", completedByUserId: 1, completedByUserName: "Juan Pérez", 
+    itemStates: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS].map((item, idx) => ({itemText: item, checked: idx < 5})),
+    notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite." 
+  },
+  { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z", 
+    status: "Completado", completedByUserId: 2, completedByUserName: "Ana Gómez", 
+    itemStates: ERA_STANDARD_ITEMS.map(item => ({itemText: item, checked: true})),
+    notes: "ERA MSA-003 operativo." 
+  },
 ];
 
 
 export default function ChecklistsPage() {
+  const { user: currentUser } = useAuth();
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
   const [checklistCompletions, setChecklistCompletions] = useState<ChecklistCompletion[]>(INITIAL_CHECKLIST_COMPLETIONS);
   const [loading, setLoading] = useState(false);
@@ -130,7 +139,6 @@ export default function ChecklistsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
-  // isAddDialogOpen y handleChecklistAdded ya no se usan
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -142,19 +150,29 @@ export default function ChecklistsPage() {
 
   const { toast } = useToast();
 
-  const handleSaveChecklistCompletion = (data: ChecklistCompletionData) => {
+  const handleSaveChecklistCompletion = (data: ViewChecklistCompletionData) => {
+    if (!currentUser) {
+      toast({ title: "Error", description: "Usuario no autenticado.", variant: "destructive" });
+      return;
+    }
+
+    const allItemsChecked = data.itemStates.every(item => item.checked);
+    const completionStatus: ChecklistCompletionStatus = allItemsChecked ? "Completado" : "Incompleto";
+
     const newCompletion: ChecklistCompletion = {
-      id: `comp-${data.checklistId}-${new Date().getTime()}`, // Simple unique ID
+      id: `comp-${data.checklistId}-${new Date().getTime()}`,
       checklistTemplateId: data.checklistId,
       completionDate: data.completionDate.toISOString(),
-      status: "Completado", // TODO: Status real debería depender de los ítems
-      completedByUserName: "Usuario Actual (Simulado)", // Reemplazar con usuario real
+      status: completionStatus,
+      itemStates: data.itemStates,
+      completedByUserId: currentUser.id,
+      completedByUserName: currentUser.name,
       notes: data.notes,
     };
     setChecklistCompletions(prev => [newCompletion, ...prev].sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()));
     toast({
-      title: "Completitud de Checklist Guardada",
-      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada.`,
+      title: "Revisión Guardada",
+      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}.`,
     });
   };
 
@@ -164,9 +182,9 @@ export default function ChecklistsPage() {
         c.id === id
           ? {
               ...c,
-              name: c.assetName ? `Checklist - ${c.assetName}` : updatedData.name, // Nombre derivado si es de activo
-              description: c.assetId ? c.description : updatedData.description, // Descripción no editable si es de activo
-              category: c.assetId ? c.category : updatedData.category, // Categoría no editable si es de activo
+              name: c.assetName ? `Checklist - ${c.assetName}` : updatedData.name,
+              description: c.assetId ? c.description : updatedData.description,
+              category: c.assetId ? c.category : updatedData.category,
               items: c.assetType === 'Vehicle' ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS] 
                    : c.assetType === 'ERA' ? ERA_STANDARD_ITEMS
                    : Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
@@ -252,7 +270,6 @@ export default function ChecklistsPage() {
           <ListChecks className="mr-3 h-7 w-7 text-primary" />
           Gestión de Checklists de Activos
         </h1>
-        {/* Botón de crear eliminado */}
       </div>
 
       <Card className="shadow-sm">
@@ -414,7 +431,7 @@ export default function ChecklistsPage() {
                           <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
                             <Edit className="mr-1 h-3.5 w-3.5" /> {checklist.assetId ? "Ver Config." : "Editar"}
                           </Button>
-                           {!checklist.assetId && ( // Solo permitir eliminar plantillas generales
+                           {!checklist.assetId && (
                             <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
                                 <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
                             </Button>
@@ -429,7 +446,6 @@ export default function ChecklistsPage() {
           </CardContent>
         </Card>
       )}
-      {/* AddChecklistDialog ya no se usa */}
       {checklistToEdit && (
         <EditChecklistDialog
           checklist={checklistToEdit}
@@ -462,8 +478,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
-
-    
-
-    
