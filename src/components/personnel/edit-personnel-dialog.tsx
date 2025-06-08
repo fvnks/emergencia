@@ -235,7 +235,7 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
                                 <SelectItem
                                 key={role.id_rol}
                                 value={role.id_rol.toString()}
-                                disabled={role.es_rol_sistema && role.id_rol !== person.id_rol_fk}
+                                // Removed the overly restrictive disabled condition here
                                 >
                                 {role.nombre_rol} {role.es_rol_sistema ? "(Sistema)" : ""}
                                 </SelectItem>
@@ -278,4 +278,3 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
     </Dialog>
   );
 }
-
