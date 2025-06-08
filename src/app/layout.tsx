@@ -4,7 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from 'next-themes';
-// ClientThemeInitializer ya no es necesario
+import { ClientThemeInitializer } from '@/components/client-theme-initializer';
 
 export const metadata: Metadata = {
   title: 'Gestor de Brigada',
@@ -30,7 +30,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {/* <ClientThemeInitializer /> ya no se renderiza aquí */}
+          <ClientThemeInitializer />
           <AuthProvider>
             {children}
             <Toaster />
