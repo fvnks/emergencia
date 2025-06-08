@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import {
-  Home, // Restored Home icon
+  Home,
   Truck,
   ShieldCheck,
   Wrench,
@@ -19,7 +19,6 @@ import {
   Users,
   SettingsIcon,
   LucideIcon,
-  Map,
   Fingerprint,
   BarChart3,
   ClipboardCheck as ChecklistIcon,
@@ -30,14 +29,13 @@ import { cn } from "@/lib/utils";
 interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon; 
+  icon: LucideIcon;
   animationClass?: string;
   adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover:scale-110" }, // Restored Home icon
-  { href: "/tracking", label: "Seguimiento GPS (Beta)", icon: Map, animationClass: "group-hover:scale-110 group-hover:rotate-3" },
+  { href: "/dashboard", label: "Panel Principal", icon: Home, animationClass: "group-hover:scale-110" },
   { href: "/vehicles", label: "Vehículos", icon: Truck, animationClass: "group-hover:translate-x-0.5" },
   { href: "/equipment", label: "Equipos (ERA)", icon: ShieldCheck, animationClass: "group-hover:scale-110" },
   { href: "/maintenance", label: "Mantención", icon: Wrench, animationClass: "group-hover:rotate-[-15deg]" },
@@ -71,7 +69,7 @@ export function SidebarNav() {
           const IconComponent = item.icon;
           const iconClasses = cn(
             'transition-transform duration-200 ease-in-out',
-            item.animationClass 
+            item.animationClass
           );
 
           return (
