@@ -59,7 +59,7 @@ body {
     --sidebar-floating-panel-border: 210 30% 85%;
     --sidebar-item-fg: 210 30% 50%;
     --sidebar-item-icon-fg: 210 30% 50%;
-    --sidebar-item-hover-bg: hsl(var(--secondary));
+    --sidebar-item-hover-bg: hsl(var(--primary) / 0.12); /* Changed for more noticeable hover */
     --sidebar-item-hover-fg: hsl(var(--primary));
     --sidebar-item-hover-icon-fg: hsl(var(--primary));
     --sidebar-item-active-bg: hsl(var(--primary) / 0.1); /* Primary with opacity */
@@ -118,7 +118,7 @@ body {
     --sidebar-floating-panel-border: hsl(var(--border));
     --sidebar-item-fg: hsl(var(--muted-foreground));
     --sidebar-item-icon-fg: hsl(var(--muted-foreground));
-    --sidebar-item-hover-bg: hsl(var(--secondary));
+    --sidebar-item-hover-bg: hsl(var(--primary) / 0.2); /* Changed for more noticeable hover */
     --sidebar-item-hover-fg: hsl(var(--primary));
     --sidebar-item-hover-icon-fg: hsl(var(--primary));
     --sidebar-item-active-bg: hsl(var(--primary));
