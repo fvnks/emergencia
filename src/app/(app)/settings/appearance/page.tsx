@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,193 +14,27 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ImageIcon, Palette, PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, ImageIcon, Save, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
-const LOCALSTORAGE_PRIMARY_COLOR_KEY = "customPrimaryColorHSL";
-const LOCALSTORAGE_ACCENT_COLOR_KEY = "customAccentColorHSL";
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
 const LOCALSTORAGE_LOGO_TEXT_KEY = "customLogoText";
-
-const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%";
-const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";
 const DEFAULT_LOGO_TEXT = "Gestor Brigada";
-
-// Helper: Convert HEX to HSL string "H S% L%"
-function hexToHsl(hex: string): string | null {
-  let r = 0, g = 0, b = 0;
-  if (hex.length === 4) {
-    r = parseInt(hex[1] + hex[1], 16);
-    g = parseInt(hex[2] + hex[2], 16);
-    b = parseInt(hex[3] + hex[3], 16);
-  } else if (hex.length === 7) {
-    r = parseInt(hex[1] + hex[2], 16);
-    g = parseInt(hex[3] + hex[4], 16);
-    b = parseInt(hex[5] + hex[6], 16);
-  } else {
-    return null;
-  }
-
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
-
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
-  h = Math.round(h * 360);
-  s = Math.round(s * 100);
-  l = Math.round(l * 100);
-  return `${h} ${s}% ${l}%`;
-}
-
-// Helper: Convert HSL string "H S% L%" to HEX
-function hslToHex(hslStr: string): string | null {
-  const match = hslStr.match(/(\d+)\s*(\d+)%\s*(\d+)%/);
-  if (!match) return null;
-
-  let h = parseInt(match[1]);
-  let s = parseInt(match[2]);
-  let l = parseInt(match[3]);
-
-  s /= 100;
-  l /= 100;
-
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) =>
-    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-
-  const toHex = (x: number) => {
-    const hex = Math.round(x * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-}
-
-function applyCustomColorsToDOM(primaryHsl: string | null, accentHsl: string | null) {
-  const root = document.documentElement;
-  if (primaryHsl) {
-    const [h, s, l] = primaryHsl.split(" ").map(val => val.trim());
-    if (h && s && l) {
-      root.style.setProperty('--primary-h', h);
-      root.style.setProperty('--primary-s', s);
-      root.style.setProperty('--primary-l', l);
-      root.style.setProperty('--primary', `hsl(${h} ${s} ${l})`);
-    }
-  } else {
-    root.style.removeProperty('--primary-h');
-    root.style.removeProperty('--primary-s');
-    root.style.removeProperty('--primary-l');
-    root.style.removeProperty('--primary');
-  }
-
-  if (accentHsl) {
-    const [h, s, l] = accentHsl.split(" ").map(val => val.trim());
-     if (h && s && l) {
-      root.style.setProperty('--accent-h', h);
-      root.style.setProperty('--accent-s', s);
-      root.style.setProperty('--accent-l', l);
-      root.style.setProperty('--accent', `hsl(${h} ${s} ${l})`);
-    }
-  } else {
-    root.style.removeProperty('--accent-h');
-    root.style.removeProperty('--accent-s');
-    root.style.removeProperty('--accent-l');
-    root.style.removeProperty('--accent');
-  }
-  window.dispatchEvent(new Event('themeColorsChanged'));
-}
-
 
 export default function AppearanceSettingsPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [primaryColorHex, setPrimaryColorHex] = useState("#007bff"); // Default Bootstrap blue
-  const [accentColorHex, setAccentColorHex] = useState("#17a2b8"); // Default Bootstrap info/teal
-
   const [logoUrl, setLogoUrl] = useState("");
   const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
 
   useEffect(() => {
-    const storedPrimaryHsl = localStorage.getItem(LOCALSTORAGE_PRIMARY_COLOR_KEY);
-    const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_ACCENT_COLOR_KEY);
-
-    if (storedPrimaryHsl) {
-        const hex = hslToHex(storedPrimaryHsl);
-        if (hex) setPrimaryColorHex(hex);
-        else localStorage.removeItem(LOCALSTORAGE_PRIMARY_COLOR_KEY);
-    } else {
-        const defaultHex = hslToHex(DEFAULT_PRIMARY_HSL_STRING);
-        if (defaultHex) setPrimaryColorHex(defaultHex);
-    }
-
-    if (storedAccentHsl) {
-        const hex = hslToHex(storedAccentHsl);
-        if (hex) setAccentColorHex(hex);
-        else localStorage.removeItem(LOCALSTORAGE_ACCENT_COLOR_KEY);
-    } else {
-        const defaultHex = hslToHex(DEFAULT_ACCENT_HSL_STRING);
-        if (defaultHex) setAccentColorHex(defaultHex);
-    }
-
     const storedLogoUrl = localStorage.getItem(LOCALSTORAGE_LOGO_URL_KEY);
     const storedLogoText = localStorage.getItem(LOCALSTORAGE_LOGO_TEXT_KEY);
     if (storedLogoUrl) setLogoUrl(storedLogoUrl);
     if (storedLogoText) setLogoText(storedLogoText);
+    else setLogoText(DEFAULT_LOGO_TEXT); // Ensure default is set if nothing in storage
   }, []);
-
-
-  const handleApplyColors = () => {
-    setIsSubmitting(true);
-    const primaryHsl = hexToHsl(primaryColorHex);
-    const accentHsl = hexToHsl(accentColorHex);
-
-    if (!primaryHsl || !accentHsl) {
-      toast({ title: "Error de Color", description: "Formato de color HEX inválido.", variant: "destructive" });
-      setIsSubmitting(false);
-      return;
-    }
-
-    try {
-      localStorage.setItem(LOCALSTORAGE_PRIMARY_COLOR_KEY, primaryHsl);
-      localStorage.setItem(LOCALSTORAGE_ACCENT_COLOR_KEY, accentHsl);
-      applyCustomColorsToDOM(primaryHsl, accentHsl);
-      toast({ title: "Colores Aplicados", description: "Los nuevos colores del tema se han aplicado y guardado." });
-    } catch (e) {
-      toast({ title: "Error", description: "No se pudieron guardar los colores.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  const handleRestoreDefaultColors = () => {
-    setIsSubmitting(true);
-    try {
-      localStorage.removeItem(LOCALSTORAGE_PRIMARY_COLOR_KEY);
-      localStorage.removeItem(LOCALSTORAGE_ACCENT_COLOR_KEY);
-      applyCustomColorsToDOM(null, null);
-      
-      const defaultPrimaryHex = hslToHex(DEFAULT_PRIMARY_HSL_STRING);
-      const defaultAccentHex = hslToHex(DEFAULT_ACCENT_HSL_STRING);
-      if (defaultPrimaryHex) setPrimaryColorHex(defaultPrimaryHex);
-      if (defaultAccentHex) setAccentColorHex(defaultAccentHex);
-
-      toast({ title: "Colores Restaurados", description: "Los colores del tema han sido restaurados a los valores por defecto." });
-    } catch(e) {
-        toast({ title: "Error", description: "No se pudieron restaurar los colores.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
 
   const handleSaveLogo = () => {
     setIsSubmitting(true);
@@ -240,11 +74,11 @@ export default function AppearanceSettingsPage() {
 
       <div>
         <h1 className="text-3xl font-headline font-bold flex items-center">
-          <Palette className="mr-3 h-7 w-7 text-primary" />
-          Personalización de Apariencia
+          <ImageIcon className="mr-3 h-7 w-7 text-primary" />
+          Personalización de Logo
         </h1>
         <p className="text-muted-foreground mt-1">
-          Ajusta los colores y el logo del sistema. Los cambios son locales a tu navegador.
+          Ajusta el logo del sistema que se muestra en la barra de navegación. Los cambios son locales a tu navegador.
         </p>
       </div>
 
@@ -277,8 +111,8 @@ export default function AppearanceSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <button 
-              onClick={handleSaveLogo} 
+            <button
+              onClick={handleSaveLogo}
               disabled={isSubmitting}
               className="bg-blue-600 text-white hover:bg-blue-700 rounded-md px-3 py-1.5 text-sm font-medium inline-flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
             >
@@ -291,75 +125,6 @@ export default function AppearanceSettingsPage() {
             </Button>
         </CardFooter>
       </Card>
-
-
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center"><PaletteIcon className="mr-2 h-5 w-5 text-primary" /> Colores del Tema</CardTitle>
-          <CardDescription>Personaliza los colores primario y de acento del sistema.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="primaryColor">Color Primario</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="primaryColor"
-                  type="color"
-                  value={primaryColorHex}
-                  onChange={(e) => setPrimaryColorHex(e.target.value)}
-                  className="p-1 h-10 w-12 rounded"
-                  disabled={isSubmitting}
-                />
-                <Input
-                    type="text"
-                    value={primaryColorHex}
-                    onChange={(e) => setPrimaryColorHex(e.target.value)}
-                    className="h-10"
-                    placeholder="#RRGGBB"
-                    disabled={isSubmitting}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="accentColor">Color de Acento</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="accentColor"
-                  type="color"
-                  value={accentColorHex}
-                  onChange={(e) => setAccentColorHex(e.target.value)}
-                  className="p-1 h-10 w-12 rounded"
-                  disabled={isSubmitting}
-                />
-                 <Input
-                    type="text"
-                    value={accentColorHex}
-                    onChange={(e) => setAccentColorHex(e.target.value)}
-                    className="h-10"
-                    placeholder="#RRGGBB"
-                    disabled={isSubmitting}
-                />
-              </div>
-            </div>
-          </div>
-           <p className="text-xs text-muted-foreground">
-            Los cambios de color se aplican inmediatamente y se guardan en tu navegador.
-          </p>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-          <Button onClick={handleApplyColors} disabled={isSubmitting}>
-             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PaletteIcon className="mr-2 h-4 w-4"/>}
-            Aplicar Colores
-          </Button>
-          <Button variant="outline" onClick={handleRestoreDefaultColors} disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4"/>}
-            Restaurar Colores por Defecto
-          </Button>
-        </CardFooter>
-      </Card>
     </div>
   );
 }
-
-    
