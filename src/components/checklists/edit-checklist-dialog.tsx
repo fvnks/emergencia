@@ -79,7 +79,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     if (checklist && open) {
       let itemsToCount = checklist.items;
       if (checklist.assetType === 'Vehicle') {
-        itemsToCount = VEHICLE_STANDARD_ITEMS;
+        itemsToCount = [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS];
       } else if (checklist.assetType === 'ERA') {
         itemsToCount = ERA_STANDARD_ITEMS;
       }
@@ -233,3 +233,6 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     </Dialog>
   );
 }
+
+
+    

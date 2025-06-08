@@ -70,7 +70,7 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
     id: "chk-veh-b01", 
     name: "Checklist Diario - Bomba B-01", 
     description: "Revisión pre-operacional diaria para la unidad Bomba B-01.", 
-    items: VEHICLE_STANDARD_ITEMS, 
+    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS], 
     category: "Vehicular", 
     lastModified: "2024-07-30T08:00:00Z", 
     status: "Nuevo",
@@ -104,7 +104,7 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
     id: "chk-veh-ambu01", 
     name: "Checklist Operacional - Ambulancia SAMU-01", 
     description: "Revisión de equipamiento médico y estado general de la ambulancia.", 
-    items: [...VEHICLE_STANDARD_ITEMS, "Revisar monitor desfibrilador", "Verificar stock de medicamentos UCI", "Comprobar equipo de oxígeno portátil"],
+    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS], // Actualizado para usar solo los ítems estándar combinados
     category: "Vehicular", 
     lastModified: "2024-07-29T08:15:00Z", 
     status: "Nuevo",
@@ -167,7 +167,7 @@ export default function ChecklistsPage() {
               name: c.assetName ? `Checklist - ${c.assetName}` : updatedData.name, // Nombre derivado si es de activo
               description: c.assetId ? c.description : updatedData.description, // Descripción no editable si es de activo
               category: c.assetId ? c.category : updatedData.category, // Categoría no editable si es de activo
-              items: c.assetType === 'Vehicle' ? VEHICLE_STANDARD_ITEMS 
+              items: c.assetType === 'Vehicle' ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS] 
                    : c.assetType === 'ERA' ? ERA_STANDARD_ITEMS
                    : Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
               status: updatedData.status as ChecklistStatus,
@@ -463,5 +463,7 @@ export default function ChecklistsPage() {
   );
 }
 
+
+    
 
     
