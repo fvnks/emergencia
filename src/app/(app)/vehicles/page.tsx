@@ -151,7 +151,7 @@ export default function VehiclesPage() {
         <h1 className="text-2xl font-headline font-bold">Gestión de Vehículos</h1>
         <Button 
           onClick={() => setIsAddDialogOpen(true)}
-          className="bg-blue-600 text-black hover:bg-blue-700"
+          className="bg-blue-600 text-white hover:bg-blue-700"
         >
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
         </Button>
@@ -216,7 +216,7 @@ export default function VehiclesPage() {
             <CardContent>
               <Button 
                 onClick={() => setIsAddDialogOpen(true)}
-                className="bg-blue-600 text-black hover:bg-blue-700"
+                className="bg-blue-600 text-white hover:bg-blue-700"
               >
                   <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
               </Button>
