@@ -41,7 +41,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "Correo electrónico inválido." }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres." }),
   confirmPassword: z.string().min(6, { message: "La confirmación debe tener al menos 6 caracteres." }),
-  id_rol_fk: z.string().min(1, { message: "Debe seleccionar un rol." }), // Ahora es string para el Select
+  id_rol_fk: z.string().min(1, { message: "Debe seleccionar un rol." }),
   telefono: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden.",
@@ -58,6 +58,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true); // State for loading roles
   const { toast } = useToast();
 
   const form = useForm<AddPersonnelFormValues>({
@@ -67,7 +68,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
       email: "",
       password: "",
       confirmPassword: "",
-      id_rol_fk: "", // Default a string vacía
+      id_rol_fk: undefined, // Use undefined for placeholder to show
       telefono: "",
     },
   });
@@ -75,25 +76,32 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
   useEffect(() => {
     async function fetchRoles() {
       if (isOpen) {
+        setLoadingRoles(true);
         try {
           const roles = await getAllRoles();
-          setAvailableRoles(roles.filter(role => !role.es_rol_sistema)); // Solo roles no de sistema para asignación manual
+          // Filter out system roles for assignment in "Add New" dialog,
+          // as system roles are typically managed differently or pre-assigned.
+          setAvailableRoles(roles.filter(role => !role.es_rol_sistema));
         } catch (error) {
           console.error("Error fetching roles for personnel dialog:", error);
           toast({ title: "Error", description: "No se pudieron cargar los roles disponibles.", variant: "destructive" });
+          setAvailableRoles([]);
+        } finally {
+          setLoadingRoles(false);
         }
       }
     }
-    fetchRoles();
-    if(isOpen) {
-        form.reset({
-            nombre_completo: "",
-            email: "",
-            password: "",
-            confirmPassword: "",
-            id_rol_fk: "",
-            telefono: "",
-        });
+
+    if (isOpen) {
+      form.reset({ // Reset form when dialog opens
+        nombre_completo: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        id_rol_fk: undefined,
+        telefono: "",
+      });
+      fetchRoles();
     }
   }, [isOpen, form, toast]);
 
@@ -111,7 +119,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
         nombre_completo: values.nombre_completo,
         email: values.email,
         password_plaintext: values.password,
-        id_rol_fk: parseInt(values.id_rol_fk, 10), // Convertir a número
+        id_rol_fk: parseInt(values.id_rol_fk, 10),
         telefono: values.telefono || undefined,
       };
       await createUser(createData);
@@ -142,7 +150,10 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(openState) => {
+        if (isSubmitting && !openState) return; // Prevent closing while submitting
+        setIsOpen(openState);
+    }}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Personal
@@ -218,19 +229,29 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
                 render={({ field }) => (
                     <FormItem>
                     <FormLabel>Rol</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={loadingRoles}>
                         <FormControl>
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccione un rol" />
                         </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {availableRoles.length === 0 && <SelectItem value="" disabled>Cargando roles...</SelectItem>}
-                          {availableRoles.map(role => (
-                            <SelectItem key={role.id_rol} value={role.id_rol.toString()}>
-                              {role.nombre_rol}
-                            </SelectItem>
-                          ))}
+                          {loadingRoles ? (
+                            <div className="flex items-center justify-center p-2 text-sm text-muted-foreground">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Cargando roles...
+                            </div>
+                          ) : availableRoles.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                              No hay roles asignables.
+                            </div>
+                          ) : (
+                            availableRoles.map(role => (
+                              <SelectItem key={role.id_rol} value={role.id_rol.toString()}>
+                                {role.nombre_rol}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                     </Select>
                     <FormMessage />
@@ -255,7 +276,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || availableRoles.length === 0}>
+              <Button type="submit" disabled={isSubmitting || loadingRoles || availableRoles.length === 0}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Agregar Personal"}
               </Button>
             </DialogFooter>
@@ -265,3 +286,4 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
     </Dialog>
   );
 }
+
