@@ -320,7 +320,7 @@ export default function ChecklistsPage() {
                   <TableHead className="text-center">Ítems</TableHead>
                   <TableHead>Estado (Plantilla)</TableHead>
                   <TableHead className="hidden sm:table-cell">Últ. Modificación</TableHead>
-                  <TableHead className="text-right w-[300px] sm:w-[320px]">Acciones</TableHead>
+                  <TableHead className="text-right w-[200px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -345,19 +345,25 @@ export default function ChecklistsPage() {
                     <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">
                       {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
                     </TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
-                        <Eye className="mr-1 h-3.5 w-3.5" /> Ver
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
-                        <History className="mr-1 h-3.5 w-3.5" /> Historial
-                      </Button>
-                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
-                        <Edit className="mr-1 h-3.5 w-3.5" /> Editar
-                      </Button>
-                      <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
-                        <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="inline-flex flex-col space-y-1 items-end">
+                        <div className="flex space-x-1">
+                          <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
+                            <Eye className="mr-1 h-3.5 w-3.5" /> Ver
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
+                            <History className="mr-1 h-3.5 w-3.5" /> Historial
+                          </Button>
+                        </div>
+                        <div className="flex space-x-1">
+                          <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
+                            <Edit className="mr-1 h-3.5 w-3.5" /> Editar
+                          </Button>
+                          <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
+                            <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
+                          </Button>
+                        </div>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
