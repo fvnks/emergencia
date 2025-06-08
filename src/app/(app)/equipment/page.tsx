@@ -141,7 +141,10 @@ export default function EquipmentPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
         <h1 className="text-2xl font-headline font-bold">Gestión de ERA</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Button 
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-blue-600 text-white hover:bg-blue-700"
+        >
           <ShieldQuestion className="mr-2 h-5 w-5" /> Agregar Nuevo ERA
         </Button>
       </div>
