@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react"; // Import useState and useEffect
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion"; // Import framer-motion
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -24,7 +25,7 @@ import {
   ClipboardCheck as ChecklistIcon,
   Warehouse,
   Palette,
-  ChevronDown, // Importar ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,25 @@ const navItems: NavItem[] = [
   { href: "/settings/appearance", label: "Apariencia", icon: Palette, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-105" },
 ];
 
+const subMenuVariants = {
+  open: {
+    opacity: 1,
+    height: "auto",
+    transition: {
+      duration: 0.3,
+      ease: [0.04, 0.62, 0.23, 0.98] // Smooth easing
+    }
+  },
+  closed: {
+    opacity: 0,
+    height: 0,
+    transition: {
+      duration: 0.2,
+      ease: [0.04, 0.62, 0.23, 0.98]
+    }
+  }
+};
+
 export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -62,12 +82,11 @@ export function SidebarNav() {
   const [settingsSubMenuOpen, setSettingsSubMenuOpen] = useState(isSettingsPageActive);
 
   useEffect(() => {
-    // Sincronizar el estado del submenú con la ruta activa
     if (isSettingsPageActive) {
       setSettingsSubMenuOpen(true);
-    } else {
-      setSettingsSubMenuOpen(false); // Cerrar si no estamos en una página de settings
     }
+    // Removed the `else { setSettingsSubMenuOpen(false); }` to allow manual toggle
+    // The toggle itself will handle closing if needed, and direct navigation will handle opening.
   }, [isSettingsPageActive]);
 
   const filteredNavItems = navItems.filter(item => {
@@ -81,11 +100,13 @@ export function SidebarNav() {
   const settingsSubMenuItems = filteredNavItems.filter(item => item.settingsSubItem && item.href !== "/settings");
 
   const handleSettingsToggle = (e: React.MouseEvent) => {
-    // El Link se encargará de la navegación. Este onClick solo alterna el estado.
-    // Si ya estamos en una página de settings, permite cerrar/abrir.
-    // Si no estamos, al hacer clic en "Configuración", el Link navega,
-    // y el useEffect se encargará de abrir el submenú.
-    setSettingsSubMenuOpen(prev => !prev);
+     // If we are navigating to /settings and it's not currently active, let useEffect handle opening.
+    // Otherwise, just toggle.
+    if (pathname === "/settings" && !isSettingsPageActive) {
+        // Let navigation and useEffect handle opening
+    } else {
+      setSettingsSubMenuOpen(prev => !prev);
+    }
   };
 
   return (
@@ -126,29 +147,38 @@ export function SidebarNav() {
                 </SidebarMenuButton>
               </Link>
               
-              {isSettingsItem && settingsSubMenuOpen && settingsSubMenuItems.length > 0 && (
-                <ul className="pl-7 pt-1 space-y-1 group-data-[collapsible=icon]:hidden animate-accordion-down">
-                  {settingsSubMenuItems.map(subItem => {
-                    const SubIconComponent = subItem.icon;
-                    return (
-                      <li key={subItem.href}>
-                        <Link href={subItem.href} passHref legacyBehavior>
-                          <SidebarMenuButton
-                             variant="ghost"
-                             size="sm"
-                             isActive={pathname.startsWith(subItem.href)}
-                             className="justify-start w-full text-sm h-8"
-                             tooltip={{children: subItem.label, className: "bg-popover text-popover-foreground border-border"}}
-                          >
-                            <SubIconComponent className={cn('h-3.5 w-3.5', subItem.animationClass)} />
-                            <span>{subItem.label}</span>
-                          </SidebarMenuButton>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              <AnimatePresence initial={false}>
+                {isSettingsItem && settingsSubMenuOpen && settingsSubMenuItems.length > 0 && (
+                  <motion.ul
+                    key="settings-submenu"
+                    initial="closed"
+                    animate="open"
+                    exit="closed"
+                    variants={subMenuVariants}
+                    className="pl-7 pt-1 space-y-1 group-data-[collapsible=icon]:hidden overflow-hidden"
+                  >
+                    {settingsSubMenuItems.map(subItem => {
+                      const SubIconComponent = subItem.icon;
+                      return (
+                        <li key={subItem.href}>
+                          <Link href={subItem.href} passHref legacyBehavior>
+                            <SidebarMenuButton
+                               variant="ghost"
+                               size="sm"
+                               isActive={pathname.startsWith(subItem.href)}
+                               className="justify-start w-full text-sm h-8"
+                               tooltip={{children: subItem.label, className: "bg-popover text-popover-foreground border-border"}}
+                            >
+                              <SubIconComponent className={cn('h-3.5 w-3.5', subItem.animationClass)} />
+                              <span>{subItem.label}</span>
+                            </SidebarMenuButton>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
             </SidebarMenuItem>
           );
         })}
