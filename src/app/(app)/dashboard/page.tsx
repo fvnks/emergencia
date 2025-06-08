@@ -3,7 +3,7 @@
 
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock, ClipboardList } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Activity, Users, Truck, ShieldCheck, Wrench, Loader2, LucideIcon, ArchiveX, CalendarClock, ClipboardList, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { useEffect, useState } from "react";
@@ -13,7 +13,7 @@ import { getAllTasks, type Task, type TaskStatus } from "@/services/taskService"
 import { getAllMaintenanceTasks, type MaintenanceTask } from "@/services/maintenanceService";
 import { getAllEraEquipments, type EraEquipment } from "@/services/eraService";
 import { getAllInventoryItems, type InventoryItem } from "@/services/inventoryService";
-import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, isBefore, startOfDay } from 'date-fns';
+import { formatDistanceToNow, parseISO, isValid, format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, addDays, isBefore, startOfDay, isPast, differenceInDays, isFuture } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -43,7 +43,9 @@ interface ActivityItem {
   icon: LucideIcon;
   iconClassName: string;
   type: 'task' | 'maintenance_log' | 'vehicle_log' | 'equipment_log' | 'personnel_log' | 'inventory_log' |
-        'alert_stock' | 'alert_maintenance_overdue' | 'alert_vehicle_oos';
+        'alert_stock' | 'alert_maintenance_overdue' | 'alert_vehicle_oos' | 
+        'alert_vehicle_maintenance_due' | 'alert_vehicle_maintenance_overdue' |
+        'alert_vehicle_docs_due' | 'alert_vehicle_docs_overdue';
   details?: string;
   severity?: 'info' | 'warning' | 'error';
   link?: string;
@@ -149,7 +151,7 @@ export default function DashboardPage() {
             const alertItem: AlertNotificationItem = {
               id: `alert-maint-${maint.id_mantencion}`,
               date: parseISO(maint.fecha_programada), 
-              description: `Mantención Vencida: ${maint.nombre_item_mantenimiento}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
+              description: `Mantención General Vencida: ${maint.nombre_item_mantenimiento.substring(0, 30)}${maint.nombre_item_mantenimiento.length > 30 ? '...' : ''}. Prog.: ${format(parseISO(maint.fecha_programada), 'dd-MM-yyyy', { locale: es })}.`,
               icon: Wrench, 
               iconClassName: "text-red-500",
               type: 'alert_maintenance_overdue',
@@ -162,11 +164,12 @@ export default function DashboardPage() {
         });
 
         vehiclesData.forEach(vehicle => {
+          const vehicleName = `${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente})`;
           if (vehicle.estado_vehiculo === 'Fuera de Servicio') {
             const alertItem: AlertNotificationItem = {
-              id: `alert-vehicle-${vehicle.id_vehiculo}`,
+              id: `alert-vehicle-oos-${vehicle.id_vehiculo}`,
               date: new Date(), 
-              description: `Vehículo Inoperativo: ${vehicle.marca} ${vehicle.modelo} (${vehicle.identificador_interno || vehicle.patente}) está 'Fuera de Servicio'.`,
+              description: `Vehículo Inoperativo: ${vehicleName} está 'Fuera de Servicio'.`,
               icon: ArchiveX, 
               iconClassName: "text-red-500",
               type: 'alert_vehicle_oos',
@@ -175,6 +178,76 @@ export default function DashboardPage() {
             };
             activities.push(alertItem as ActivityItem);
             alertsForContext.push(alertItem);
+          }
+
+          // Alertas de Mantenimiento de Vehículo
+          if (vehicle.proxima_mantencion_programada) {
+            const proxMantencionDate = parseISO(vehicle.proxima_mantencion_programada);
+            if (isValid(proxMantencionDate)) {
+              const daysToMaintenance = differenceInDays(proxMantencionDate, today);
+              if (isPast(proxMantencionDate) && daysToMaintenance < 0 && vehicle.estado_vehiculo === 'Operativo') {
+                const alertItem: AlertNotificationItem = {
+                  id: `alert-vehicle-maint-overdue-${vehicle.id_vehiculo}`,
+                  date: proxMantencionDate,
+                  description: `Mantención Vencida: ${vehicleName}. Prog.: ${format(proxMantencionDate, 'dd-MM-yyyy')}.`,
+                  icon: Wrench,
+                  iconClassName: "text-red-600",
+                  type: 'alert_vehicle_maintenance_overdue',
+                  severity: 'error',
+                  link: `/vehicles/${vehicle.id_vehiculo}`
+                };
+                activities.push(alertItem as ActivityItem);
+                alertsForContext.push(alertItem);
+              } else if (isFuture(proxMantencionDate) && daysToMaintenance <= 7) {
+                 const alertItem: AlertNotificationItem = {
+                  id: `alert-vehicle-maint-due-${vehicle.id_vehiculo}`,
+                  date: proxMantencionDate,
+                  description: `Mantención Próxima: ${vehicleName} en ${daysToMaintenance === 0 ? 'Hoy' : `${daysToMaintenance} día(s)`}.`,
+                  icon: CalendarClock,
+                  iconClassName: "text-orange-500",
+                  type: 'alert_vehicle_maintenance_due',
+                  severity: 'warning',
+                  link: `/vehicles/${vehicle.id_vehiculo}`
+                };
+                activities.push(alertItem as ActivityItem);
+                alertsForContext.push(alertItem);
+              }
+            }
+          }
+
+          // Alertas de Documentación de Vehículo
+          if (vehicle.vencimiento_documentacion) {
+            const vencimientoDocsDate = parseISO(vehicle.vencimiento_documentacion);
+             if (isValid(vencimientoDocsDate)) {
+              const daysToDocsExpiration = differenceInDays(vencimientoDocsDate, today);
+              if (isPast(vencimientoDocsDate) && daysToDocsExpiration < 0) {
+                const alertItem: AlertNotificationItem = {
+                  id: `alert-vehicle-docs-overdue-${vehicle.id_vehiculo}`,
+                  date: vencimientoDocsDate,
+                  description: `Documentación Vencida: ${vehicleName}. Venció: ${format(vencimientoDocsDate, 'dd-MM-yyyy')}.`,
+                  icon: FileText,
+                  iconClassName: "text-red-600",
+                  type: 'alert_vehicle_docs_overdue',
+                  severity: 'error',
+                  link: `/vehicles/${vehicle.id_vehiculo}`
+                };
+                activities.push(alertItem as ActivityItem);
+                alertsForContext.push(alertItem);
+              } else if (isFuture(vencimientoDocsDate) && daysToDocsExpiration <= 30) {
+                const alertItem: AlertNotificationItem = {
+                  id: `alert-vehicle-docs-due-${vehicle.id_vehiculo}`,
+                  date: vencimientoDocsDate,
+                  description: `Documentación por Vencer: ${vehicleName} en ${daysToDocsExpiration === 0 ? 'Hoy' : `${daysToDocsExpiration} día(s)`}.`,
+                  icon: FileText,
+                  iconClassName: "text-orange-500",
+                  type: 'alert_vehicle_docs_due',
+                  severity: 'warning',
+                  link: `/vehicles/${vehicle.id_vehiculo}`
+                };
+                activities.push(alertItem as ActivityItem);
+                alertsForContext.push(alertItem);
+              }
+            }
           }
         });
         
@@ -215,6 +288,7 @@ export default function DashboardPage() {
               iconClassName: "text-green-500",
               type: 'maintenance_log',
               severity: 'info',
+              link: `/maintenance#maint-${maint.id_mantencion}` // Link a la mantención
             });
           });
         
@@ -495,3 +569,4 @@ export default function DashboardPage() {
 
 
     
+
