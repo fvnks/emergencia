@@ -3,6 +3,7 @@
 
 import type { Checklist } from "@/app/(app)/checklists/page";
 import type { ChecklistCompletion, ChecklistCompletionStatus } from "@/types/checklistTypes";
+import { ALL_CHECKLIST_COMPLETION_STATUSES } from "@/types/checklistTypes";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,9 +12,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
-import { History, CalendarIcon, FilterX } from "lucide-react";
+import { History, CalendarIcon, FilterX, ListFilter } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { DateRange } from "react-day-picker";
 import { useState, useMemo, useEffect } from "react";
 
@@ -35,38 +37,42 @@ const getCompletionStatusBadgeClassName = (status: ChecklistCompletionStatus) =>
 
 export function ChecklistHistoryDialog({ checklistTemplate, completions, open, onOpenChange }: ChecklistHistoryDialogProps) {
   const [dateRangeFilterCompletions, setDateRangeFilterCompletions] = useState<DateRange | undefined>(undefined);
+  const [statusFilterCompletions, setStatusFilterCompletions] = useState<string>("all");
 
   useEffect(() => {
-    // Reset date filter when dialog is opened or checklist changes
     if (open) {
       setDateRangeFilterCompletions(undefined);
+      setStatusFilterCompletions("all");
     }
   }, [open, checklistTemplate]);
 
   const filteredCompletions = useMemo(() => {
     return completions.filter(completion => {
-        if (!dateRangeFilterCompletions?.from) {
-          return true;
-        }
+      const matchesDate = (() => {
+        if (!dateRangeFilterCompletions?.from) return true;
         const itemDate = parseISO(completion.completionDate);
         if (!isValid(itemDate)) return false;
-
         const fromDate = startOfDay(dateRangeFilterCompletions.from);
-        if (isBefore(itemDate, fromDate)) {
-          return false;
-        }
-
+        if (isBefore(itemDate, fromDate)) return false;
         if (dateRangeFilterCompletions.to) {
           const toDate = endOfDay(dateRangeFilterCompletions.to);
-          if (isAfter(itemDate, toDate)) {
-            return false;
-          }
+          if (isAfter(itemDate, toDate)) return false;
         }
         return true;
+      })();
+
+      const matchesStatus = statusFilterCompletions === "all" || completion.status === statusFilterCompletions;
+
+      return matchesDate && matchesStatus;
     });
-  }, [completions, dateRangeFilterCompletions]);
+  }, [completions, dateRangeFilterCompletions, statusFilterCompletions]);
 
   if (!checklistTemplate) return null;
+
+  const activeFilterCount = (dateRangeFilterCompletions?.from ? 1 : 0) + (statusFilterCompletions !== "all" ? 1 : 0);
+  const descriptionText = activeFilterCount > 0 
+    ? `Mostrando ${filteredCompletions.length} de ${completions.length} registro(s) con ${activeFilterCount} filtro(s) activo(s).`
+    : `Mostrando ${filteredCompletions.length} de ${completions.length} registro(s).`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,7 +82,7 @@ export function ChecklistHistoryDialog({ checklistTemplate, completions, open, o
             <History className="mr-2 h-5 w-5 text-primary" /> Historial de: {checklistTemplate.name}
           </DialogTitle>
           <DialogDescription>
-            Revisiones pasadas para este checklist. Mostrando {filteredCompletions.length} de {completions.length} registro(s).
+            Revisiones pasadas para este checklist. {descriptionText}
           </DialogDescription>
         </DialogHeader>
 
@@ -102,7 +108,7 @@ export function ChecklistHistoryDialog({ checklistTemplate, completions, open, o
                       format(dateRangeFilterCompletions.from, "LLL dd, y", { locale: es })
                     )
                   ) : (
-                    <span>Filtrar por Fecha Conclusión</span>
+                    <span>Filtrar por Fecha</span>
                   )}
                 </Button>
               </PopoverTrigger>
@@ -118,13 +124,26 @@ export function ChecklistHistoryDialog({ checklistTemplate, completions, open, o
                 />
               </PopoverContent>
             </Popover>
-            {dateRangeFilterCompletions?.from && (
+            <Select value={statusFilterCompletions} onValueChange={setStatusFilterCompletions}>
+                <SelectTrigger className="w-full sm:w-[200px] bg-background">
+                    <ListFilter className="mr-2 h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Estado Conclusión" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Todos los Estados</SelectItem>
+                    {ALL_CHECKLIST_COMPLETION_STATUSES.map(stat => <SelectItem key={stat} value={stat}>{stat}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            {(dateRangeFilterCompletions?.from || statusFilterCompletions !== "all") && (
                 <Button
                     variant="ghost"
-                    onClick={() => setDateRangeFilterCompletions(undefined)}
-                    className="h-9 px-3"
+                    onClick={() => {
+                        setDateRangeFilterCompletions(undefined);
+                        setStatusFilterCompletions("all");
+                    }}
+                    className="h-9 px-3 w-full sm:w-auto"
                 >
-                    <FilterX className="mr-1.5 h-4 w-4" /> Limpiar Fecha
+                    <FilterX className="mr-1.5 h-4 w-4" /> Limpiar Filtros
                 </Button>
             )}
         </div>
@@ -161,7 +180,7 @@ export function ChecklistHistoryDialog({ checklistTemplate, completions, open, o
             </Table>
           ) : (
             <p className="text-sm text-muted-foreground py-4 text-center">
-                {completions.length > 0 ? "No hay conclusiones que coincidan con el filtro de fecha." : "No hay historial de conclusiones para este checklist."}
+                {completions.length > 0 ? "No hay conclusiones que coincidan con los filtros aplicados." : "No hay historial de conclusiones para este checklist."}
             </p>
           )}
         </ScrollArea>
@@ -174,6 +193,3 @@ export function ChecklistHistoryDialog({ checklistTemplate, completions, open, o
     </Dialog>
   );
 }
-
-
-    
