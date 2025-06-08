@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Eye, Edit, Trash2, ClipboardCheck, Search, Filter, FilePlus2, ListChecks } from "lucide-react";
+import { PlusCircle, Eye, Edit, Trash2, ClipboardCheck, Search, Filter, FilePlus2, ListChecks, History } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -23,7 +23,8 @@ import { AddChecklistDialog, type NewChecklistData } from "@/components/checklis
 import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
 import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
-import type { ChecklistStatus } from "@/types/checklistTypes";
+import { ChecklistHistoryDialog } from "@/components/checklists/checklist-history-dialog";
+import type { ChecklistStatus, ChecklistCompletion, ChecklistCompletionStatus } from "@/types/checklistTypes";
 import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
 
 
@@ -34,7 +35,7 @@ export interface Checklist {
   itemCount: number;
   category?: string;
   lastModified: string;
-  status: ChecklistStatus;
+  status: ChecklistStatus; // Status of the template itself
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
@@ -43,6 +44,17 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
   { id: "chk3", name: "Procedimiento Incidente HazMat Nivel 1", description: "Pasos a seguir para incidentes con materiales peligrosos.", itemCount: 22, category: "Procedimientos", lastModified: "2024-06-15T09:00:00Z", status: "Completado" },
   { id: "chk4", name: "Checklist de Ambulancia SAMU-01", description: "Revisión de equipamiento médico y estado general.", itemCount: 30, category: "Vehicular", lastModified: "2024-07-29T08:15:00Z", status: "Nuevo" },
 ];
+
+const SIMULATED_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
+  { id: "comp1-1", checklistTemplateId: "chk1", completionDate: "2024-07-27T09:00:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Todo OK en la revisión de la Bomba B-01." },
+  { id: "comp1-2", checklistTemplateId: "chk1", completionDate: "2024-07-26T08:30:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Bomba con presión ligeramente baja, ajustada." },
+  { id: "comp1-3", checklistTemplateId: "chk1", completionDate: "2024-07-25T08:35:00Z", status: "Incompleto", completedByUserName: "Carlos Silva", notes: "Faltó revisar nivel de aceite." },
+  { id: "chk2-1", checklistTemplateId: "chk2", completionDate: "2024-07-24T10:00:00Z", status: "Completado", completedByUserName: "Ana Gómez", notes: "Todos los equipos ERA operativos." },
+  { id: "chk2-2", checklistTemplateId: "chk2", completionDate: "2024-07-17T10:15:00Z", status: "Completado", completedByUserName: "Ana Gómez" },
+  { id: "chk3-1", checklistTemplateId: "chk3", completionDate: "2024-06-10T11:00:00Z", status: "Pendiente Revisión", completedByUserName: "Equipo HazMat Alfa", notes: "Protocolo ejecutado, pendiente revisión de supervisor." },
+  { id: "chk4-1", checklistTemplateId: "chk4", completionDate: "2024-07-28T08:00:00Z", status: "Completado", completedByUserName: "Paramédico Luis Torres", notes: "Ambulancia lista para turno." },
+];
+
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
@@ -57,6 +69,9 @@ export default function ChecklistsPage() {
   const [checklistToDelete, setChecklistToDelete] = useState<Checklist | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedChecklistForView, setSelectedChecklistForView] = useState<Checklist | null>(null);
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [selectedChecklistForHistory, setSelectedChecklistForHistory] = useState<Checklist | null>(null);
+
 
   const { toast } = useToast();
 
@@ -115,6 +130,11 @@ export default function ChecklistsPage() {
     toast({ title: "Checklist Eliminado", description: `El checklist "${checklistToDelete.name}" ha sido eliminado.` });
     setIsDeleteDialogOpen(false);
     setChecklistToDelete(null);
+  };
+
+  const handleViewHistory = (checklist: Checklist) => {
+    setSelectedChecklistForHistory(checklist);
+    setIsHistoryDialogOpen(true);
   };
 
   const filteredChecklists = checklists.filter(checklist => {
@@ -224,9 +244,9 @@ export default function ChecklistsPage() {
                   <TableHead className="min-w-[250px] hidden md:table-cell">Descripción</TableHead>
                   <TableHead className="hidden lg:table-cell">Categoría</TableHead>
                   <TableHead className="text-center">Ítems</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>Estado (Plantilla)</TableHead>
                   <TableHead className="hidden sm:table-cell">Últ. Modificación</TableHead>
-                  <TableHead className="text-right w-[230px]">Acciones</TableHead>
+                  <TableHead className="text-right w-[320px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,6 +272,9 @@ export default function ChecklistsPage() {
                       {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
+                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
+                        <History className="mr-1 h-3.5 w-3.5" /> Historial
+                      </Button>
                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
                         <Eye className="mr-1 h-3.5 w-3.5" /> Ver
                       </Button>
@@ -294,6 +317,14 @@ export default function ChecklistsPage() {
         checklist={selectedChecklistForView}
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
+      />
+      <ChecklistHistoryDialog
+        checklistTemplate={selectedChecklistForHistory}
+        completions={SIMULATED_CHECKLIST_COMPLETIONS.filter(
+          c => c.checklistTemplateId === selectedChecklistForHistory?.id
+        )}
+        open={isHistoryDialogOpen}
+        onOpenChange={setIsHistoryDialogOpen}
       />
     </div>
   );
