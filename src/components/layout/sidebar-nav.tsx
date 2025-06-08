@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react"; // Import useState and useEffect
 import {
   SidebarMenu,
   SidebarMenuItem,
@@ -22,7 +23,8 @@ import {
   BarChart3,
   ClipboardCheck as ChecklistIcon,
   Warehouse,
-  Palette, // Importado Palette
+  Palette,
+  ChevronDown, // Importar ChevronDown
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -33,7 +35,7 @@ interface NavItem {
   icon: LucideIcon;
   animationClass?: string;
   adminOnly?: boolean;
-  settingsSubItem?: boolean; // Para identificar sub-items de configuración
+  settingsSubItem?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -46,7 +48,6 @@ const navItems: NavItem[] = [
   { href: "/reports", label: "Informes", icon: BarChart3, animationClass: "group-hover:scale-105" },
   { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover:translate-y-[-1.5px]" },
   { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover:scale-105" },
-  // Items de Configuración agrupados
   { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover:rotate-45" },
   { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-110 group-hover:opacity-80" },
   { href: "/settings/warehouses", label: "Gestionar Bodegas", icon: Warehouse, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-105" },
@@ -56,6 +57,18 @@ const navItems: NavItem[] = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+
+  const isSettingsPageActive = pathname.startsWith("/settings");
+  const [settingsSubMenuOpen, setSettingsSubMenuOpen] = useState(isSettingsPageActive);
+
+  useEffect(() => {
+    // Sincronizar el estado del submenú con la ruta activa
+    if (isSettingsPageActive) {
+      setSettingsSubMenuOpen(true);
+    } else {
+      setSettingsSubMenuOpen(false); // Cerrar si no estamos en una página de settings
+    }
+  }, [isSettingsPageActive]);
 
   const filteredNavItems = navItems.filter(item => {
     if (item.adminOnly && user?.role !== 'admin') {
@@ -67,7 +80,13 @@ export function SidebarNav() {
   const mainMenuItems = filteredNavItems.filter(item => !item.settingsSubItem);
   const settingsSubMenuItems = filteredNavItems.filter(item => item.settingsSubItem && item.href !== "/settings");
 
-  const isSettingsActive = pathname.startsWith("/settings");
+  const handleSettingsToggle = (e: React.MouseEvent) => {
+    // El Link se encargará de la navegación. Este onClick solo alterna el estado.
+    // Si ya estamos en una página de settings, permite cerrar/abrir.
+    // Si no estamos, al hacer clic en "Configuración", el Link navega,
+    // y el useEffect se encargará de abrir el submenú.
+    setSettingsSubMenuOpen(prev => !prev);
+  };
 
   return (
     <>
@@ -81,7 +100,8 @@ export function SidebarNav() {
             'transition-transform duration-200 ease-in-out',
             item.animationClass
           );
-          const isActive = item.href === "/settings" ? isSettingsActive : pathname.startsWith(item.href);
+          const isActive = item.href === "/settings" ? isSettingsPageActive : pathname.startsWith(item.href);
+          const isSettingsItem = item.href === "/settings";
 
           return (
             <SidebarMenuItem key={item.href}>
@@ -90,21 +110,31 @@ export function SidebarNav() {
                   isActive={isActive}
                   className="justify-start w-full"
                   tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
+                  onClick={isSettingsItem ? handleSettingsToggle : undefined}
+                  aria-expanded={isSettingsItem ? settingsSubMenuOpen : undefined}
                 >
                   <IconComponent className={iconClasses} />
-                  <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
+                  <span className="group-data-[collapsible=icon]:hidden flex-1">{item.label}</span>
+                  {isSettingsItem && settingsSubMenuItems.length > 0 && (
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 text-muted-foreground transition-transform duration-200 group-data-[collapsible=icon]:hidden",
+                        settingsSubMenuOpen && "rotate-180"
+                      )}
+                    />
+                  )}
                 </SidebarMenuButton>
               </Link>
-              {/* Render Submenu para Configuración */}
-              {item.href === "/settings" && isSettingsActive && settingsSubMenuItems.length > 0 && (
-                <ul className="pl-7 pt-1 space-y-1 group-data-[collapsible=icon]:hidden">
+              
+              {isSettingsItem && settingsSubMenuOpen && settingsSubMenuItems.length > 0 && (
+                <ul className="pl-7 pt-1 space-y-1 group-data-[collapsible=icon]:hidden animate-accordion-down">
                   {settingsSubMenuItems.map(subItem => {
                     const SubIconComponent = subItem.icon;
                     return (
                       <li key={subItem.href}>
                         <Link href={subItem.href} passHref legacyBehavior>
                           <SidebarMenuButton
-                             variant="ghost" // Subitems con estilo más sutil
+                             variant="ghost"
                              size="sm"
                              isActive={pathname.startsWith(subItem.href)}
                              className="justify-start w-full text-sm h-8"
