@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 // AddChecklistDialog ya no se usa
 import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
-import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
+import { ViewChecklistDialog, type ChecklistCompletionData } from "@/components/checklists/view-checklist-dialog";
 import { ChecklistHistoryDialog } from "@/components/checklists/checklist-history-dialog";
 import type { ChecklistStatus, ChecklistCompletion, ChecklistCompletionStatus } from "@/types/checklistTypes";
 import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
@@ -114,7 +114,7 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
   },
 ];
 
-const SIMULATED_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
+const INITIAL_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
   { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Todo OK en Bomba B-01." },
   { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z", status: "Incompleto", completedByUserName: "Juan Pérez", notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite." },
   { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z", status: "Completado", completedByUserName: "Ana Gómez", notes: "ERA MSA-003 operativo." },
@@ -124,6 +124,7 @@ const SIMULATED_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
 
 export default function ChecklistsPage() {
   const [checklists, setChecklists] = useState<Checklist[]>(SIMULATED_CHECKLISTS);
+  const [checklistCompletions, setChecklistCompletions] = useState<ChecklistCompletion[]>(INITIAL_CHECKLIST_COMPLETIONS);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -140,6 +141,22 @@ export default function ChecklistsPage() {
   const [selectedChecklistForHistory, setSelectedChecklistForHistory] = useState<Checklist | null>(null);
 
   const { toast } = useToast();
+
+  const handleSaveChecklistCompletion = (data: ChecklistCompletionData) => {
+    const newCompletion: ChecklistCompletion = {
+      id: `comp-${data.checklistId}-${new Date().getTime()}`, // Simple unique ID
+      checklistTemplateId: data.checklistId,
+      completionDate: data.completionDate.toISOString(),
+      status: "Completado", // TODO: Status real debería depender de los ítems
+      completedByUserName: "Usuario Actual (Simulado)", // Reemplazar con usuario real
+      notes: data.notes,
+    };
+    setChecklistCompletions(prev => [newCompletion, ...prev].sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()));
+    toast({
+      title: "Completitud de Checklist Guardada",
+      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada.`,
+    });
+  };
 
   const handleChecklistUpdated = (id: string, updatedData: EditChecklistData) => {
     setChecklists(prev =>
@@ -432,10 +449,11 @@ export default function ChecklistsPage() {
         checklist={selectedChecklistForView}
         open={isViewDialogOpen}
         onOpenChange={setIsViewDialogOpen}
+        onSaveCompletion={handleSaveChecklistCompletion}
       />
       <ChecklistHistoryDialog
         checklistTemplate={selectedChecklistForHistory}
-        completions={SIMULATED_CHECKLIST_COMPLETIONS.filter(
+        completions={checklistCompletions.filter(
           c => c.checklistTemplateId === selectedChecklistForHistory?.id
         )}
         open={isHistoryDialogOpen}
@@ -444,3 +462,6 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
+
+    

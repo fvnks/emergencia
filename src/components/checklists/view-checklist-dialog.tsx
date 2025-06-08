@@ -25,10 +25,17 @@ import { Truck, ShieldAlert, CalendarIcon, FileText, Save } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+export interface ChecklistCompletionData {
+  checklistId: string;
+  assetName?: string;
+  completionDate: Date;
+  notes: string;
+}
 interface ViewChecklistDialogProps {
   checklist: Checklist | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSaveCompletion: (data: ChecklistCompletionData) => void;
 }
 
 const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactNode }> = ({ label, value }) => (
@@ -42,7 +49,7 @@ const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactN
   </div>
 );
 
-export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewChecklistDialogProps) {
+export function ViewChecklistDialog({ checklist, open, onOpenChange, onSaveCompletion }: ViewChecklistDialogProps) {
   const [completionDate, setCompletionDate] = useState<Date | undefined>(new Date());
   const [completionNotes, setCompletionNotes] = useState<string>("");
   const { toast } = useToast();
@@ -73,22 +80,20 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
 
   const isAssetChecklist = !!checklist.assetId;
 
-  const handleSaveCompletion = () => {
+  const handleSaveCompletionAction = () => {
     if (!completionDate) {
       toast({ title: "Error", description: "Por favor, seleccione una fecha de revisión.", variant: "destructive" });
       return;
     }
-    console.log("Guardando completitud (simulado):", {
+    if (!checklist) return; // Should not happen if dialog is open
+
+    onSaveCompletion({
       checklistId: checklist.id,
       assetName: checklist.assetName,
-      date: completionDate,
+      completionDate: completionDate,
       notes: completionNotes,
-      items: itemsToDisplay, // En una implementación real, serían los estados de los ítems
     });
-    toast({
-      title: "Completitud Guardada (Simulado)",
-      description: `La revisión para "${checklist.name}" del ${format(completionDate, "PPP", { locale: es })} ha sido registrada.`,
-    });
+    // Toast is now handled by the parent page (ChecklistsPage)
     onOpenChange(false);
   };
 
@@ -204,8 +209,8 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
             Cerrar
           </Button>
           {isAssetChecklist && (
-            <Button type="button" onClick={handleSaveCompletion}>
-              <Save className="mr-2 h-4 w-4" /> Guardar Completitud (Simulado)
+            <Button type="button" onClick={handleSaveCompletionAction}>
+              <Save className="mr-2 h-4 w-4" /> Guardar Completitud
             </Button>
           )}
         </DialogFooter>
@@ -213,3 +218,6 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
     </Dialog>
   );
 }
+
+
+    
