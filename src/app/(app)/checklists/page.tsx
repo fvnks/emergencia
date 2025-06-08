@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Eye, Edit, Trash2, ClipboardCheck, Search, Filter, FilePlus2, ListChecks, History } from "lucide-react";
+import { PlusCircle, Eye, Edit, Trash2, ClipboardCheck, Search, Filter, FilePlus2, ListChecks, History, CalendarIcon, FilterX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,9 @@ import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dial
 import { ChecklistHistoryDialog } from "@/components/checklists/checklist-history-dialog";
 import type { ChecklistStatus, ChecklistCompletion, ChecklistCompletionStatus } from "@/types/checklistTypes";
 import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
 
 
 export interface Checklist {
@@ -62,6 +65,7 @@ export default function ChecklistsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
@@ -143,7 +147,29 @@ export default function ChecklistsPage() {
       (checklist.description && checklist.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all" || checklist.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || checklist.status === statusFilter;
-    return matchesSearchTerm && matchesCategory && matchesStatus;
+    
+    const matchesDateRange = (() => {
+        if (!dateRangeFilter?.from) {
+          return true; 
+        }
+        const itemDate = parseISO(checklist.lastModified);
+        if (!isValid(itemDate)) return false; 
+
+        const fromDate = startOfDay(dateRangeFilter.from);
+        if (isBefore(itemDate, fromDate)) {
+          return false;
+        }
+
+        if (dateRangeFilter.to) {
+          const toDate = endOfDay(dateRangeFilter.to);
+          if (isAfter(itemDate, toDate)) {
+            return false;
+          }
+        }
+        return true;
+    })();
+
+    return matchesSearchTerm && matchesCategory && matchesStatus && matchesDateRange;
   });
 
   const uniqueCategories = Array.from(new Set(checklists.map(c => c.category).filter(Boolean))) as string[];
@@ -175,8 +201,8 @@ export default function ChecklistsPage() {
         <CardHeader>
           <CardTitle>Filtros de Checklists</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative w-full sm:max-w-xs">
+        <CardContent className="flex flex-wrap gap-4 items-center">
+          <div className="relative w-full sm:w-auto sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre o descripción..."
@@ -205,6 +231,54 @@ export default function ChecklistsPage() {
               {uniqueStatuses.map(stat => <SelectItem key={stat} value={stat}>{stat}</SelectItem>)}
             </SelectContent>
           </Select>
+          <div className="flex flex-col sm:flex-row gap-2 items-center w-full sm:w-auto">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date-filter-checklists"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full sm:w-[270px] justify-start text-left font-normal bg-background",
+                    !dateRangeFilter && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRangeFilter?.from ? (
+                    dateRangeFilter.to ? (
+                      <>
+                        {format(dateRangeFilter.from, "LLL dd, y", { locale: es })} -{" "}
+                        {format(dateRangeFilter.to, "LLL dd, y", { locale: es })}
+                      </>
+                    ) : (
+                      format(dateRangeFilter.from, "LLL dd, y", { locale: es })
+                    )
+                  ) : (
+                    <span>Fecha Modificación</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRangeFilter?.from}
+                  selected={dateRangeFilter}
+                  onSelect={setDateRangeFilter}
+                  numberOfMonths={2}
+                  locale={es}
+                />
+              </PopoverContent>
+            </Popover>
+            {dateRangeFilter?.from && (
+                <Button
+                    variant="ghost"
+                    onClick={() => setDateRangeFilter(undefined)}
+                    className="h-9 px-3"
+                >
+                    <FilterX className="mr-1.5 h-4 w-4" /> Limpiar
+                </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -246,7 +320,7 @@ export default function ChecklistsPage() {
                   <TableHead className="text-center">Ítems</TableHead>
                   <TableHead>Estado (Plantilla)</TableHead>
                   <TableHead className="hidden sm:table-cell">Últ. Modificación</TableHead>
-                  <TableHead className="text-right w-[320px]">Acciones</TableHead>
+                  <TableHead className="text-right w-[300px] sm:w-[320px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -272,11 +346,11 @@ export default function ChecklistsPage() {
                       {format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })}
                     </TableCell>
                     <TableCell className="text-right space-x-1">
-                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
-                        <History className="mr-1 h-3.5 w-3.5" /> Historial
-                      </Button>
                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
                         <Eye className="mr-1 h-3.5 w-3.5" /> Ver
+                      </Button>
+                      <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
+                        <History className="mr-1 h-3.5 w-3.5" /> Historial
                       </Button>
                       <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
                         <Edit className="mr-1 h-3.5 w-3.5" /> Editar
