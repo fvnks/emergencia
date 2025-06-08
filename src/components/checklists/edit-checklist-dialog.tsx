@@ -35,6 +35,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Edit } from "lucide-react";
 import type { Checklist } from "@/app/(app)/checklists/page";
+import { VEHICLE_STANDARD_ITEMS, ERA_STANDARD_ITEMS } from "@/app/(app)/checklists/page";
 import type { ChecklistStatus } from "@/types/checklistTypes";
 import { ALL_CHECKLIST_STATUSES } from "@/types/checklistTypes";
 
@@ -48,7 +49,6 @@ const editChecklistFormSchema = z.object({
   }),
 });
 
-// EditChecklistData ahora solo se usa para el formulario, ya que Checklist tiene items
 export type EditChecklistData = z.infer<typeof editChecklistFormSchema>;
 
 interface EditChecklistDialogProps {
@@ -62,6 +62,7 @@ interface EditChecklistDialogProps {
 export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklistUpdated, existingCategories }: EditChecklistDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const isAssetChecklist = !!checklist?.assetId;
 
   const form = useForm<EditChecklistData>({
     resolver: zodResolver(editChecklistFormSchema),
@@ -76,11 +77,18 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
 
   useEffect(() => {
     if (checklist && open) {
+      let itemsToCount = checklist.items;
+      if (checklist.assetType === 'Vehicle') {
+        itemsToCount = VEHICLE_STANDARD_ITEMS;
+      } else if (checklist.assetType === 'ERA') {
+        itemsToCount = ERA_STANDARD_ITEMS;
+      }
+
       form.reset({
         name: checklist.name,
         description: checklist.description || "",
         category: checklist.category || "",
-        itemCount: checklist.items.length, // Inicializar itemCount desde la longitud de los ítems reales
+        itemCount: itemsToCount.length,
         status: checklist.status,
       });
     }
@@ -91,8 +99,6 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     setIsSubmitting(true);
     
     try {
-      // onChecklistUpdated espera EditChecklistData que incluye itemCount.
-      // La lógica para generar items placeholder basados en itemCount está en ChecklistsPage.
       onChecklistUpdated(checklist.id, values);
     } catch (error) {
       console.error("Error updating checklist:", error);
@@ -113,10 +119,13 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Edit className="mr-2 h-5 w-5 text-primary" /> Editar Checklist: {checklist.name}
+            <Edit className="mr-2 h-5 w-5 text-primary" /> 
+            {isAssetChecklist ? "Ver Configuración Checklist de Activo" : `Editar Checklist: ${checklist.name}`}
           </DialogTitle>
           <DialogDescription>
-            Modifique los detalles del checklist. La gestión detallada de ítems se hará en un paso futuro.
+            {isAssetChecklist 
+              ? `Configuración del checklist para ${checklist.assetName}. Los ítems son estándar para este tipo de activo.`
+              : "Modifique los detalles del checklist. La gestión detallada de ítems se hará en un paso futuro."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -128,7 +137,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                 <FormItem>
                   <FormLabel>Nombre del Checklist</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: Inspección Vehicular Diaria" {...field} />
+                    <Input placeholder="Ej: Inspección Vehicular Diaria" {...field} readOnly={isAssetChecklist} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -141,7 +150,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                 <FormItem>
                   <FormLabel>Descripción (Opcional)</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Detalles sobre el propósito o alcance del checklist..." {...field} />
+                    <Textarea placeholder="Detalles sobre el propósito o alcance del checklist..." {...field} readOnly={isAssetChecklist} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -155,13 +164,15 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                   <FormItem>
                     <FormLabel>Categoría (Opcional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: Vehicular" {...field} list="edit-existing-categories" />
+                      <Input placeholder="Ej: Vehicular" {...field} list="edit-existing-categories" readOnly={isAssetChecklist} />
                     </FormControl>
-                    <datalist id="edit-existing-categories">
-                      {existingCategories.map(cat => <option key={cat} value={cat} />)}
-                    </datalist>
+                    {!isAssetChecklist && (
+                      <datalist id="edit-existing-categories">
+                        {existingCategories.map(cat => <option key={cat} value={cat} />)}
+                      </datalist>
+                    )}
                     <FormDescription>
-                      Escriba una nueva o seleccione una existente.
+                      {isAssetChecklist ? "La categoría se deriva del tipo de activo." : "Escriba una nueva o seleccione una existente."}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -174,10 +185,10 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                   <FormItem>
                     <FormLabel>Número de Ítems</FormLabel>
                     <FormControl>
-                      <Input type="number" min="0" placeholder="Ej: 15" {...field} />
+                      <Input type="number" min="0" placeholder="Ej: 15" {...field} readOnly />
                     </FormControl>
                      <FormDescription>
-                      Cantidad actual: {checklist.items.length}. Si modifica este número, se generarán ítems de ejemplo.
+                      {isAssetChecklist ? `Ítems estándar: ${field.value}` : `Cantidad actual: ${checklist.items.length}. Si modifica este número, se generarán ítems de ejemplo.`}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -189,8 +200,8 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Estado del Checklist</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Estado de la Plantilla</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isAssetChecklist}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un estado" />
@@ -208,11 +219,13 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
             />
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
-                Cancelar
+                {isAssetChecklist ? "Cerrar" : "Cancelar"}
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Guardar Cambios"}
-              </Button>
+              {!isAssetChecklist && (
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Guardar Cambios"}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </Form>

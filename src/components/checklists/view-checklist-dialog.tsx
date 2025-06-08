@@ -2,6 +2,7 @@
 "use client";
 
 import type { Checklist } from "@/app/(app)/checklists/page";
+import { VEHICLE_STANDARD_ITEMS, ERA_STANDARD_ITEMS } from "@/app/(app)/checklists/page";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +18,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area"; 
+import { Truck, ShieldAlert } from "lucide-react";
 
 interface ViewChecklistDialogProps {
   checklist: Checklist | null;
@@ -48,37 +50,58 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
     }
   };
 
+  const itemsToDisplay = checklist.assetType === 'Vehicle' 
+    ? VEHICLE_STANDARD_ITEMS 
+    : checklist.assetType === 'ERA' 
+    ? ERA_STANDARD_ITEMS 
+    : checklist.items;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg md:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Detalles del Checklist: {checklist.name}</DialogTitle>
+          <DialogTitle>
+            Checklist: {checklist.name}
+            {checklist.assetName && (
+                <span className="block text-base font-normal text-muted-foreground flex items-center mt-1">
+                    {checklist.assetType === 'Vehicle' ? <Truck className="h-4 w-4 mr-1.5"/> : <ShieldAlert className="h-4 w-4 mr-1.5"/>}
+                    Activo: {checklist.assetName}
+                </span>
+            )}
+            </DialogTitle>
           <DialogDescription>
-            Información completa del checklist seleccionado.
+            {checklist.assetId 
+              ? `Realice la revisión para ${checklist.assetName}. Seleccione una fecha y complete los ítems.`
+              : "Información completa del checklist seleccionado."}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-3">
           <div className="space-y-2 py-4">
-            <DetailItem label="Nombre" value={checklist.name} />
-            {checklist.description && (
-              <DetailItem label="Descripción" value={<p className="whitespace-pre-wrap">{checklist.description}</p>} />
+            {!checklist.assetId && ( // Mostrar estos detalles solo para plantillas generales
+              <>
+                <DetailItem label="Nombre Plantilla" value={checklist.name} />
+                {checklist.description && (
+                  <DetailItem label="Descripción Plantilla" value={<p className="whitespace-pre-wrap">{checklist.description}</p>} />
+                )}
+                <DetailItem label="Categoría Plantilla" value={checklist.category ? <Badge variant="outline">{checklist.category}</Badge> : "N/A"} />
+              </>
             )}
-            <DetailItem label="Categoría" value={checklist.category ? <Badge variant="outline">{checklist.category}</Badge> : "N/A"} />
-            <DetailItem label="Estado" value={
+            <DetailItem label="Estado Plantilla" value={
               <Badge variant={checklist.status === 'Completado' ? 'default' : checklist.status === 'En Progreso' ? 'secondary' : 'outline'} className={cn("text-xs", getStatusBadgeClassName(checklist.status))}>
                 {checklist.status}
               </Badge>
             } />
-            <DetailItem label="Nº de Ítems" value={checklist.items.length.toString()} />
-            <DetailItem label="Últ. Modificación" value={format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })} />
+            <DetailItem label="Nº de Ítems" value={itemsToDisplay.length.toString()} />
+            <DetailItem label="Últ. Modificación Plantilla" value={format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })} />
           
             <div className="pt-4 mt-4 border-t">
               <h4 className="text-md font-semibold mb-2">Ítems del Checklist</h4>
-              {(checklist.items && checklist.items.length > 0) ? (
-                  <ul className="space-y-1.5 list-disc list-inside pl-2">
-                    {checklist.items.map((item, index) => (
-                      <li key={`${checklist.id}-item-${index}`} className="text-sm text-muted-foreground">
+              {(itemsToDisplay && itemsToDisplay.length > 0) ? (
+                  <ul className="space-y-1.5 list-decimal list-inside pl-2">
+                    {itemsToDisplay.map((item, index) => (
+                      <li key={`${checklist.id}-item-${index}`} className="text-sm">
                         {item}
+                        {/* Aquí irían los inputs para marcar OK/No OK, notas por ítem, etc. */}
                       </li>
                     ))}
                   </ul>
@@ -87,9 +110,9 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
                   Este checklist aún no tiene ítems definidos.
                   </p>
               )}
-              {checklist.items.length > 0 && (
+              {itemsToDisplay.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-3">
-                    (La funcionalidad para completar y gestionar ítems se implementará próximamente).
+                    (La funcionalidad para seleccionar fecha de revisión y completar los ítems se implementará próximamente).
                 </p>
               )}
             </div>
@@ -99,6 +122,7 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
+          {/* El botón "Guardar Completitud" iría aquí cuando se implemente */}
         </DialogFooter>
       </DialogContent>
     </Dialog>

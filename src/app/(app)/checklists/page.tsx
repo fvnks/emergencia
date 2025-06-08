@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Eye, Edit, Trash2, ClipboardCheck, Search, Filter, FilePlus2, ListChecks, History, CalendarIcon, FilterX } from "lucide-react";
+import { Eye, Edit, Trash2, ClipboardCheck, Search, Filter, ListChecks, History, CalendarIcon, FilterX, Truck, ShieldAlert } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,7 +19,7 @@ import { format, parseISO, isValid, isBefore, isAfter, startOfDay, endOfDay } fr
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { AddChecklistDialog, type NewChecklistData } from "@/components/checklists/add-checklist-dialog";
+// AddChecklistDialog ya no se usa
 import { EditChecklistDialog, type EditChecklistData } from "@/components/checklists/edit-checklist-dialog";
 import { DeleteChecklistDialog } from "@/components/checklists/delete-checklist-dialog";
 import { ViewChecklistDialog } from "@/components/checklists/view-checklist-dialog";
@@ -30,32 +30,95 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import type { DateRange } from "react-day-picker";
 
+// Ítems estándar para checklists de activos
+export const VEHICLE_STANDARD_ITEMS: string[] = [
+  "Revisar nivel de aceite motor",
+  "Verificar presión de neumáticos",
+  "Comprobar luces y sirenas",
+  "Inspeccionar nivel de combustible",
+  "Revisar estado de mangueras y pitones",
+  "Verificar equipo de comunicación radial",
+  "Inspeccionar extintor a bordo",
+  "Comprobar botiquín de primeros auxilios",
+];
+
+export const ERA_STANDARD_ITEMS: string[] = [
+  "Verificar presión de cilindro (mín. según norma)",
+  "Inspeccionar máscara facial (sellos, visor, correas)",
+  "Comprobar arnés y correas de sujeción",
+  "Verificar funcionamiento de válvula a demanda",
+  "Chequear manómetro y alarma de baja presión",
+  "Limpieza y desinfección de máscara",
+];
 
 export interface Checklist {
   id: string;
   name: string;
   description?: string;
-  items: string[]; // Array de strings para los ítems del checklist
+  items: string[];
   category?: string;
   lastModified: string;
-  status: ChecklistStatus; // Status of the template itself
+  status: ChecklistStatus;
+  // Nuevos campos para vincular a activos
+  assetId?: string; // Ej: "veh1", "era2"
+  assetType?: 'Vehicle' | 'ERA';
+  assetName?: string; // Ej: "Bomba B-01", "ERA MSA-003"
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
-  { id: "chk1", name: "Inspección Pre-Operacional Bomba B-01", description: "Checklist diario antes de sacar la unidad.", items: ["Revisar nivel de aceite motor", "Verificar presión de neumáticos", "Comprobar luces y sirenas", "Inspeccionar nivel de combustible", "Revisar estado de mangueras y pitones"], category: "Vehicular", lastModified: "2024-07-28T10:00:00Z", status: "Nuevo" },
-  { id: "chk2", name: "Revisión Semanal Equipos ERA", description: "Verificación de presión, estado de máscaras y cilindros.", items: ["Verificar presión de cilindro (mín. 200 bar)", "Inspeccionar máscara facial (sellos, visor)", "Comprobar correas y arnés", "Verificar funcionamiento de válvula a demanda", "Limpieza y desinfección de máscara"], category: "Equipos ERA", lastModified: "2024-07-25T14:30:00Z", status: "En Progreso" },
-  { id: "chk3", name: "Procedimiento Incidente HazMat Nivel 1", description: "Pasos a seguir para incidentes con materiales peligrosos.", items: ["Aislar la zona (mín. 50m)", "Identificar el producto (si es posible y seguro)", "Solicitar apoyo especializado (Cuerpo de Bomberos)", "Establecer zona de exclusión", "Verificar dirección del viento"], category: "Procedimientos", lastModified: "2024-06-15T09:00:00Z", status: "Completado" },
-  { id: "chk4", name: "Checklist de Ambulancia SAMU-01", description: "Revisión de equipamiento médico y estado general.", items: ["Revisar monitor desfibrilador", "Verificar stock de medicamentos", "Comprobar equipo de oxígeno", "Inspeccionar material de inmovilización", "Limpieza y orden de cabina sanitaria"], category: "Vehicular", lastModified: "2024-07-29T08:15:00Z", status: "Nuevo" },
+  { 
+    id: "chk-veh-b01", 
+    name: "Checklist Diario - Bomba B-01", 
+    description: "Revisión pre-operacional diaria para la unidad Bomba B-01.", 
+    items: VEHICLE_STANDARD_ITEMS, 
+    category: "Vehicular", 
+    lastModified: "2024-07-30T08:00:00Z", 
+    status: "Nuevo",
+    assetId: "veh1", // Asumir que existe un vehículo con este ID
+    assetType: "Vehicle",
+    assetName: "Bomba B-01"
+  },
+  { 
+    id: "chk-era-003", 
+    name: "Inspección Semanal - ERA MSA-003", 
+    description: "Verificación de estado y operatividad del equipo ERA MSA-003.", 
+    items: ERA_STANDARD_ITEMS, 
+    category: "Equipos ERA", 
+    lastModified: "2024-07-28T14:30:00Z", 
+    status: "En Progreso",
+    assetId: "era3", // Asumir que existe un ERA con este ID
+    assetType: "ERA",
+    assetName: "ERA MSA-003"
+  },
+  { 
+    id: "chk-proc-hazmat", 
+    name: "Protocolo Incidente HazMat Nivel 1", 
+    description: "Pasos a seguir para incidentes con materiales peligrosos. Plantilla general.", 
+    items: ["Aislar la zona (mín. 50m)", "Identificar el producto (si es posible y seguro)", "Solicitar apoyo especializado", "Establecer zona de exclusión", "Verificar dirección del viento"], 
+    category: "Procedimientos", 
+    lastModified: "2024-06-15T09:00:00Z", 
+    status: "Completado" 
+    // Sin assetId, es una plantilla general
+  },
+  { 
+    id: "chk-veh-ambu01", 
+    name: "Checklist Operacional - Ambulancia SAMU-01", 
+    description: "Revisión de equipamiento médico y estado general de la ambulancia.", 
+    items: [...VEHICLE_STANDARD_ITEMS, "Revisar monitor desfibrilador", "Verificar stock de medicamentos UCI", "Comprobar equipo de oxígeno portátil"],
+    category: "Vehicular", 
+    lastModified: "2024-07-29T08:15:00Z", 
+    status: "Nuevo",
+    assetId: "veh4",
+    assetType: "Vehicle",
+    assetName: "Ambulancia SAMU-01"
+  },
 ];
 
 const SIMULATED_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
-  { id: "comp1-1", checklistTemplateId: "chk1", completionDate: "2024-07-27T09:00:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Todo OK en la revisión de la Bomba B-01." },
-  { id: "comp1-2", checklistTemplateId: "chk1", completionDate: "2024-07-26T08:30:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Bomba con presión ligeramente baja, ajustada." },
-  { id: "comp1-3", checklistTemplateId: "chk1", completionDate: "2024-07-25T08:35:00Z", status: "Incompleto", completedByUserName: "Carlos Silva", notes: "Faltó revisar nivel de aceite." },
-  { id: "chk2-1", checklistTemplateId: "chk2", completionDate: "2024-07-24T10:00:00Z", status: "Completado", completedByUserName: "Ana Gómez", notes: "Todos los equipos ERA operativos." },
-  { id: "chk2-2", checklistTemplateId: "chk2", completionDate: "2024-07-17T10:15:00Z", status: "Completado", completedByUserName: "Ana Gómez" },
-  { id: "chk3-1", checklistTemplateId: "chk3", completionDate: "2024-06-10T11:00:00Z", status: "Pendiente Revisión", completedByUserName: "Equipo HazMat Alfa", notes: "Protocolo ejecutado, pendiente revisión de supervisor." },
-  { id: "chk4-1", checklistTemplateId: "chk4", completionDate: "2024-07-28T08:00:00Z", status: "Completado", completedByUserName: "Paramédico Luis Torres", notes: "Ambulancia lista para turno." },
+  { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z", status: "Completado", completedByUserName: "Juan Pérez", notes: "Todo OK en Bomba B-01." },
+  { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z", status: "Incompleto", completedByUserName: "Juan Pérez", notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite." },
+  { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z", status: "Completado", completedByUserName: "Ana Gómez", notes: "ERA MSA-003 operativo." },
+  { id: "comp-proc-hazmat-1", checklistTemplateId: "chk-proc-hazmat", completionDate: "2024-06-10T11:00:00Z", status: "Pendiente Revisión", completedByUserName: "Equipo HazMat Alfa", notes: "Protocolo ejecutado, pendiente revisión de supervisor." },
 ];
 
 
@@ -66,7 +129,7 @@ export default function ChecklistsPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateRangeFilter, setDateRangeFilter] = useState<DateRange | undefined>(undefined);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  // isAddDialogOpen y handleChecklistAdded ya no se usan
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [checklistToEdit, setChecklistToEdit] = useState<Checklist | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -76,21 +139,7 @@ export default function ChecklistsPage() {
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [selectedChecklistForHistory, setSelectedChecklistForHistory] = useState<Checklist | null>(null);
 
-
   const { toast } = useToast();
-
-  const handleChecklistAdded = (newChecklistData: NewChecklistData) => {
-    const newChecklist: Checklist = {
-      id: `chk${checklists.length + 1}-${Date.now()}`,
-      name: newChecklistData.name,
-      description: newChecklistData.description,
-      category: newChecklistData.category,
-      items: [], // Nuevo checklist comienza sin ítems
-      lastModified: new Date().toISOString(),
-      status: "Nuevo",
-    };
-    setChecklists(prev => [newChecklist, ...prev]);
-  };
 
   const handleChecklistUpdated = (id: string, updatedData: EditChecklistData) => {
     setChecklists(prev =>
@@ -98,11 +147,12 @@ export default function ChecklistsPage() {
         c.id === id
           ? {
               ...c,
-              name: updatedData.name,
-              description: updatedData.description,
-              category: updatedData.category,
-              // Si itemCount viene de EditChecklistData, generamos items placeholder
-              items: Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
+              name: c.assetName ? `Checklist - ${c.assetName}` : updatedData.name, // Nombre derivado si es de activo
+              description: c.assetId ? c.description : updatedData.description, // Descripción no editable si es de activo
+              category: c.assetId ? c.category : updatedData.category, // Categoría no editable si es de activo
+              items: c.assetType === 'Vehicle' ? VEHICLE_STANDARD_ITEMS 
+                   : c.assetType === 'ERA' ? ERA_STANDARD_ITEMS
+                   : Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
               status: updatedData.status as ChecklistStatus,
               lastModified: new Date().toISOString(),
             }
@@ -145,27 +195,20 @@ export default function ChecklistsPage() {
   const filteredChecklists = checklists.filter(checklist => {
     const matchesSearchTerm =
       checklist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (checklist.description && checklist.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (checklist.description && checklist.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (checklist.assetName && checklist.assetName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all" || checklist.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || checklist.status === statusFilter;
     
     const matchesDateRange = (() => {
-        if (!dateRangeFilter?.from) {
-          return true; 
-        }
+        if (!dateRangeFilter?.from) return true; 
         const itemDate = parseISO(checklist.lastModified);
         if (!isValid(itemDate)) return false; 
-
         const fromDate = startOfDay(dateRangeFilter.from);
-        if (isBefore(itemDate, fromDate)) {
-          return false;
-        }
-
+        if (isBefore(itemDate, fromDate)) return false;
         if (dateRangeFilter.to) {
           const toDate = endOfDay(dateRangeFilter.to);
-          if (isAfter(itemDate, toDate)) {
-            return false;
-          }
+          if (isAfter(itemDate, toDate)) return false;
         }
         return true;
     })();
@@ -176,11 +219,10 @@ export default function ChecklistsPage() {
   const uniqueCategories = Array.from(new Set(checklists.map(c => c.category).filter(Boolean))) as string[];
   const uniqueStatuses = Array.from(new Set(checklists.map(c => c.status))) as ChecklistStatus[];
 
-
   const getStatusBadgeClassName = (status: Checklist['status']) => {
     switch (status) {
       case 'Completado': return 'bg-green-500 text-primary-foreground hover:bg-green-600';
-      case 'En Progreso': return 'bg-yellow-500 text-black hover:bg-yellow-600'; // text-black for yellow bg
+      case 'En Progreso': return 'bg-yellow-500 text-black hover:bg-yellow-600';
       case 'Nuevo': return 'border-primary text-primary hover:bg-primary/10';
       default: return 'border-muted text-muted-foreground';
     }
@@ -191,11 +233,9 @@ export default function ChecklistsPage() {
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
         <h1 className="text-2xl font-headline font-bold flex items-center">
           <ListChecks className="mr-3 h-7 w-7 text-primary" />
-          Gestión de Checklists y Formularios
+          Gestión de Checklists de Activos
         </h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <FilePlus2 className="mr-2 h-5 w-5" /> Crear Nuevo Checklist
-        </Button>
+        {/* Botón de crear eliminado */}
       </div>
 
       <Card className="shadow-sm">
@@ -206,7 +246,7 @@ export default function ChecklistsPage() {
           <div className="relative w-full sm:w-auto sm:max-w-xs">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre o descripción..."
+              placeholder="Buscar por nombre, activo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 bg-background"
@@ -225,7 +265,7 @@ export default function ChecklistsPage() {
            <Select value={statusFilter} onValueChange={setStatusFilter} disabled={uniqueStatuses.length === 0}>
             <SelectTrigger className="w-full sm:w-[180px] bg-background">
               <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-              <SelectValue placeholder="Estado" />
+              <SelectValue placeholder="Estado Plantilla" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos los Estados</SelectItem>
@@ -292,22 +332,15 @@ export default function ChecklistsPage() {
                 <ClipboardCheck className="h-10 w-10" />
             </div>
             <CardTitle className="mt-4">
-                {checklists.length === 0 ? "No hay Checklists Creados" : "No se encontraron checklists"}
+                {checklists.length === 0 ? "No hay Checklists de Activos" : "No se encontraron checklists"}
             </CardTitle>
             <CardDescription>
               {checklists.length === 0
-                ? "Comienza creando tu primer checklist digital."
+                ? "Los checklists se generarán automáticamente al crear vehículos o equipos ERA (funcionalidad futura)."
                 : "Intenta ajustar los filtros o el término de búsqueda."
               }
             </CardDescription>
           </CardHeader>
-           {checklists.length === 0 && (
-            <CardContent>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <FilePlus2 className="mr-2 h-5 w-5" /> Crear Nuevo Checklist
-              </Button>
-            </CardContent>
-          )}
         </Card>
       ) : (
         <Card className="shadow-md">
@@ -315,8 +348,7 @@ export default function ChecklistsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[200px]">Nombre</TableHead>
-                  <TableHead className="min-w-[250px] hidden md:table-cell">Descripción</TableHead>
+                  <TableHead className="min-w-[200px]">Nombre Checklist / Activo</TableHead>
                   <TableHead className="hidden lg:table-cell">Categoría</TableHead>
                   <TableHead className="text-center">Ítems</TableHead>
                   <TableHead>Estado (Plantilla)</TableHead>
@@ -327,9 +359,14 @@ export default function ChecklistsPage() {
               <TableBody>
                 {filteredChecklists.map((checklist) => (
                   <TableRow key={checklist.id}>
-                    <TableCell className="font-medium">{checklist.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground hidden md:table-cell truncate max-w-xs" title={checklist.description}>
-                      {checklist.description}
+                    <TableCell className="font-medium">
+                      <div>{checklist.name}</div>
+                      {checklist.assetName && (
+                        <div className="text-xs text-muted-foreground flex items-center">
+                          {checklist.assetType === 'Vehicle' ? <Truck className="h-3 w-3 mr-1"/> : <ShieldAlert className="h-3 w-3 mr-1"/>}
+                          {checklist.assetName}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {checklist.category ? <Badge variant="outline">{checklist.category}</Badge> : "N/A"}
@@ -350,7 +387,7 @@ export default function ChecklistsPage() {
                       <div className="inline-flex flex-col space-y-1 items-end">
                         <div className="flex space-x-1">
                           <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewChecklist(checklist)}>
-                            <Eye className="mr-1 h-3.5 w-3.5" /> Ver
+                            <Eye className="mr-1 h-3.5 w-3.5" /> Ver / Completar
                           </Button>
                           <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleViewHistory(checklist)}>
                             <History className="mr-1 h-3.5 w-3.5" /> Historial
@@ -358,11 +395,13 @@ export default function ChecklistsPage() {
                         </div>
                         <div className="flex space-x-1">
                           <Button variant="outline" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleEditChecklist(checklist)}>
-                            <Edit className="mr-1 h-3.5 w-3.5" /> Editar
+                            <Edit className="mr-1 h-3.5 w-3.5" /> {checklist.assetId ? "Ver Config." : "Editar"}
                           </Button>
-                          <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
-                            <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
-                          </Button>
+                           {!checklist.assetId && ( // Solo permitir eliminar plantillas generales
+                            <Button variant="destructive" size="sm" className="h-8 px-2 py-1 text-xs" onClick={() => handleDeleteChecklist(checklist)}>
+                                <Trash2 className="mr-1 h-3.5 w-3.5" /> Eliminar
+                            </Button>
+                           )}
                         </div>
                       </div>
                     </TableCell>
@@ -373,12 +412,7 @@ export default function ChecklistsPage() {
           </CardContent>
         </Card>
       )}
-      <AddChecklistDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onChecklistAdded={handleChecklistAdded}
-        existingCategories={uniqueCategories}
-      />
+      {/* AddChecklistDialog ya no se usa */}
       {checklistToEdit && (
         <EditChecklistDialog
           checklist={checklistToEdit}
