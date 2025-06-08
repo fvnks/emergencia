@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Image as ImageIcon, Palette as PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, ImageIcon, Palette as PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
@@ -72,8 +72,8 @@ export default function AppearanceSettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
 
-  const [primaryColorHex, setPrimaryColorHex] = useState("#3294F8");
-  const [accentColorHex, setAccentColorHex] = useState("#40E0D0");
+  const [primaryColorHex, setPrimaryColorHex] = useState(hslToHex(...DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
+  const [accentColorHex, setAccentColorHex] = useState(hslToHex(...DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
   const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD");
 
 
@@ -268,8 +268,7 @@ export default function AppearanceSettingsPage() {
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
             <Button onClick={handleSaveLogo} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Guardar Cambios de Logo
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Guardar Logo"}
             </Button>
             <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
