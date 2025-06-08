@@ -35,17 +35,17 @@ export interface Checklist {
   id: string;
   name: string;
   description?: string;
-  itemCount: number;
+  items: string[]; // Array de strings para los ítems del checklist
   category?: string;
   lastModified: string;
   status: ChecklistStatus; // Status of the template itself
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
-  { id: "chk1", name: "Inspección Pre-Operacional Bomba B-01", description: "Checklist diario antes de sacar la unidad.", itemCount: 15, category: "Vehicular", lastModified: "2024-07-28T10:00:00Z", status: "Nuevo" },
-  { id: "chk2", name: "Revisión Semanal Equipos ERA", description: "Verificación de presión, estado de máscaras y cilindros.", itemCount: 8, category: "Equipos ERA", lastModified: "2024-07-25T14:30:00Z", status: "En Progreso" },
-  { id: "chk3", name: "Procedimiento Incidente HazMat Nivel 1", description: "Pasos a seguir para incidentes con materiales peligrosos.", itemCount: 22, category: "Procedimientos", lastModified: "2024-06-15T09:00:00Z", status: "Completado" },
-  { id: "chk4", name: "Checklist de Ambulancia SAMU-01", description: "Revisión de equipamiento médico y estado general.", itemCount: 30, category: "Vehicular", lastModified: "2024-07-29T08:15:00Z", status: "Nuevo" },
+  { id: "chk1", name: "Inspección Pre-Operacional Bomba B-01", description: "Checklist diario antes de sacar la unidad.", items: ["Revisar nivel de aceite motor", "Verificar presión de neumáticos", "Comprobar luces y sirenas", "Inspeccionar nivel de combustible", "Revisar estado de mangueras y pitones"], category: "Vehicular", lastModified: "2024-07-28T10:00:00Z", status: "Nuevo" },
+  { id: "chk2", name: "Revisión Semanal Equipos ERA", description: "Verificación de presión, estado de máscaras y cilindros.", items: ["Verificar presión de cilindro (mín. 200 bar)", "Inspeccionar máscara facial (sellos, visor)", "Comprobar correas y arnés", "Verificar funcionamiento de válvula a demanda", "Limpieza y desinfección de máscara"], category: "Equipos ERA", lastModified: "2024-07-25T14:30:00Z", status: "En Progreso" },
+  { id: "chk3", name: "Procedimiento Incidente HazMat Nivel 1", description: "Pasos a seguir para incidentes con materiales peligrosos.", items: ["Aislar la zona (mín. 50m)", "Identificar el producto (si es posible y seguro)", "Solicitar apoyo especializado (Cuerpo de Bomberos)", "Establecer zona de exclusión", "Verificar dirección del viento"], category: "Procedimientos", lastModified: "2024-06-15T09:00:00Z", status: "Completado" },
+  { id: "chk4", name: "Checklist de Ambulancia SAMU-01", description: "Revisión de equipamiento médico y estado general.", items: ["Revisar monitor desfibrilador", "Verificar stock de medicamentos", "Comprobar equipo de oxígeno", "Inspeccionar material de inmovilización", "Limpieza y orden de cabina sanitaria"], category: "Vehicular", lastModified: "2024-07-29T08:15:00Z", status: "Nuevo" },
 ];
 
 const SIMULATED_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
@@ -85,7 +85,7 @@ export default function ChecklistsPage() {
       name: newChecklistData.name,
       description: newChecklistData.description,
       category: newChecklistData.category,
-      itemCount: 0, 
+      items: [], // Nuevo checklist comienza sin ítems
       lastModified: new Date().toISOString(),
       status: "Nuevo",
     };
@@ -101,7 +101,8 @@ export default function ChecklistsPage() {
               name: updatedData.name,
               description: updatedData.description,
               category: updatedData.category,
-              itemCount: updatedData.itemCount,
+              // Si itemCount viene de EditChecklistData, generamos items placeholder
+              items: Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
               status: updatedData.status as ChecklistStatus,
               lastModified: new Date().toISOString(),
             }
@@ -333,7 +334,7 @@ export default function ChecklistsPage() {
                     <TableCell className="hidden lg:table-cell">
                       {checklist.category ? <Badge variant="outline">{checklist.category}</Badge> : "N/A"}
                     </TableCell>
-                    <TableCell className="text-center">{checklist.itemCount}</TableCell>
+                    <TableCell className="text-center">{checklist.items.length}</TableCell>
                     <TableCell>
                       <Badge 
                         variant={checklist.status === 'Completado' ? 'default' : checklist.status === 'En Progreso' ? 'secondary' : 'outline'}

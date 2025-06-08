@@ -16,18 +16,12 @@ import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react"; // Importar useState y useEffect
-import { ScrollArea } from "@/components/ui/scroll-area"; // Para una lista potencialmente larga de ítems
+import { ScrollArea } from "@/components/ui/scroll-area"; 
 
 interface ViewChecklistDialogProps {
   checklist: Checklist | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface ChecklistItemSimulated {
-  id: string;
-  text: string;
 }
 
 const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactNode }> = ({ label, value }) => (
@@ -42,22 +36,6 @@ const DetailItem: React.FC<{ label: string; value?: string | null | React.ReactN
 );
 
 export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewChecklistDialogProps) {
-  const [simulatedItems, setSimulatedItems] = useState<ChecklistItemSimulated[]>([]);
-
-  useEffect(() => {
-    if (checklist && checklist.itemCount > 0) {
-      const items: ChecklistItemSimulated[] = [];
-      for (let i = 0; i < checklist.itemCount; i++) {
-        items.push({
-          id: `sim-${checklist.id}-${i}`,
-          text: `Ítem de ejemplo número ${i + 1} para el checklist "${checklist.name}"`,
-        });
-      }
-      setSimulatedItems(items);
-    } else {
-      setSimulatedItems([]);
-    }
-  }, [checklist]);
 
   if (!checklist) return null;
 
@@ -91,25 +69,25 @@ export function ViewChecklistDialog({ checklist, open, onOpenChange }: ViewCheck
                 {checklist.status}
               </Badge>
             } />
-            <DetailItem label="Nº de Ítems" value={checklist.itemCount.toString()} />
+            <DetailItem label="Nº de Ítems" value={checklist.items.length.toString()} />
             <DetailItem label="Últ. Modificación" value={format(parseISO(checklist.lastModified), "dd MMM, yyyy HH:mm", { locale: es })} />
           
             <div className="pt-4 mt-4 border-t">
               <h4 className="text-md font-semibold mb-2">Ítems del Checklist</h4>
-              {simulatedItems.length > 0 ? (
+              {(checklist.items && checklist.items.length > 0) ? (
                   <ul className="space-y-1.5 list-disc list-inside pl-2">
-                    {simulatedItems.map(item => (
-                      <li key={item.id} className="text-sm text-muted-foreground">
-                        {item.text}
+                    {checklist.items.map((item, index) => (
+                      <li key={`${checklist.id}-item-${index}`} className="text-sm text-muted-foreground">
+                        {item}
                       </li>
                     ))}
                   </ul>
               ) : (
                   <p className="text-sm text-muted-foreground">
-                  Este checklist aún no tiene ítems definidos o el contador es cero.
+                  Este checklist aún no tiene ítems definidos.
                   </p>
               )}
-              {checklist.itemCount > 0 && (
+              {checklist.items.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-3">
                     (La funcionalidad para completar y gestionar ítems se implementará próximamente).
                 </p>

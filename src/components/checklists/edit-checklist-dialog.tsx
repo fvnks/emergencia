@@ -48,6 +48,7 @@ const editChecklistFormSchema = z.object({
   }),
 });
 
+// EditChecklistData ahora solo se usa para el formulario, ya que Checklist tiene items
 export type EditChecklistData = z.infer<typeof editChecklistFormSchema>;
 
 interface EditChecklistDialogProps {
@@ -79,7 +80,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
         name: checklist.name,
         description: checklist.description || "",
         category: checklist.category || "",
-        itemCount: checklist.itemCount || 0,
+        itemCount: checklist.items.length, // Inicializar itemCount desde la longitud de los ítems reales
         status: checklist.status,
       });
     }
@@ -90,8 +91,9 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     setIsSubmitting(true);
     
     try {
+      // onChecklistUpdated espera EditChecklistData que incluye itemCount.
+      // La lógica para generar items placeholder basados en itemCount está en ChecklistsPage.
       onChecklistUpdated(checklist.id, values);
-      // El toast y el cierre del diálogo se manejan en el componente padre
     } catch (error) {
       console.error("Error updating checklist:", error);
       toast({
@@ -114,7 +116,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
             <Edit className="mr-2 h-5 w-5 text-primary" /> Editar Checklist: {checklist.name}
           </DialogTitle>
           <DialogDescription>
-            Modifique los detalles del checklist.
+            Modifique los detalles del checklist. La gestión detallada de ítems se hará en un paso futuro.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -175,7 +177,7 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
                       <Input type="number" min="0" placeholder="Ej: 15" {...field} />
                     </FormControl>
                      <FormDescription>
-                      Cantidad de ítems que tendrá este checklist.
+                      Cantidad actual: {checklist.items.length}. Si modifica este número, se generarán ítems de ejemplo.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -218,4 +220,3 @@ export function EditChecklistDialog({ checklist, open, onOpenChange, onChecklist
     </Dialog>
   );
 }
-
