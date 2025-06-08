@@ -21,161 +21,18 @@ const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
 const LOCALSTORAGE_LOGO_TEXT_KEY = "customLogoText";
 const DEFAULT_LOGO_TEXT = "Gestor Brigada";
 
-const LOCALSTORAGE_THEME_PRIMARY_HSL = "customThemePrimaryHsl";
-const LOCALSTORAGE_THEME_ACCENT_HSL = "customThemeAccentHsl";
-
-// Values from globals.css (light theme defaults)
-const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%";
-const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";
-
-function hexToHsl(hex: string): [number, number, number] | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!result) return null;
-
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
-
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0, l = (max + min) / 2;
-
-  if (max === min) {
-    h = s = 0; 
-  } else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
-  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  s /= 100;
-  l /= 100;
-  const k = (n: number) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = (n: number) =>
-    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const toHex = (val: number) => Math.round(val * 255).toString(16).padStart(2, '0');
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
-}
-
 export default function AppearanceSettingsPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [logoUrl, setLogoUrl] = useState("");
   const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
-
-  const [primaryColorHex, setPrimaryColorHex] = useState(hslToHex(...DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
-  const [accentColorHex, setAccentColorHex] = useState(hslToHex(...DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')))));
   
-  const applyCustomColorsToDOM = (primaryHslStr: string | null, accentHslStr: string | null) => {
-    const root = document.documentElement;
-    if (primaryHslStr) {
-      const [h, s, l] = primaryHslStr.split(" ").map(v => parseFloat(v.replace('%','')));
-      if (!isNaN(h) && !isNaN(s) && !isNaN(l)) {
-        root.style.setProperty('--primary-h', `${h}`);
-        root.style.setProperty('--primary-s', `${s}%`);
-        root.style.setProperty('--primary-l', `${l}%`);
-        root.style.setProperty('--primary', `hsl(${h} ${s}% ${l}%)`);
-      } else {
-        console.warn("Valores HSL primarios inválidos al aplicar al DOM:", primaryHslStr);
-        root.style.removeProperty('--primary-h');
-        root.style.removeProperty('--primary-s');
-        root.style.removeProperty('--primary-l');
-        root.style.removeProperty('--primary');
-      }
-    } else { 
-        root.style.removeProperty('--primary-h');
-        root.style.removeProperty('--primary-s');
-        root.style.removeProperty('--primary-l');
-        root.style.removeProperty('--primary');
-    }
-
-    if (accentHslStr) {
-      const [h, s, l] = accentHslStr.split(" ").map(v => parseFloat(v.replace('%','')));
-      if (!isNaN(h) && !isNaN(s) && !isNaN(l)) {
-        root.style.setProperty('--accent-h', `${h}`);
-        root.style.setProperty('--accent-s', `${s}%`);
-        root.style.setProperty('--accent-l', `${l}%`);
-        root.style.setProperty('--accent', `hsl(${h} ${s}% ${l}%)`);
-      } else {
-        console.warn("Valores HSL de acento inválidos al aplicar al DOM:", accentHslStr);
-        root.style.removeProperty('--accent-h');
-        root.style.removeProperty('--accent-s');
-        root.style.removeProperty('--accent-l');
-        root.style.removeProperty('--accent');
-      }
-    } else {
-        root.style.removeProperty('--accent-h');
-        root.style.removeProperty('--accent-s');
-        root.style.removeProperty('--accent-l');
-        root.style.removeProperty('--accent');
-    }
-  };
-
-
   useEffect(() => {
     const storedLogoUrl = localStorage.getItem(LOCALSTORAGE_LOGO_URL_KEY);
     const storedLogoText = localStorage.getItem(LOCALSTORAGE_LOGO_TEXT_KEY);
     if (storedLogoUrl) setLogoUrl(storedLogoUrl);
     if (storedLogoText) setLogoText(storedLogoText);
-
-    const storedPrimaryHsl = localStorage.getItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
-    const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_THEME_ACCENT_HSL);
-
-    if (storedPrimaryHsl) {
-      const parts = storedPrimaryHsl.split(" ");
-      if (parts.length === 3) {
-        const h = parseFloat(parts[0]);
-        const s = parseFloat(parts[1].replace('%',''));
-        const l = parseFloat(parts[2].replace('%',''));
-        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
-          setPrimaryColorHex(hslToHex(h,s,l));
-        } else {
-          localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
-          const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-          setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-        }
-      } else {
-        localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
-        const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-        setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-      }
-    } else {
-      const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-      setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-    }
-
-    if (storedAccentHsl) {
-      const parts = storedAccentHsl.split(" ");
-      if (parts.length === 3) {
-        const h = parseFloat(parts[0]);
-        const s = parseFloat(parts[1].replace('%',''));
-        const l = parseFloat(parts[2].replace('%',''));
-        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
-          setAccentColorHex(hslToHex(h,s,l));
-        } else {
-          localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);
-          const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-          setAccentColorHex(hslToHex(defAH, defAS, defAL));
-        }
-      } else {
-          localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);
-          const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-          setAccentColorHex(hslToHex(defAH, defAS, defAL));
-      }
-    } else {
-       const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-       setAccentColorHex(hslToHex(defAH, defAS, defAL));
-    }
-    // ClientThemeInitializer se encarga de aplicar los colores al DOM inicialmente.
   }, []);
 
   const handleSaveLogo = () => {
@@ -208,53 +65,6 @@ export default function AppearanceSettingsPage() {
     }
   };
   
-  const handleApplyColors = () => {
-    setIsSubmitting(true);
-    try {
-        const primaryHslArr = hexToHsl(primaryColorHex);
-        const accentHslArr = hexToHsl(accentColorHex);
-
-        if (primaryHslArr && accentHslArr) {
-          const primaryHslStr = `${primaryHslArr[0]} ${primaryHslArr[1]}% ${primaryHslArr[2]}%`;
-          const accentHslStr = `${accentHslArr[0]} ${accentHslArr[1]}% ${accentHslArr[2]}%`;
-          
-          localStorage.setItem(LOCALSTORAGE_THEME_PRIMARY_HSL, primaryHslStr);
-          localStorage.setItem(LOCALSTORAGE_THEME_ACCENT_HSL, accentHslStr);
-          
-          applyCustomColorsToDOM(primaryHslStr, accentHslStr);
-          
-          toast({ title: "Colores Aplicados", description: "Los colores del tema han sido actualizados en este navegador." });
-        } else {
-          toast({ title: "Error de Color", description: "Uno de los códigos HEX no es válido.", variant: "destructive" });
-        }
-    } catch (e) {
-        toast({ title: "Error", description: "No se pudieron aplicar los colores.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  const handleRestoreDefaultColors = () => {
-    setIsSubmitting(true);
-    try {
-        localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
-        localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);
-
-        applyCustomColorsToDOM(null, null); // Remover estilos en línea
-        
-        const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-        setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-        const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-        setAccentColorHex(hslToHex(defAH, defAS, defAL));
-
-        toast({ title: "Colores Restaurados", description: "Los colores del tema han sido restaurados a los valores por defecto." });
-    } catch (e) {
-        toast({ title: "Error", description: "No se pudieron restaurar los colores.", variant: "destructive" });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="space-y-8 max-w-3xl mx-auto">
       <Button variant="outline" asChild className="mb-6">
@@ -263,11 +73,11 @@ export default function AppearanceSettingsPage() {
 
       <div>
         <h1 className="text-3xl font-headline font-bold flex items-center">
-          <PaletteIcon className="mr-3 h-7 w-7 text-primary" />
-          Personalización de Apariencia
+          <ImageIcon className="mr-3 h-7 w-7 text-primary" />
+          Personalización del Logo
         </h1>
         <p className="text-muted-foreground mt-1">
-          Ajusta el logo y los colores del panel para que se adapten a tu organización. Los cambios son locales a tu navegador.
+          Ajusta el logo y el texto que se muestra en la barra de navegación. Los cambios son locales a tu navegador.
         </p>
       </div>
 
@@ -307,54 +117,6 @@ export default function AppearanceSettingsPage() {
             <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Restaurar Logo
-            </Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="flex items-center"><PaletteIcon className="mr-2 h-5 w-5 text-primary" /> Colores del Tema</CardTitle>
-          <CardDescription>
-            Ajusta los colores primario y de acento de la interfaz. Los cambios son locales a tu navegador.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-            <div className="space-y-1">
-              <Label htmlFor="primaryColor">Color Primario</Label>
-              <Input 
-                id="primaryColor" 
-                type="color" 
-                value={primaryColorHex}
-                onChange={(e) => setPrimaryColorHex(e.target.value)}
-                className="h-10 p-1"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="accentColor">Color de Acento</Label>
-              <Input 
-                id="accentColor" 
-                type="color" 
-                value={accentColorHex}
-                onChange={(e) => setAccentColorHex(e.target.value)}
-                className="h-10 p-1"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos.
-          </p>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button variant="secondary" onClick={handleApplyColors} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PaletteIcon className="mr-2 h-4 w-4" />}
-              Aplicar Colores
-            </Button>
-            <Button variant="outline" onClick={handleRestoreDefaultColors} disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
-              Restaurar Colores
             </Button>
         </CardFooter>
       </Card>
