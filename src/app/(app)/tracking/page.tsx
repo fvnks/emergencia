@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ALL_VEHICLE_TYPES, type VehicleType } from "@/types/vehicleTypes";
-import type L from 'leaflet';
+import type L from 'leaflet'; // Import L type for LRef
 import 'leaflet/dist/leaflet.css';
 import { getVehicleUpdates, type SimulatedVehicle as FlowSimulatedVehicle } from "@/ai/flows/vehicle-tracking-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -39,35 +39,45 @@ export default function TrackingPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
+  const LRef = useRef<typeof L | null>(null); // Ref to store Leaflet library object
 
   useEffect(() => {
-    if (!loading && typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
-      import('leaflet').then(L => {
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
+    // Initialize map and Leaflet library
+    if (!LRef.current && !loading && typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
+      import('leaflet').then(LModule => {
+        // Configure LModule's default icons ONCE
+        delete (LModule.Icon.Default.prototype as any)._getIconUrl;
+        LModule.Icon.Default.mergeOptions({
           iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
           iconUrl: require('leaflet/dist/images/marker-icon.png').default,
           shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
         });
 
-        const mapInstance = L.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Store the configured LModule in the ref
+        LRef.current = LModule;
+
+        // Initialize map using the configured LModule
+        const mapInstance = LModule.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
+        LModule.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(mapInstance);
         mapRef.current = mapInstance;
       });
     }
 
+    // Cleanup map instance
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      markersRef.current = {};
+      markersRef.current = {}; // Clear markers on unmount or full re-init
+      // LRef.current can persist as it's just the library
     };
-  }, [loading]);
+  }, [loading]); // Rerun when loading state changes
 
   useEffect(() => {
+    // Fetch vehicle data periodically
     async function fetchVehicleData() {
       try {
         setError(null);
@@ -81,50 +91,47 @@ export default function TrackingPage() {
       }
     }
 
-    fetchVehicleData(); 
+    fetchVehicleData();
     const intervalId = setInterval(fetchVehicleData, 5000);
 
     return () => clearInterval(intervalId);
-  }, [loading]);
+  }, [loading]); // Re-fetch on initial load and then interval
 
   useEffect(() => {
-    if (mapRef.current && typeof window !== "undefined") {
-      import('leaflet').then(L => {
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
-          iconUrl: require('leaflet/dist/images/marker-icon.png').default,
-          shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
-        });
+    // Update markers when vehicles data or selection changes
+    const currentL = LRef.current; // Get L from ref
+    if (mapRef.current && currentL && typeof window !== "undefined") {
+      // L is already configured, use currentL directly
+      vehicles.forEach(vehicle => {
+        const { lat, lon } = vehicle.location;
+        const popupContent = `<b>${vehicle.name} (${vehicle.type})</b><br>${vehicle.status}${vehicle.assignedIncident ? `<br>Incidente: ${vehicle.assignedIncident}` : ''}<br>Actualizado: ${vehicle.lastUpdate}`;
 
-        vehicles.forEach(vehicle => {
-          const { lat, lon } = vehicle.location;
-          const popupContent = `<b>${vehicle.name} (${vehicle.type})</b><br>${vehicle.status}${vehicle.assignedIncident ? `<br>Incidente: ${vehicle.assignedIncident}` : ''}<br>Actualizado: ${vehicle.lastUpdate}`;
+        if (markersRef.current[vehicle.id]) {
+          markersRef.current[vehicle.id].setLatLng([lat, lon]);
+          markersRef.current[vehicle.id].setPopupContent(popupContent);
+        } else {
+          const marker = currentL.marker([lat, lon]).addTo(mapRef.current!);
+          marker.bindPopup(popupContent);
+          markersRef.current[vehicle.id] = marker;
+        }
+      });
 
-          if (markersRef.current[vehicle.id]) {
-            markersRef.current[vehicle.id].setLatLng([lat, lon]);
-            markersRef.current[vehicle.id].setPopupContent(popupContent);
-          } else {
-            const marker = L.marker([lat, lon]).addTo(mapRef.current!);
-            marker.bindPopup(popupContent);
-            markersRef.current[vehicle.id] = marker;
-          }
-        });
-        Object.keys(markersRef.current).forEach(vehicleId => {
-          if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
-            mapRef.current.removeLayer(markersRef.current[vehicleId]);
-            delete markersRef.current[vehicleId];
-          }
-        });
+      // Cleanup old markers that are no longer in the vehicles list
+      Object.keys(markersRef.current).forEach(vehicleId => {
+        if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
+          mapRef.current.removeLayer(markersRef.current[vehicleId]);
+          delete markersRef.current[vehicleId];
+        }
       });
     }
-  }, [vehicles, selectedVehicleIdFromList]);
+  }, [vehicles, selectedVehicleIdFromList]); // Rerun when vehicles or selection changes
+
 
   const handleVehicleSelect = (vehicle: SimulatedVehicle) => {
     setSelectedVehicleIdFromList(vehicle.id);
     if (mapRef.current && markersRef.current[vehicle.id]) {
       const { lat, lon } = vehicle.location;
-      mapRef.current.setView([lat, lon], 16); 
+      mapRef.current.setView([lat, lon], 16);
       markersRef.current[vehicle.id].openPopup();
     }
   };
@@ -146,11 +153,11 @@ export default function TrackingPage() {
       (typeFilter === "all" || v.type === typeFilter)
   );
 
-  if (loading && vehicles.length === 0) {
+  if (loading && vehicles.length === 0 && !LRef.current) { // Adjust loading condition
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-cool-loader-spin text-primary mr-2" />
-        Cargando datos de vehículos...
+        Cargando datos de vehículos y mapa...
       </div>
     );
   }
@@ -205,7 +212,7 @@ export default function TrackingPage() {
           <AlertTitle>Error al Cargar Datos</AlertTitle>
           <AlertDescription>
             {error}
-            <Button onClick={() => { setError(null); setLoading(true); setVehicles([]); }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
+            <Button onClick={() => { setError(null); setLoading(true); setVehicles([]); /* LRef.current no se resetea aquí */ }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
           </AlertDescription>
         </Alert>
       )}
@@ -218,6 +225,12 @@ export default function TrackingPage() {
             </CardHeader>
             <CardContent className="flex-grow p-2 sm:p-4">
               <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
+                 {/* Map will be initialized here. If LRef.current is null while map needs rendering, show placeholder */}
+                {!LRef.current && loading && (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-6 w-6 animate-cool-loader-spin mr-2" /> Cargando mapa...
+                  </div>
+                )}
               </div>
               <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
                   <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
@@ -236,8 +249,8 @@ export default function TrackingPage() {
                 {filteredVehicles.length > 0 ? (
                   <div className="space-y-3">
                     {filteredVehicles.map((vehicle) => (
-                      <div 
-                        key={vehicle.id} 
+                      <div
+                        key={vehicle.id}
                         className={cn(
                             "p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer",
                             selectedVehicleIdFromList === vehicle.id && "ring-2 ring-primary border-primary bg-primary/5"
