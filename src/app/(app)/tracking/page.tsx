@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { ALL_VEHICLE_TYPES, type VehicleType } from "@/types/vehicleTypes";
-import type L from 'leaflet'; // Import L type for LRef
+import type L from 'leaflet'; 
 import 'leaflet/dist/leaflet.css';
 import { getVehicleUpdates, type SimulatedVehicle as FlowSimulatedVehicle } from "@/ai/flows/vehicle-tracking-flow";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -32,76 +32,105 @@ export default function TrackingPage() {
   const [vehicles, setVehicles] = useState<SimulatedVehicle[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const [mapInitializationError, setMapInitializationError] = useState<string | null>(null);
+  const [vehicleDataError, setVehicleDataError] = useState<string | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true); // For the overall initial load of map and first data
+  const [isMapAndLeafletReady, setIsMapAndLeafletReady] = useState(false); // NEW: Tracks if L and map are ready
+
   const [selectedVehicleIdFromList, setSelectedVehicleIdFromList] = useState<string | null>(null);
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Record<string, L.Marker>>({});
-  const LRef = useRef<typeof L | null>(null); // Ref to store Leaflet library object
+  const LRef = useRef<typeof L | null>(null);
 
+  // Effect 1: Initialize Leaflet and Map (runs once)
   useEffect(() => {
-    // Initialize map and Leaflet library
-    if (!LRef.current && !loading && typeof window !== "undefined" && mapContainerRef.current && !mapRef.current) {
-      import('leaflet').then(LModule => {
-        // Configure LModule's default icons ONCE
-        delete (LModule.Icon.Default.prototype as any)._getIconUrl;
-        LModule.Icon.Default.mergeOptions({
-          iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
-          iconUrl: require('leaflet/dist/images/marker-icon.png').default,
-          shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
+    if (typeof window !== "undefined" && mapContainerRef.current && !LRef.current) { // Only attempt if LRef is not already set
+      setMapInitializationError(null);
+      import('leaflet')
+        .then(LModule => {
+          // Configure LModule's default icons ONCE
+          delete (LModule.Icon.Default.prototype as any)._getIconUrl;
+          LModule.Icon.Default.mergeOptions({
+            iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
+            iconUrl: require('leaflet/dist/images/marker-icon.png').default,
+            shadowUrl: require('leaflet/dist/images/marker-shadow.png').default,
+          });
+          LRef.current = LModule;
+
+          if (mapContainerRef.current && !mapRef.current) { // Ensure map is not re-initialized
+              const mapInstance = LModule.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
+              LModule.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              }).addTo(mapInstance);
+              mapRef.current = mapInstance;
+              setIsMapAndLeafletReady(true); // Signal that Leaflet and map are ready
+          } else if (mapRef.current && LRef.current) {
+            // If mapRef was somehow set but LRef wasn't (unlikely with this logic), or if LRef is now set.
+            setIsMapAndLeafletReady(true); 
+          }
+        })
+        .catch(error => {
+          console.error("Failed to load or initialize Leaflet map:", error);
+          setMapInitializationError("No se pudo cargar el mapa. Intenta recargar la página.");
+          setIsMapAndLeafletReady(false); 
         });
-
-        // Store the configured LModule in the ref
-        LRef.current = LModule;
-
-        // Initialize map using the configured LModule
-        const mapInstance = LModule.map(mapContainerRef.current!).setView([-33.4567, -70.6789], 12);
-        LModule.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(mapInstance);
-        mapRef.current = mapInstance;
-      });
+    } else if (LRef.current && mapRef.current) {
+        // If L and map are already set up (e.g. due to HMR), ensure ready state is true.
+        setIsMapAndLeafletReady(true);
     }
 
-    // Cleanup map instance
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      markersRef.current = {}; // Clear markers on unmount or full re-init
-      // LRef.current can persist as it's just the library
+      // LRef.current should persist as it's the loaded library module
+      setIsMapAndLeafletReady(false); // Reset readiness on unmount
+      markersRef.current = {}; 
     };
-  }, [loading]); // Rerun when loading state changes
+  }, []); // Run once on mount
 
+  // Effect 2: Fetch Vehicle Data
   useEffect(() => {
-    // Fetch vehicle data periodically
+    let isMounted = true;
     async function fetchVehicleData() {
       try {
-        setError(null);
+        // Set error to null only if we are re-fetching, not necessarily on first load if initialLoading handles it.
+        // setVehicleDataError(null); 
         const result = await getVehicleUpdates({});
-        setVehicles(result.vehicles as SimulatedVehicle[]);
+        if (isMounted) {
+          setVehicles(result.vehicles as SimulatedVehicle[]);
+        }
       } catch (err) {
-        console.error("Error fetching vehicle updates:", err);
-        setError(err instanceof Error ? err.message : "No se pudieron cargar los datos de los vehículos.");
+        if (isMounted) {
+          console.error("Error fetching vehicle updates:", err);
+          setVehicleDataError(err instanceof Error ? err.message : "No se pudieron cargar los datos de los vehículos.");
+        }
       } finally {
-        if (loading) setLoading(false);
+        // Set initialLoading to false after the first successful or failed fetch attempt
+        if (isMounted && initialLoading) {
+          setInitialLoading(false);
+        }
       }
     }
 
-    fetchVehicleData();
+    fetchVehicleData(); // Initial fetch
     const intervalId = setInterval(fetchVehicleData, 5000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [initialLoading]); // Re-run if initialLoading changes (to ensure finally block sets it) - or simply use []
 
-    return () => clearInterval(intervalId);
-  }, [loading]); // Re-fetch on initial load and then interval
-
+  // Effect 3: Update Markers
   useEffect(() => {
-    // Update markers when vehicles data or selection changes
-    const currentL = LRef.current; // Get L from ref
-    if (mapRef.current && currentL && typeof window !== "undefined") {
-      // L is already configured, use currentL directly
+    const currentL = LRef.current;
+    // Only run if map and Leaflet are ready and we have vehicle data
+    if (isMapAndLeafletReady && mapRef.current && currentL) {
       vehicles.forEach(vehicle => {
         const { lat, lon } = vehicle.location;
         const popupContent = `<b>${vehicle.name} (${vehicle.type})</b><br>${vehicle.status}${vehicle.assignedIncident ? `<br>Incidente: ${vehicle.assignedIncident}` : ''}<br>Actualizado: ${vehicle.lastUpdate}`;
@@ -116,24 +145,28 @@ export default function TrackingPage() {
         }
       });
 
-      // Cleanup old markers that are no longer in the vehicles list
+      // Cleanup old markers
       Object.keys(markersRef.current).forEach(vehicleId => {
         if (!vehicles.find(v => v.id === vehicleId) && markersRef.current[vehicleId] && mapRef.current?.hasLayer(markersRef.current[vehicleId])) {
           mapRef.current.removeLayer(markersRef.current[vehicleId]);
           delete markersRef.current[vehicleId];
         }
       });
-    }
-  }, [vehicles, selectedVehicleIdFromList]); // Rerun when vehicles or selection changes
 
+      if (selectedVehicleIdFromList && markersRef.current[selectedVehicleIdFromList]) {
+        const selectedVehicle = vehicles.find(v => v.id === selectedVehicleIdFromList);
+        if (selectedVehicle) {
+            const { lat, lon } = selectedVehicle.location;
+            mapRef.current.setView([lat, lon], 16);
+            markersRef.current[selectedVehicleIdFromList].openPopup();
+        }
+      }
+    }
+  }, [vehicles, selectedVehicleIdFromList, isMapAndLeafletReady]); // Depend on map readiness
 
   const handleVehicleSelect = (vehicle: SimulatedVehicle) => {
     setSelectedVehicleIdFromList(vehicle.id);
-    if (mapRef.current && markersRef.current[vehicle.id]) {
-      const { lat, lon } = vehicle.location;
-      mapRef.current.setView([lat, lon], 16);
-      markersRef.current[vehicle.id].openPopup();
-    }
+    // Centering logic moved to marker update useEffect to ensure mapRef is ready
   };
 
   const getStatusBadgeColor = (status: VehicleStatus) => {
@@ -153,13 +186,27 @@ export default function TrackingPage() {
       (typeFilter === "all" || v.type === typeFilter)
   );
 
-  if (loading && vehicles.length === 0 && !LRef.current) { // Adjust loading condition
+  // Combined loading state for initial display
+  if (initialLoading || (!isMapAndLeafletReady && !mapInitializationError)) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-cool-loader-spin text-primary mr-2" />
-        Cargando datos de vehículos y mapa...
+        { !isMapAndLeafletReady && !mapInitializationError ? "Cargando mapa..." : "Cargando datos de vehículos..." }
       </div>
     );
+  }
+  
+  if (mapInitializationError) {
+     return (
+        <Alert variant="destructive" className="my-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error al Cargar el Mapa</AlertTitle>
+          <AlertDescription>
+            {mapInitializationError}
+            <Button onClick={() => window.location.reload()} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar Carga Completa</Button>
+          </AlertDescription>
+        </Alert>
+      );
   }
 
   return (
@@ -206,98 +253,95 @@ export default function TrackingPage() {
         </CardHeader>
       </Card>
 
-      {error && (
+      {vehicleDataError && vehicles.length === 0 && ( // Show data error only if crucial (no vehicles loaded)
         <Alert variant="destructive" className="my-4">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error al Cargar Datos</AlertTitle>
+          <AlertTitle>Error al Cargar Datos de Vehículos</AlertTitle>
           <AlertDescription>
-            {error}
-            <Button onClick={() => { setError(null); setLoading(true); setVehicles([]); /* LRef.current no se resetea aquí */ }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar</Button>
+            {vehicleDataError}
+            <Button onClick={() => { setVehicleDataError(null); setInitialLoading(true); }} variant="link" className="p-0 h-auto ml-2 text-destructive">Reintentar Carga de Datos</Button>
           </AlertDescription>
         </Alert>
       )}
 
-      {!error && (
-        <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
-          <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
-            <CardHeader>
-              <CardTitle className="text-xl font-headline">Mapa de Operaciones</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow p-2 sm:p-4">
-              <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
-                 {/* Map will be initialized here. If LRef.current is null while map needs rendering, show placeholder */}
-                {!LRef.current && loading && (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-cool-loader-spin mr-2" /> Cargando mapa...
-                  </div>
-                )}
-              </div>
-              <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
-                  <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
-                  Simulación de datos desde backend.
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
+        <Card className="lg:flex-[3] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
+          <CardHeader>
+            <CardTitle className="text-xl font-headline">Mapa de Operaciones</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-grow p-2 sm:p-4">
+            <div ref={mapContainerRef} className="w-full h-full bg-muted rounded-md overflow-hidden min-h-[250px] sm:min-h-[400px] lg:min-h-full">
+              {(!isMapAndLeafletReady && !mapInitializationError) && ( // Show map specific loader only if map init error hasn't occurred
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <Loader2 className="h-6 w-6 animate-cool-loader-spin mr-2" /> Cargando mapa...
+                </div>
+              )}
+            </div>
+            <div className="absolute top-2 right-2 bg-background/80 p-1 rounded-md shadow text-xs text-muted-foreground z-[500]">
+                <AlertTriangle className="h-3 w-3 inline mr-1 text-orange-500" />
+                Simulación de datos desde backend.
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="lg:flex-[1] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
-            <CardHeader>
-              <CardTitle className="text-xl font-headline">Estado de Vehículos</CardTitle>
-              <CardDescription>{filteredVehicles.length} vehículo(s) mostrando.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0 flex-grow overflow-hidden">
-              <ScrollArea className="h-full p-1 sm:p-3">
-                {filteredVehicles.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredVehicles.map((vehicle) => (
-                      <div
-                        key={vehicle.id}
-                        className={cn(
-                            "p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer",
-                            selectedVehicleIdFromList === vehicle.id && "ring-2 ring-primary border-primary bg-primary/5"
-                        )}
-                        onClick={() => handleVehicleSelect(vehicle)}
-                      >
-                        <div className="flex justify-between items-center mb-1">
-                          <h4 className="font-semibold text-md text-primary flex items-center">
-                            <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
-                            {vehicle.name} <span className="text-xs text-muted-foreground ml-1">({vehicle.type})</span>
-                          </h4>
-                          <Badge className={cn("text-xs text-white", getStatusBadgeColor(vehicle.status))}>
-                            {vehicle.status}
-                          </Badge>
-                        </div>
-                        {vehicle.assignedIncident && (
-                          <p className="text-xs text-destructive mb-1">
-                            Asignado a: {vehicle.assignedIncident}
-                          </p>
-                        )}
-                        <div className="text-xs text-muted-foreground flex items-center justify-between">
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {vehicle.location.lat.toFixed(4)}, {vehicle.location.lon.toFixed(4)}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {vehicle.lastUpdate}
-                          </span>
-                        </div>
+        <Card className="lg:flex-[1] shadow-lg flex flex-col min-h-[300px] lg:min-h-0">
+          <CardHeader>
+            <CardTitle className="text-xl font-headline">Estado de Vehículos</CardTitle>
+            <CardDescription>{filteredVehicles.length} vehículo(s) mostrando.</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 flex-grow overflow-hidden">
+            <ScrollArea className="h-full p-1 sm:p-3">
+              {filteredVehicles.length > 0 ? (
+                <div className="space-y-3">
+                  {filteredVehicles.map((vehicle) => (
+                    <div
+                      key={vehicle.id}
+                      className={cn(
+                          "p-3 border rounded-lg bg-card hover:bg-muted/50 transition-colors cursor-pointer",
+                          selectedVehicleIdFromList === vehicle.id && "ring-2 ring-primary border-primary bg-primary/5"
+                      )}
+                      onClick={() => handleVehicleSelect(vehicle)}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <h4 className="font-semibold text-md text-primary flex items-center">
+                          <Truck className="inline h-4 w-4 mr-1.5 flex-shrink-0" />
+                          {vehicle.name} <span className="text-xs text-muted-foreground ml-1">({vehicle.type})</span>
+                        </h4>
+                        <Badge className={cn("text-xs text-white", getStatusBadgeColor(vehicle.status))}>
+                          {vehicle.status}
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center p-4">
-                      <ListFilter className="h-12 w-12 text-muted-foreground mb-3" />
-                      <p className="text-md font-medium">No hay vehículos</p>
-                      <p className="text-sm text-muted-foreground">
-                        No se encontraron vehículos que coincidan con los filtros actuales.
-                      </p>
+                      {vehicle.assignedIncident && (
+                        <p className="text-xs text-destructive mb-1">
+                          Asignado a: {vehicle.assignedIncident}
+                        </p>
+                      )}
+                      <div className="text-xs text-muted-foreground flex items-center justify-between">
+                        <span className="flex items-center">
+                          <MapPin className="h-3 w-3 mr-1" />
+                          {vehicle.location.lat.toFixed(4)}, {vehicle.location.lon.toFixed(4)}
+                        </span>
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {vehicle.lastUpdate}
+                        </span>
+                      </div>
                     </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                    <ListFilter className="h-12 w-12 text-muted-foreground mb-3" />
+                    <p className="text-md font-medium">No hay vehículos</p>
+                    <p className="text-sm text-muted-foreground">
+                      { vehicles.length === 0 && !vehicleDataError ? "Cargando vehículos..." : "No se encontraron vehículos que coincidan con los filtros actuales."}
+                    </p>
+                  </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
