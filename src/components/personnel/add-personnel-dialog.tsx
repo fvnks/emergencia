@@ -41,7 +41,7 @@ const formSchema = z.object({
   email: z.string().email({ message: "Correo electrónico inválido." }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres." }),
   confirmPassword: z.string().min(6, { message: "La confirmación debe tener al menos 6 caracteres." }),
-  id_rol_fk: z.string().min(1, { message: "Debe seleccionar un rol." }),
+  id_rol_fk: z.string().min(1, { message: "Debe seleccionar un rol." }).optional(), // Make optional for placeholder
   telefono: z.string().optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden.",
@@ -79,9 +79,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
         setLoadingRoles(true);
         try {
           const roles = await getAllRoles();
-          // Filter out system roles for assignment in "Add New" dialog,
-          // as system roles are typically managed differently or pre-assigned.
-          setAvailableRoles(roles.filter(role => !role.es_rol_sistema));
+          setAvailableRoles(roles); // Show all roles
         } catch (error) {
           console.error("Error fetching roles for personnel dialog:", error);
           toast({ title: "Error", description: "No se pudieron cargar los roles disponibles.", variant: "destructive" });
@@ -93,7 +91,7 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
     }
 
     if (isOpen) {
-      form.reset({ // Reset form when dialog opens
+      form.reset({ 
         nombre_completo: "",
         email: "",
         password: "",
@@ -108,6 +106,11 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
   async function onSubmit(values: AddPersonnelFormValues) {
     setIsSubmitting(true);
     try {
+      if (!values.id_rol_fk) {
+        toast({ title: "Error", description: "Debe seleccionar un rol.", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
       const selectedRole = availableRoles.find(r => r.id_rol.toString() === values.id_rol_fk);
       if (!selectedRole) {
           toast({ title: "Error", description: "Rol seleccionado no válido.", variant: "destructive" });
@@ -243,12 +246,12 @@ export function AddPersonnelDialog({ onPersonnelAdded }: AddPersonnelDialogProps
                             </div>
                           ) : availableRoles.length === 0 ? (
                             <div className="p-2 text-sm text-muted-foreground text-center">
-                              No hay roles asignables.
+                              No hay roles disponibles.
                             </div>
                           ) : (
                             availableRoles.map(role => (
                               <SelectItem key={role.id_rol} value={role.id_rol.toString()}>
-                                {role.nombre_rol}
+                                {role.nombre_rol} {role.es_rol_sistema ? "(Sistema)" : ""}
                               </SelectItem>
                             ))
                           )}
