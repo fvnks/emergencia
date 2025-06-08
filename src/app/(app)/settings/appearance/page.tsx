@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ImageIcon, Palette as PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, ImageIcon, Save, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
@@ -110,7 +110,7 @@ export default function AppearanceSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button variant="secondary" onClick={handleSaveLogo} disabled={isSubmitting}>
+            <Button variant="outline" onClick={handleSaveLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
               Guardar Logo
             </Button>
