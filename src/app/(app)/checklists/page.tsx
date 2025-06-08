@@ -64,46 +64,46 @@ export interface Checklist {
 }
 
 const SIMULATED_CHECKLISTS: Checklist[] = [
-  { 
-    id: "chk-veh-b01", 
-    name: "Checklist Diario - Bomba B-01", 
-    description: "Revisión pre-operacional diaria para la unidad Bomba B-01.", 
-    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS], 
-    category: "Vehicular", 
-    lastModified: "2024-07-30T08:00:00Z", 
+  {
+    id: "chk-veh-b01",
+    name: "Checklist Diario - Bomba B-01",
+    description: "Revisión pre-operacional diaria para la unidad Bomba B-01.",
+    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS],
+    category: "Vehicular",
+    lastModified: "2024-07-30T08:00:00Z",
     status: "Nuevo",
     assetId: "veh1",
     assetType: "Vehicle",
     assetName: "Bomba B-01"
   },
-  { 
-    id: "chk-era-003", 
-    name: "Inspección Semanal - ERA MSA-003", 
-    description: "Verificación de estado y operatividad del equipo ERA MSA-003.", 
-    items: ERA_STANDARD_ITEMS, 
-    category: "Equipos ERA", 
-    lastModified: "2024-07-28T14:30:00Z", 
+  {
+    id: "chk-era-003",
+    name: "Inspección Semanal - ERA MSA-003",
+    description: "Verificación de estado y operatividad del equipo ERA MSA-003.",
+    items: ERA_STANDARD_ITEMS,
+    category: "Equipos ERA",
+    lastModified: "2024-07-28T14:30:00Z",
     status: "En Progreso",
     assetId: "era3",
     assetType: "ERA",
     assetName: "ERA MSA-003"
   },
-  { 
-    id: "chk-proc-hazmat", 
-    name: "Protocolo Incidente HazMat Nivel 1", 
-    description: "Pasos a seguir para incidentes con materiales peligrosos. Plantilla general.", 
-    items: ["Aislar la zona (mín. 50m)", "Identificar el producto (si es posible y seguro)", "Solicitar apoyo especializado", "Establecer zona de exclusión", "Verificar dirección del viento"], 
-    category: "Procedimientos", 
-    lastModified: "2024-06-15T09:00:00Z", 
-    status: "Completado" 
+  {
+    id: "chk-proc-hazmat",
+    name: "Protocolo Incidente HazMat Nivel 1",
+    description: "Pasos a seguir para incidentes con materiales peligrosos. Plantilla general.",
+    items: ["Aislar la zona (mín. 50m)", "Identificar el producto (si es posible y seguro)", "Solicitar apoyo especializado", "Establecer zona de exclusión", "Verificar dirección del viento"],
+    category: "Procedimientos",
+    lastModified: "2024-06-15T09:00:00Z",
+    status: "Completado"
   },
-  { 
-    id: "chk-veh-ambu01", 
-    name: "Checklist Operacional - Ambulancia SAMU-01", 
-    description: "Revisión de equipamiento médico y estado general de la ambulancia.", 
-    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS],
-    category: "Vehicular", 
-    lastModified: "2024-07-29T08:15:00Z", 
+  {
+    id: "chk-veh-ambu01",
+    name: "Checklist Operacional - Ambulancia SAMU-01",
+    description: "Revisión de equipamiento médico y estado general de la ambulancia.",
+    items: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS], // Updated to combined
+    category: "Vehicular",
+    lastModified: "2024-07-29T08:15:00Z",
     status: "Nuevo",
     assetId: "veh4",
     assetType: "Vehicle",
@@ -112,20 +112,20 @@ const SIMULATED_CHECKLISTS: Checklist[] = [
 ];
 
 const INITIAL_CHECKLIST_COMPLETIONS: ChecklistCompletion[] = [
-  { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z", 
-    status: "Completado", completedByUserId: 1, completedByUserName: "Juan Pérez", 
-    itemStates: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS].map(item => ({itemText: item, checked: true})), 
-    notes: "Todo OK en Bomba B-01." 
+  { id: "comp-veh-b01-1", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-29T09:00:00Z",
+    status: "Completado", completedByUserId: 1, completedByUserName: "Juan Pérez",
+    itemStates: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS].map(item => ({itemText: item, checked: true})),
+    notes: "Todo OK en Bomba B-01."
   },
-  { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z", 
-    status: "Incompleto", completedByUserId: 1, completedByUserName: "Juan Pérez", 
+  { id: "comp-veh-b01-2", checklistTemplateId: "chk-veh-b01", completionDate: "2024-07-28T08:30:00Z",
+    status: "Incompleto", completedByUserId: 1, completedByUserName: "Juan Pérez",
     itemStates: [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS].map((item, idx) => ({itemText: item, checked: idx < 5})),
-    notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite." 
+    notes: "Bomba con presión ligeramente baja en neumático delantero derecho, ajustada. Faltó verificar nivel de aceite."
   },
-  { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z", 
-    status: "Completado", completedByUserId: 2, completedByUserName: "Ana Gómez", 
+  { id: "comp-era-003-1", checklistTemplateId: "chk-era-003", completionDate: "2024-07-27T10:00:00Z",
+    status: "Completado", completedByUserId: 2, completedByUserName: "Ana Gómez",
     itemStates: ERA_STANDARD_ITEMS.map(item => ({itemText: item, checked: true})),
-    notes: "ERA MSA-003 operativo." 
+    notes: "ERA MSA-003 operativo."
   },
 ];
 
@@ -170,15 +170,13 @@ export default function ChecklistsPage() {
       notes: data.notes,
     };
     setChecklistCompletions(prev => [newCompletion, ...prev].sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()));
-    
-    // Actualizar el estado de la plantilla del checklist
-    setChecklists(prevChecklists => 
+
+    let finalStatusForTemplate: ChecklistStatus = "En Progreso";
+    setChecklists(prevChecklists =>
       prevChecklists.map(cl => {
         if (cl.id === data.checklistId) {
-          let newStatusForTemplate: ChecklistStatus = "En Progreso"; // Default
-          if (completionStatus === "Completado") {
-            newStatusForTemplate = "Completado";
-          }
+          const newStatusForTemplate: ChecklistStatus = completionStatus === "Completado" ? "Completado" : "En Progreso";
+          finalStatusForTemplate = newStatusForTemplate; // Store it for the toast
           return { ...cl, status: newStatusForTemplate, lastModified: new Date().toISOString() };
         }
         return cl;
@@ -187,7 +185,7 @@ export default function ChecklistsPage() {
 
     toast({
       title: "Revisión Guardada",
-      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}. El estado del checklist principal ha sido actualizado.`,
+      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}. El estado del checklist principal se actualizó a: ${finalStatusForTemplate}.`,
     });
   };
 
@@ -200,10 +198,10 @@ export default function ChecklistsPage() {
               name: c.assetName ? `Checklist - ${c.assetName}` : updatedData.name,
               description: c.assetId ? c.description : updatedData.description,
               category: c.assetId ? c.category : updatedData.category,
-              items: c.assetType === 'Vehicle' ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS] 
+              items: c.assetType === 'Vehicle' ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS]
                    : c.assetType === 'ERA' ? ERA_STANDARD_ITEMS
                    : Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
-              status: updatedData.status as ChecklistStatus, // El estado de la plantilla puede ser editado directamente si no es de activo
+              status: updatedData.status as ChecklistStatus,
               lastModified: new Date().toISOString(),
             }
           : c
@@ -218,12 +216,12 @@ export default function ChecklistsPage() {
     setSelectedChecklistForView(checklist);
     setIsViewDialogOpen(true);
   };
-  
+
   const handleEditChecklist = (checklist: Checklist) => {
     setChecklistToEdit(checklist);
     setIsEditDialogOpen(true);
   };
-  
+
   const handleDeleteChecklist = (checklist: Checklist) => {
     setChecklistToDelete(checklist);
     setIsDeleteDialogOpen(true);
@@ -249,11 +247,11 @@ export default function ChecklistsPage() {
       (checklist.assetName && checklist.assetName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = categoryFilter === "all" || checklist.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || checklist.status === statusFilter;
-    
+
     const matchesDateRange = (() => {
-        if (!dateRangeFilter?.from) return true; 
+        if (!dateRangeFilter?.from) return true;
         const itemDate = parseISO(checklist.lastModified);
-        if (!isValid(itemDate)) return false; 
+        if (!isValid(itemDate)) return false;
         const fromDate = startOfDay(dateRangeFilter.from);
         if (isBefore(itemDate, fromDate)) return false;
         if (dateRangeFilter.to) {
@@ -422,7 +420,7 @@ export default function ChecklistsPage() {
                     </TableCell>
                     <TableCell className="text-center">{checklist.items.length}</TableCell>
                     <TableCell>
-                      <Badge 
+                      <Badge
                         variant={checklist.status === 'Completado' ? 'default' : checklist.status === 'En Progreso' ? 'secondary' : 'outline'}
                         className={cn("text-xs", getStatusBadgeClassName(checklist.status))}
                       >
@@ -493,6 +491,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
-
-    
