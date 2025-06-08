@@ -3,7 +3,14 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter, // Importar CardFooter
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -69,7 +76,7 @@ export default function AppearanceSettingsPage() {
 
   const [primaryColorHex, setPrimaryColorHex] = useState("#3294F8");
   const [accentColorHex, setAccentColorHex] = useState("#40E0D0");
-  const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD"); // Sigue deshabilitado
+  const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD");
 
   const applyCustomColorsToDOM = (primaryHslStr: string | null, accentHslStr: string | null) => {
     const root = document.documentElement;
@@ -80,6 +87,8 @@ export default function AppearanceSettingsPage() {
             root.style.setProperty('--primary-s', `${s}%`);
             root.style.setProperty('--primary-l', `${l}%`);
             root.style.setProperty('--primary', `hsl(${h} ${s}% ${l}%)`);
+        } else {
+             console.warn("Valores HSL primarios inválidos al aplicar al DOM:", primaryHslStr);
         }
     }
     if (accentHslStr) {
@@ -89,41 +98,56 @@ export default function AppearanceSettingsPage() {
             root.style.setProperty('--accent-s', `${s}%`);
             root.style.setProperty('--accent-l', `${l}%`);
             root.style.setProperty('--accent', `hsl(${h} ${s}% ${l}%)`);
+        } else {
+            console.warn("Valores HSL de acento inválidos al aplicar al DOM:", accentHslStr);
         }
     }
   };
 
   useEffect(() => {
+    // Logo
     const storedLogoUrl = localStorage.getItem(LOCALSTORAGE_LOGO_URL_KEY);
     const storedLogoText = localStorage.getItem(LOCALSTORAGE_LOGO_TEXT_KEY);
     if (storedLogoUrl) setLogoUrl(storedLogoUrl);
     if (storedLogoText) setLogoText(storedLogoText);
 
+    // Colors
     const storedPrimaryHsl = localStorage.getItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
     const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_THEME_ACCENT_HSL);
+
+    let initialPrimaryHsl = DEFAULT_PRIMARY_HSL_STRING;
+    let initialAccentHsl = DEFAULT_ACCENT_HSL_STRING;
 
     if (storedPrimaryHsl) {
       const [h,s,l] = storedPrimaryHsl.split(" ").map(v => parseFloat(v.replace('%','')));
       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
         setPrimaryColorHex(hslToHex(h,s,l));
-        // applyCustomColorsToDOM(storedPrimaryHsl, null); // Apply on load if found
+        initialPrimaryHsl = storedPrimaryHsl;
+      } else {
+         localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL); // Remove invalid stored value
       }
     } else {
       const [h,s,l] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-      if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setPrimaryColorHex(hslToHex(h,s,l));
+       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setPrimaryColorHex(hslToHex(h,s,l));
     }
 
     if (storedAccentHsl) {
       const [h,s,l] = storedAccentHsl.split(" ").map(v => parseFloat(v.replace('%','')));
       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
         setAccentColorHex(hslToHex(h,s,l));
-        // applyCustomColorsToDOM(null, storedAccentHsl); // Apply on load if found
+        initialAccentHsl = storedAccentHsl;
+      } else {
+         localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL); // Remove invalid stored value
       }
     } else {
        const [h,s,l] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
     }
-    // La aplicación inicial al DOM se hace en ClientThemeInitializer
+    
+    // La aplicación inicial al DOM ahora está en ClientThemeInitializer, pero podemos llamarla aquí
+    // también para asegurar que la vista previa en esta página sea correcta si ClientThemeInitializer fallara o se retrasara.
+    applyCustomColorsToDOM(initialPrimaryHsl, initialAccentHsl);
+
   }, []);
 
   const handleSaveLogo = () => {
@@ -216,11 +240,11 @@ export default function AppearanceSettingsPage() {
               onChange={(e) => setLogoText(e.target.value)}
             />
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
+        </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
             <Button onClick={handleSaveLogo}><Save className="mr-2 h-4 w-4" /> Guardar Cambios de Logo</Button>
             <Button variant="outline" onClick={handleRestoreDefaultLogo}><RotateCcw className="mr-2 h-4 w-4" /> Restaurar Logo</Button>
-          </div>
-        </CardContent>
+        </CardFooter>
       </Card>
 
       <Card className="shadow-md">
@@ -264,18 +288,16 @@ export default function AppearanceSettingsPage() {
               />
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 pt-2">
-            <Button onClick={handleApplyColors}>Aplicar Colores</Button>
-            <Button variant="outline" onClick={handleRestoreDefaultColors}>Restaurar Colores</Button>
-          </div>
           <p className="text-xs text-muted-foreground">
             Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos.
           </p>
         </CardContent>
+        <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+            <Button onClick={handleApplyColors}>Aplicar Colores</Button>
+            <Button variant="outline" onClick={handleRestoreDefaultColors}>Restaurar Colores</Button>
+        </CardFooter>
       </Card>
     </div>
   );
 }
-    
-
     
