@@ -171,11 +171,15 @@ export default function ChecklistsPage() {
     };
     setChecklistCompletions(prev => [newCompletion, ...prev].sort((a, b) => new Date(b.completionDate).getTime() - new Date(a.completionDate).getTime()));
     
-    // Actualizar el estado de la plantilla si era "Nuevo"
+    // Actualizar el estado de la plantilla del checklist
     setChecklists(prevChecklists => 
       prevChecklists.map(cl => {
-        if (cl.id === data.checklistId && cl.status === "Nuevo") {
-          return { ...cl, status: "En Progreso", lastModified: new Date().toISOString() };
+        if (cl.id === data.checklistId) {
+          let newStatusForTemplate: ChecklistStatus = "En Progreso"; // Default
+          if (completionStatus === "Completado") {
+            newStatusForTemplate = "Completado";
+          }
+          return { ...cl, status: newStatusForTemplate, lastModified: new Date().toISOString() };
         }
         return cl;
       })
@@ -183,7 +187,7 @@ export default function ChecklistsPage() {
 
     toast({
       title: "Revisión Guardada",
-      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}.`,
+      description: `La revisión para "${data.assetName || data.checklistId}" del ${format(data.completionDate, "PPP", { locale: es })} ha sido registrada como ${completionStatus}. El estado del checklist principal ha sido actualizado.`,
     });
   };
 
@@ -199,7 +203,7 @@ export default function ChecklistsPage() {
               items: c.assetType === 'Vehicle' ? [...VEHICLE_STANDARD_ITEMS, ...ERA_STANDARD_ITEMS] 
                    : c.assetType === 'ERA' ? ERA_STANDARD_ITEMS
                    : Array(updatedData.itemCount).fill(null).map((_, i) => c.items[i] || `Ítem de ejemplo ${i + 1}`),
-              status: updatedData.status as ChecklistStatus,
+              status: updatedData.status as ChecklistStatus, // El estado de la plantilla puede ser editado directamente si no es de activo
               lastModified: new Date().toISOString(),
             }
           : c
@@ -489,3 +493,6 @@ export default function ChecklistsPage() {
     </div>
   );
 }
+
+
+    
