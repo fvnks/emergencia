@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Image as ImageIcon, Type, Palette as PaletteIcon, Save, RotateCcw } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Palette as PaletteIcon, Save, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
@@ -64,7 +64,7 @@ function hslToHex(h: number, s: number, l: number): string {
 export default function AppearanceSettingsPage() {
   const { toast } = useToast();
 
-  const [logoUrl, setLogoUrl] = useState(""); 
+  const [logoUrl, setLogoUrl] = useState("");
   const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
 
   const [primaryColorHex, setPrimaryColorHex] = useState("#3294F8");
@@ -74,17 +74,16 @@ export default function AppearanceSettingsPage() {
   const applyCustomColorsToDOM = (primaryHslStr: string | null, accentHslStr: string | null) => {
     const root = document.documentElement;
     if (primaryHslStr) {
-        const [h, s, l] = primaryHslStr.split(" ").map(Number);
+        const [h, s, l] = primaryHslStr.split(" ").map(v => parseFloat(v.replace('%','')));
         if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
             root.style.setProperty('--primary-h', `${h}`);
             root.style.setProperty('--primary-s', `${s}%`);
             root.style.setProperty('--primary-l', `${l}%`);
-            // Forzar actualización de color primario en ShadCN (si es necesario, depende de la estructura CSS)
             root.style.setProperty('--primary', `hsl(${h} ${s}% ${l}%)`);
         }
     }
     if (accentHslStr) {
-        const [h, s, l] = accentHslStr.split(" ").map(Number);
+        const [h, s, l] = accentHslStr.split(" ").map(v => parseFloat(v.replace('%','')));
          if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
             root.style.setProperty('--accent-h', `${h}`);
             root.style.setProperty('--accent-s', `${s}%`);
@@ -104,18 +103,24 @@ export default function AppearanceSettingsPage() {
     const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_THEME_ACCENT_HSL);
 
     if (storedPrimaryHsl) {
-      const [h,s,l] = storedPrimaryHsl.split(" ").map(Number);
-      if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setPrimaryColorHex(hslToHex(h,s,l));
+      const [h,s,l] = storedPrimaryHsl.split(" ").map(v => parseFloat(v.replace('%','')));
+      if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
+        setPrimaryColorHex(hslToHex(h,s,l));
+        // applyCustomColorsToDOM(storedPrimaryHsl, null); // Apply on load if found
+      }
     } else {
-      const [h,s,l] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(Number);
+      const [h,s,l] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
       if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setPrimaryColorHex(hslToHex(h,s,l));
     }
 
     if (storedAccentHsl) {
-      const [h,s,l] = storedAccentHsl.split(" ").map(Number);
-      if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
+      const [h,s,l] = storedAccentHsl.split(" ").map(v => parseFloat(v.replace('%','')));
+      if(!isNaN(h) && !isNaN(s) && !isNaN(l)) {
+        setAccentColorHex(hslToHex(h,s,l));
+        // applyCustomColorsToDOM(null, storedAccentHsl); // Apply on load if found
+      }
     } else {
-       const [h,s,l] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(Number);
+       const [h,s,l] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
     }
     // La aplicación inicial al DOM se hace en ClientThemeInitializer
@@ -162,9 +167,9 @@ export default function AppearanceSettingsPage() {
 
     applyCustomColorsToDOM(DEFAULT_PRIMARY_HSL_STRING, DEFAULT_ACCENT_HSL_STRING);
     
-    const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(Number);
+    const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
     setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-    const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(Number);
+    const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
     setAccentColorHex(hslToHex(defAH, defAS, defAL));
 
     toast({ title: "Colores Restaurados", description: "Los colores del tema han sido restaurados a los valores por defecto." });
@@ -263,13 +268,14 @@ export default function AppearanceSettingsPage() {
             <Button onClick={handleApplyColors}>Aplicar Colores</Button>
             <Button variant="outline" onClick={handleRestoreDefaultColors}>Restaurar Colores</Button>
           </div>
-            <p className="text-xs text-muted-foreground">
-              Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos.
-            </p>
+          <p className="text-xs text-muted-foreground">
+            Nota: La personalización del fondo y la integración completa con el modo oscuro requieren ajustes más profundos.
+          </p>
         </CardContent>
       </Card>
     </div>
   );
 }
+    
 
     
