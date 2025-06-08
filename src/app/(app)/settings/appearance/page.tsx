@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,52 +10,55 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Image as ImageIcon, Type, Palette as PaletteIcon, Save, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
+const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
+const LOCALSTORAGE_LOGO_TEXT_KEY = "customLogoText";
+const DEFAULT_LOGO_TEXT = "Gestor Brigada";
+
 export default function AppearanceSettingsPage() {
   const { toast } = useToast();
 
-  // Estados para los campos (simulados)
-  const [logoUrl, setLogoUrl] = useState("https://placehold.co/150x40/3294F8/FFFFFF.png?text=Mi+Logo"); // URL de placeholder
-  const [logoText, setLogoText] = useState("Gestor de Brigada");
-  const [primaryColor, setPrimaryColor] = useState("#3294F8"); // Deep sky blue
-  const [accentColor, setAccentColor] = useState("#40E0D0"); // Turquoise
-  const [backgroundColor, setBackgroundColor] = useState("#E8F4FD"); // Light grayish blue
+  const [logoUrl, setLogoUrl] = useState(""); 
+  const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
+  const [primaryColor, setPrimaryColor] = useState("#3294F8");
+  const [accentColor, setAccentColor] = useState("#40E0D0");
+  const [backgroundColor, setBackgroundColor] = useState("#E8F4FD");
+
+  useEffect(() => {
+    const storedLogoUrl = localStorage.getItem(LOCALSTORAGE_LOGO_URL_KEY);
+    const storedLogoText = localStorage.getItem(LOCALSTORAGE_LOGO_TEXT_KEY);
+    if (storedLogoUrl) {
+      setLogoUrl(storedLogoUrl);
+    }
+    if (storedLogoText) {
+      setLogoText(storedLogoText);
+    }
+  }, []);
 
   const handleSaveLogo = () => {
-    // Lógica de guardado (simulada, ej. localStorage)
-    localStorage.setItem("customLogoUrl", logoUrl);
-    localStorage.setItem("customLogoText", logoText);
-    toast({ title: "Logo Actualizado", description: "Los cambios en el logo se han guardado (simulado)." });
+    localStorage.setItem(LOCALSTORAGE_LOGO_URL_KEY, logoUrl);
+    localStorage.setItem(LOCALSTORAGE_LOGO_TEXT_KEY, logoText);
+    toast({ title: "Logo Actualizado", description: "Los cambios en el logo se han guardado en este navegador." });
+    // For changes to reflect immediately in the layout, we might need a context or event emitter,
+    // or simply rely on a page refresh/navigation. For now, localStorage is updated.
+    // A manual refresh might be needed to see changes in the sidebar header immediately if not handled by context.
+    window.dispatchEvent(new Event('customLogoChanged'));
   };
 
   const handleRestoreDefaultLogo = () => {
-    const defaultText = "Gestor Brigada";
-    setLogoUrl(""); // O una URL de logo por defecto si la tuvieras
-    setLogoText(defaultText);
-    localStorage.removeItem("customLogoUrl");
-    localStorage.setItem("customLogoText", defaultText); // Guardar el texto por defecto
+    setLogoUrl("");
+    setLogoText(DEFAULT_LOGO_TEXT);
+    localStorage.removeItem(LOCALSTORAGE_LOGO_URL_KEY);
+    localStorage.removeItem(LOCALSTORAGE_LOGO_TEXT_KEY);
     toast({ title: "Logo Restaurado", description: "El logo ha sido restaurado a los valores por defecto." });
+    window.dispatchEvent(new Event('customLogoChanged'));
   };
   
   const handleApplyColors = () => {
-    // Lógica para aplicar colores dinámicamente (ej. CSS variables) y guardar en localStorage
-    document.documentElement.style.setProperty('--primary-temp', primaryColor); // Ejemplo, necesitarías HSL
-    document.documentElement.style.setProperty('--accent-temp', accentColor);
-    document.documentElement.style.setProperty('--background-temp', backgroundColor);
-    toast({ title: "Colores Aplicados (Vista Previa)", description: "Los colores se han aplicado para esta sesión (simulado)." });
-    // Aquí normalmente se guardarían en localStorage y se aplicarían al cargar la app.
+    toast({ title: "Funcionalidad Pendiente", description: "La personalización de colores se implementará en el futuro." });
   };
 
   const handleRestoreDefaultColors = () => {
-    // Lógica para restaurar colores por defecto
-    // Eliminar de localStorage y resetear CSS variables si se modificaron.
-    setPrimaryColor("#3294F8");
-    setAccentColor("#40E0D0");
-    setBackgroundColor("#E8F4FD");
-    // Aquí se revertirían las CSS variables a las de globals.css
-    document.documentElement.style.removeProperty('--primary-temp');
-    document.documentElement.style.removeProperty('--accent-temp');
-    document.documentElement.style.removeProperty('--background-temp');
-    toast({ title: "Colores Restaurados", description: "Los colores han sido restaurados a los valores por defecto." });
+    toast({ title: "Funcionalidad Pendiente", description: "La restauración de colores por defecto se implementará en el futuro." });
   };
 
 
@@ -78,7 +81,7 @@ export default function AppearanceSettingsPage() {
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center"><ImageIcon className="mr-2 h-5 w-5 text-primary" /> Configuración del Logo</CardTitle>
-          <CardDescription>Personaliza el logo y el texto que se muestra en la barra de navegación.</CardDescription>
+          <CardDescription>Personaliza el logo y el texto que se muestra en la barra de navegación. Los cambios son locales a tu navegador.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
@@ -89,7 +92,7 @@ export default function AppearanceSettingsPage() {
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Pega la URL de una imagen alojada externamente. La subida de archivos no está soportada en esta versión.</p>
+            <p className="text-xs text-muted-foreground">Pega la URL de una imagen alojada externamente. La subida de archivos no está soportada.</p>
           </div>
           <div className="space-y-1">
             <Label htmlFor="logoText">Texto del Logo</Label>
@@ -111,7 +114,7 @@ export default function AppearanceSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center"><PaletteIcon className="mr-2 h-5 w-5 text-primary" /> Colores del Tema</CardTitle>
           <CardDescription>
-            Ajusta los colores principales de la interfaz. Los cambios son locales a tu navegador.
+            Ajusta los colores principales de la interfaz.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -124,6 +127,7 @@ export default function AppearanceSettingsPage() {
                 value={primaryColor}
                 onChange={(e) => setPrimaryColor(e.target.value)}
                 className="h-10 p-1"
+                disabled
               />
             </div>
             <div className="space-y-1">
@@ -134,6 +138,7 @@ export default function AppearanceSettingsPage() {
                 value={accentColor}
                 onChange={(e) => setAccentColor(e.target.value)}
                 className="h-10 p-1"
+                disabled
               />
             </div>
             <div className="space-y-1">
@@ -144,6 +149,7 @@ export default function AppearanceSettingsPage() {
                 value={backgroundColor}
                 onChange={(e) => setBackgroundColor(e.target.value)}
                 className="h-10 p-1"
+                disabled
               />
             </div>
           </div>
@@ -153,7 +159,7 @@ export default function AppearanceSettingsPage() {
           </div>
             <p className="text-xs text-muted-foreground">
               Nota: La personalización completa y persistente de colores requiere ajustes en los archivos CSS base y/o un backend.
-              Actualmente, los cambios aplicados son temporales para demostración.
+              Actualmente, esta funcionalidad está deshabilitada.
             </p>
         </CardContent>
       </Card>
