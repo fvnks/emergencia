@@ -12,7 +12,7 @@ import { getAllMaintenanceTasks, type MaintenanceTask, type MaintenanceStatus } 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench, Package, ShieldAlert as EraIcon, MapPin, Clock, ScrollText } from "lucide-react"; // Agregado ScrollText
+import { Loader2, AlertTriangle, ArrowLeft, CalendarDays, Tag, ShieldCheck, Info, FileText, Wrench, Package, ShieldAlert as EraIcon, ScrollText } from "lucide-react"; // Eliminado MapPin, Clock
 import { format, parseISO, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
@@ -47,17 +47,7 @@ export default function VehicleDetailPage() {
 
   const [isManageEraDialogOpen, setIsManageEraDialogOpen] = useState(false);
   const [isManageInventoryDialogOpen, setIsManageInventoryDialogOpen] = useState(false);
-  const [simulatedLocationTime, setSimulatedLocationTime] = useState<string>("Calculando...");
-
-  useEffect(() => {
-    const updateTime = () => {
-      const minutes = Math.floor(Math.random() * 10) + 1; 
-      setSimulatedLocationTime(`Hace ${minutes} minuto${minutes > 1 ? 's' : ''} (Simulado)`);
-    };
-    updateTime(); 
-    const intervalId = setInterval(updateTime, 60000);
-    return () => clearInterval(intervalId);
-  }, []);
+  // Estado simulatedLocationTime eliminado
 
   const fetchVehicleDetailsAndHistory = useCallback(async () => {
     if (id) {
@@ -258,31 +248,7 @@ export default function VehicleDetailPage() {
             </section>
           )}
 
-          <section>
-            <h2 className="text-xl font-semibold font-headline mb-3 text-primary flex items-center">
-              <MapPin className="mr-2 h-5 w-5" /> Ubicación Actual (Simulada)
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-              <div className="relative h-56 sm:h-64 w-full bg-muted rounded-lg overflow-hidden">
-                <Image
-                  src="https://placehold.co/600x350.png?text=Mapa+Ubicacion+Vehiculo"
-                  alt="Mapa de ubicación simulada del vehículo"
-                  layout="fill"
-                  objectFit="cover"
-                  data-ai-hint="map location vehicle"
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="space-y-1">
-                <DetailItem label="Latitud" value="-33.4567 (Simulada)" icon={MapPin} />
-                <DetailItem label="Longitud" value="-70.6789 (Simulada)" icon={MapPin} />
-                <DetailItem label="Última Actualización" value={simulatedLocationTime} icon={Clock} />
-                <p className="text-xs text-muted-foreground pt-3">
-                  Nota: El seguimiento GPS en tiempo real requiere integración con hardware y servicios de backend especializados. Esto es una demostración visual.
-                </p>
-              </div>
-            </div>
-          </section>
+          {/* Sección de Ubicación Actual Eliminada */}
 
           <section>
             <h2 className="text-xl font-semibold font-headline mb-3 text-primary flex items-center">
