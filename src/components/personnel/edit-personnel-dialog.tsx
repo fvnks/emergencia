@@ -33,7 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { updateUserProfile, getAllUsers } from "@/services/userService"; // getAllUsers was missing, needed for admin check
+import { updateUserProfile, getAllUsers } from "@/services/userService";
 import { getAllRoles } from "@/services/roleService";
 import { Loader2, Edit } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
@@ -77,8 +77,7 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
             setLoadingRoles(true);
             try {
                 const roles = await getAllRoles();
-                // Allow current system role to be visible/selected, but filter out other system roles for selection
-                setAvailableRoles(roles.filter(r => !r.es_rol_sistema || r.id_rol === person.id_rol_fk));
+                setAvailableRoles(roles); // Cargar todos los roles
                 form.reset({
                     nombre_completo: person.nombre_completo,
                     email: person.email,
@@ -106,13 +105,12 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
       const selectedRoleId = values.id_rol_fk ? parseInt(values.id_rol_fk, 10) : null;
       const selectedRole = availableRoles.find(r => r.id_rol === selectedRoleId);
 
-      if (values.id_rol_fk && !selectedRole) { // Check if a role was selected but not found (should not happen with proper loading)
+      if (values.id_rol_fk && !selectedRole) { 
           toast({ title: "Error", description: "Rol seleccionado no válido.", variant: "destructive" });
           setIsSubmitting(false);
           return;
       }
 
-      // Prevent admin from changing their own role if they are the only admin
       if (currentUser?.id === person.id_usuario && currentUser.role === 'admin' && selectedRole?.nombre_rol !== 'Administrador') {
         const allUsers = await getAllUsers();
         const admins = allUsers.filter(u => u.nombre_rol === 'Administrador');
@@ -126,7 +124,7 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
       const updateData: UserUpdateInput = {
         nombre_completo: values.nombre_completo,
         email: values.email,
-        id_rol_fk: selectedRoleId, // Use parsed ID or null
+        id_rol_fk: selectedRoleId, 
         telefono: values.telefono || null,
       };
 
@@ -164,7 +162,6 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
     }
   }
 
-  // Determine if the role select should be disabled
   const isCurrentUserAdminEditingSelf = currentUser?.id === person.id_usuario && person.nombre_rol === 'Administrador';
 
 
@@ -218,8 +215,8 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
                     <FormLabel>Rol</FormLabel>
                     <Select
                         onValueChange={field.onChange}
-                        value={field.value || ""} // Use empty string to show placeholder if value is null/undefined
-                        disabled={isCurrentUserAdminEditingSelf}
+                        value={field.value || ""} 
+                        disabled={isCurrentUserAdminEditingSelf && availableRoles.filter(r => r.nombre_rol === 'Administrador').length <=1}
                     >
                         <FormControl>
                         <SelectTrigger>
@@ -232,13 +229,12 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cargando roles...
                             </div>
                           ) : availableRoles.length === 0 ? (
-                            <div className="p-2 text-sm text-muted-foreground">No hay roles asignables.</div>
+                            <div className="p-2 text-sm text-muted-foreground">No hay roles disponibles.</div>
                           ) : (
                             availableRoles.map(role => (
                                 <SelectItem
                                 key={role.id_rol}
                                 value={role.id_rol.toString()}
-                                // Disable selection of system roles if it's not the person's current role
                                 disabled={role.es_rol_sistema && role.id_rol !== person.id_rol_fk}
                                 >
                                 {role.nombre_rol} {role.es_rol_sistema ? "(Sistema)" : ""}
@@ -247,8 +243,8 @@ export function EditPersonnelDialog({ person, onPersonnelUpdated, open, onOpenCh
                           )}
                         </SelectContent>
                     </Select>
-                     {isCurrentUserAdminEditingSelf && (
-                        <p className="text-xs text-muted-foreground pt-1">No puedes cambiar tu propio rol de Administrador aquí (por seguridad).</p>
+                     {isCurrentUserAdminEditingSelf && availableRoles.filter(r => r.nombre_rol === 'Administrador').length <=1 && (
+                        <p className="text-xs text-muted-foreground pt-1">No puedes cambiar tu propio rol si eres el único administrador.</p>
                     )}
                     <FormMessage />
                     </FormItem>
