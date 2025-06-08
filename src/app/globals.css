@@ -9,7 +9,14 @@ body {
 
 @layer base {
   :root {
-    /* PRD Light Theme */
+    /* PRD Light Theme - Default values, can be overridden by JS */
+    --primary-h: 210;
+    --primary-s: 92%;
+    --primary-l: 59%;
+    --accent-h: 174;
+    --accent-s: 72%;
+    --accent-l: 56%;
+
     --background: 209 85% 94%; /* #E8F4FD - Light grayish blue */
     --foreground: 210 25% 25%; /* Dark grayish blue for text */
 
@@ -19,7 +26,7 @@ body {
     --popover: 0 0% 100%;
     --popover-foreground: 210 25% 25%;
 
-    --primary: 210 92% 59%; /* #3294F8 - Deep sky blue */
+    --primary: hsl(var(--primary-h) var(--primary-s) var(--primary-l));
     --primary-foreground: 210 20% 98%; /* Almost white text on primary */
 
     --secondary: 210 60% 90%; /* Very light blue */
@@ -28,7 +35,7 @@ body {
     --muted: 210 40% 90%; /* Light grayish blue */
     --muted-foreground: 210 30% 50%; /* Medium gray-blue text */
 
-    --accent: 174 72% 56%; /* #40E0D0 - Slightly desaturated turquoise */
+    --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
     --accent-foreground: 174 72% 15%; /* Dark text for accent */
 
     --destructive: 0 84% 60%; /* Standard red */
@@ -36,7 +43,7 @@ body {
 
     --border: 210 30% 85%; /* Light gray-blue border */
     --input: 210 40% 90%; /* Similar to muted for input backgrounds */
-    --ring: 210 92% 59%; /* Primary color for focus rings */
+    --ring: hsl(var(--primary-h) var(--primary-s) var(--primary-l)); /* Primary color for focus rings */
 
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -63,7 +70,19 @@ body {
   }
 
   :root.dark {
-    /* Dark Theme derived from PRD */
+    /* Dark Theme derived from PRD - Default values, can be overridden by JS */
+    /* Ensure primary and accent HSL vars are also defined for dark if needed,
+       or they will inherit from :root if not overridden by JS specifically for dark mode.
+       For simplicity, we'll let JS override the :root ones which apply to both modes.
+       If a separate dark theme color customization is needed, more localStorage keys would be necessary.
+    */
+    --primary-h: 210; /* Default primary hue for dark if not set by JS */
+    --primary-s: 92%;
+    --primary-l: 59%;
+    --accent-h: 174;  /* Default accent hue for dark if not set by JS */
+    --accent-s: 72%;
+    --accent-l: 56%;
+
     --background: 210 25% 12%; /* #18232F - Very dark blue */
     --foreground: 210 25% 90%; /* #DBE4EE - Almost white text */
 
@@ -73,7 +92,7 @@ body {
     --popover: 210 25% 16%;
     --popover-foreground: 210 25% 90%;
 
-    --primary: 210 92% 59%; /* #3294F8 - Same Deep sky blue */
+    --primary: hsl(var(--primary-h) var(--primary-s) var(--primary-l));
     --primary-foreground: 210 20% 98%; /* Light text on primary */
 
     --secondary: 210 25% 22%; /* #2C3A4B - Dark grayish blue */
@@ -82,7 +101,7 @@ body {
     --muted: 210 25% 22%;
     --muted-foreground: 210 20% 65%; /* #8D9FBB - Lighter gray-blue text */
 
-    --accent: 174 72% 56%; /* #40E0D0 - Same turquoise */
+    --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
     --accent-foreground: 174 72% 10%; /* Very dark text for accent */
 
     --destructive: 0 70% 50%; /* Slightly darker red for contrast */
@@ -90,7 +109,7 @@ body {
 
     --border: 210 20% 28%; /* #3A4B5F - Dark gray-blue border */
     --input: 210 20% 28%;
-    --ring: 210 92% 59%; /* Primary color for focus rings */
+    --ring: hsl(var(--primary-h) var(--primary-s) var(--primary-l)); /* Primary color for focus rings */
 
     /* Sidebar Dark Theme */
     --sidebar-background: 210 25% 20%; /* Darker slate blue, lighter than card and main bg for better distinction */
@@ -130,3 +149,5 @@ body {
   }
 
 }
+
+    

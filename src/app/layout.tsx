@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/contexts/auth-context';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from 'next-themes'; // Import ThemeProvider
+import { ThemeProvider } from 'next-themes';
+import { ClientThemeInitializer } from '@/components/client-theme-initializer'; // Importar ClientThemeInitializer
 
 export const metadata: Metadata = {
   title: 'Gestor de Brigada',
@@ -29,6 +30,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <ClientThemeInitializer /> {/* Añadir ClientThemeInitializer aquí */}
           <AuthProvider>
             {children}
             <Toaster />
@@ -38,3 +40,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+    
