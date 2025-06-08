@@ -39,7 +39,6 @@ type AddBodegaFormValues = z.infer<typeof addBodegaFormSchema>;
 
 interface AddBodegaDialogProps {
   onBodegaAdded: () => void;
-  // Variante para permitir abrir el diálogo desde un botón existente si es necesario
   triggerButton?: React.ReactNode; 
 }
 
@@ -94,20 +93,15 @@ export function AddBodegaDialog({ onBodegaAdded, triggerButton }: AddBodegaDialo
     }
   }
 
-  const dialogTrigger = triggerButton ? (
-    <div onClick={() => setIsOpen(true)} className="inline-block">
-      {triggerButton}
-    </div>
-  ) : (
-    <Button onClick={() => setIsOpen(true)}>
-      <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nueva Bodega
-    </Button>
-  );
-
-
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {dialogTrigger}
+      <DialogTrigger asChild>
+        {triggerButton ? triggerButton : (
+          <Button> {/* Eliminado onClick={() => setIsOpen(true)} */}
+            <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nueva Bodega
+          </Button>
+        )}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle className="flex items-center"><Warehouse className="mr-2 h-5 w-5 text-primary" /> Agregar Nueva Bodega</DialogTitle>
