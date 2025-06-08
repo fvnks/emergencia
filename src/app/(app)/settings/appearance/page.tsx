@@ -7,14 +7,14 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter, // Importar CardFooter
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Image as ImageIcon, Palette as PaletteIcon, Save, RotateCcw } from "lucide-react";
+import { ArrowLeft, Image as ImageIcon, Palette as PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
@@ -24,11 +24,9 @@ const DEFAULT_LOGO_TEXT = "Gestor Brigada";
 const LOCALSTORAGE_THEME_PRIMARY_HSL = "customThemePrimaryHsl";
 const LOCALSTORAGE_THEME_ACCENT_HSL = "customThemeAccentHsl";
 
-// Colores HSL por defecto (los mismos que en globals.css)
 const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%"; // #3294F8
 const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";  // #40E0D0
 
-// --- Funciones de Ayuda para Colores ---
 function hexToHsl(hex: string): [number, number, number] | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return null;
@@ -49,7 +47,7 @@ function hexToHsl(hex: string): [number, number, number] | null {
       case r: h = (g - b) / d + (g < b ? 6 : 0); break;
       case g: h = (b - r) / d + 2; break;
       case b: h = (r - g) / d + 4; break;
-      default: h = 0; // Should not happen
+      default: h = 0; 
     }
     h /= 6;
   }
@@ -66,10 +64,10 @@ function hslToHex(h: number, s: number, l: number): string {
   const toHex = (val: number) => Math.round(val * 255).toString(16).padStart(2, '0');
   return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
 }
-// --- Fin Funciones de Ayuda para Colores ---
 
 export default function AppearanceSettingsPage() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [logoUrl, setLogoUrl] = useState("");
   const [logoText, setLogoText] = useState(DEFAULT_LOGO_TEXT);
@@ -77,6 +75,7 @@ export default function AppearanceSettingsPage() {
   const [primaryColorHex, setPrimaryColorHex] = useState("#3294F8");
   const [accentColorHex, setAccentColorHex] = useState("#40E0D0");
   const [backgroundColorHex, setBackgroundColorHex] = useState("#E8F4FD");
+
 
   const applyCustomColorsToDOM = (primaryHslStr: string | null, accentHslStr: string | null) => {
     const root = document.documentElement;
@@ -105,13 +104,11 @@ export default function AppearanceSettingsPage() {
   };
 
   useEffect(() => {
-    // Logo
     const storedLogoUrl = localStorage.getItem(LOCALSTORAGE_LOGO_URL_KEY);
     const storedLogoText = localStorage.getItem(LOCALSTORAGE_LOGO_TEXT_KEY);
     if (storedLogoUrl) setLogoUrl(storedLogoUrl);
     if (storedLogoText) setLogoText(storedLogoText);
 
-    // Colors
     const storedPrimaryHsl = localStorage.getItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
     const storedAccentHsl = localStorage.getItem(LOCALSTORAGE_THEME_ACCENT_HSL);
 
@@ -124,7 +121,7 @@ export default function AppearanceSettingsPage() {
         setPrimaryColorHex(hslToHex(h,s,l));
         initialPrimaryHsl = storedPrimaryHsl;
       } else {
-         localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL); // Remove invalid stored value
+         localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
       }
     } else {
       const [h,s,l] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
@@ -137,66 +134,92 @@ export default function AppearanceSettingsPage() {
         setAccentColorHex(hslToHex(h,s,l));
         initialAccentHsl = storedAccentHsl;
       } else {
-         localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL); // Remove invalid stored value
+         localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL); 
       }
     } else {
        const [h,s,l] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
        if(!isNaN(h) && !isNaN(s) && !isNaN(l)) setAccentColorHex(hslToHex(h,s,l));
     }
     
-    // La aplicación inicial al DOM ahora está en ClientThemeInitializer, pero podemos llamarla aquí
-    // también para asegurar que la vista previa en esta página sea correcta si ClientThemeInitializer fallara o se retrasara.
     applyCustomColorsToDOM(initialPrimaryHsl, initialAccentHsl);
 
   }, []);
 
   const handleSaveLogo = () => {
-    localStorage.setItem(LOCALSTORAGE_LOGO_URL_KEY, logoUrl);
-    localStorage.setItem(LOCALSTORAGE_LOGO_TEXT_KEY, logoText);
-    toast({ title: "Logo Actualizado", description: "Los cambios en el logo se han guardado en este navegador." });
-    window.dispatchEvent(new Event('customLogoChanged'));
+    setIsSubmitting(true);
+    try {
+        localStorage.setItem(LOCALSTORAGE_LOGO_URL_KEY, logoUrl);
+        localStorage.setItem(LOCALSTORAGE_LOGO_TEXT_KEY, logoText);
+        toast({ title: "Logo Actualizado", description: "Los cambios en el logo se han guardado en este navegador." });
+        window.dispatchEvent(new Event('customLogoChanged'));
+    } catch (e) {
+        toast({ title: "Error", description: "No se pudo guardar el logo.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleRestoreDefaultLogo = () => {
-    setLogoUrl("");
-    setLogoText(DEFAULT_LOGO_TEXT);
-    localStorage.removeItem(LOCALSTORAGE_LOGO_URL_KEY);
-    localStorage.removeItem(LOCALSTORAGE_LOGO_TEXT_KEY);
-    toast({ title: "Logo Restaurado", description: "El logo ha sido restaurado a los valores por defecto." });
-    window.dispatchEvent(new Event('customLogoChanged'));
+    setIsSubmitting(true);
+    try {
+        setLogoUrl("");
+        setLogoText(DEFAULT_LOGO_TEXT);
+        localStorage.removeItem(LOCALSTORAGE_LOGO_URL_KEY);
+        localStorage.removeItem(LOCALSTORAGE_LOGO_TEXT_KEY);
+        toast({ title: "Logo Restaurado", description: "El logo ha sido restaurado a los valores por defecto." });
+        window.dispatchEvent(new Event('customLogoChanged'));
+    } catch (e) {
+        toast({ title: "Error", description: "No se pudo restaurar el logo.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
   
   const handleApplyColors = () => {
-    const primaryHslArr = hexToHsl(primaryColorHex);
-    const accentHslArr = hexToHsl(accentColorHex);
+    setIsSubmitting(true);
+    try {
+        const primaryHslArr = hexToHsl(primaryColorHex);
+        const accentHslArr = hexToHsl(accentColorHex);
 
-    if (primaryHslArr && accentHslArr) {
-      const primaryHslStr = `${primaryHslArr[0]} ${primaryHslArr[1]}% ${primaryHslArr[2]}%`;
-      const accentHslStr = `${accentHslArr[0]} ${accentHslArr[1]}% ${accentHslArr[2]}%`;
-      
-      localStorage.setItem(LOCALSTORAGE_THEME_PRIMARY_HSL, primaryHslStr);
-      localStorage.setItem(LOCALSTORAGE_THEME_ACCENT_HSL, accentHslStr);
-      
-      applyCustomColorsToDOM(primaryHslStr, accentHslStr);
-      
-      toast({ title: "Colores Aplicados", description: "Los colores del tema han sido actualizados en este navegador." });
-    } else {
-      toast({ title: "Error de Color", description: "Uno de los códigos HEX no es válido.", variant: "destructive" });
+        if (primaryHslArr && accentHslArr) {
+          const primaryHslStr = `${primaryHslArr[0]} ${primaryHslArr[1]}% ${primaryHslArr[2]}%`;
+          const accentHslStr = `${accentHslArr[0]} ${accentHslArr[1]}% ${accentHslArr[2]}%`;
+          
+          localStorage.setItem(LOCALSTORAGE_THEME_PRIMARY_HSL, primaryHslStr);
+          localStorage.setItem(LOCALSTORAGE_THEME_ACCENT_HSL, accentHslStr);
+          
+          applyCustomColorsToDOM(primaryHslStr, accentHslStr);
+          
+          toast({ title: "Colores Aplicados", description: "Los colores del tema han sido actualizados en este navegador." });
+        } else {
+          toast({ title: "Error de Color", description: "Uno de los códigos HEX no es válido.", variant: "destructive" });
+        }
+    } catch (e) {
+        toast({ title: "Error", description: "No se pudieron aplicar los colores.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
   const handleRestoreDefaultColors = () => {
-    localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
-    localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);
+    setIsSubmitting(true);
+    try {
+        localStorage.removeItem(LOCALSTORAGE_THEME_PRIMARY_HSL);
+        localStorage.removeItem(LOCALSTORAGE_THEME_ACCENT_HSL);
 
-    applyCustomColorsToDOM(DEFAULT_PRIMARY_HSL_STRING, DEFAULT_ACCENT_HSL_STRING);
-    
-    const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-    setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
-    const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
-    setAccentColorHex(hslToHex(defAH, defAS, defAL));
+        applyCustomColorsToDOM(DEFAULT_PRIMARY_HSL_STRING, DEFAULT_ACCENT_HSL_STRING);
+        
+        const [defPH, defPS, defPL] = DEFAULT_PRIMARY_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
+        setPrimaryColorHex(hslToHex(defPH, defPS, defPL));
+        const [defAH, defAS, defAL] = DEFAULT_ACCENT_HSL_STRING.split(" ").map(v => parseFloat(v.replace('%','')));
+        setAccentColorHex(hslToHex(defAH, defAS, defAL));
 
-    toast({ title: "Colores Restaurados", description: "Los colores del tema han sido restaurados a los valores por defecto." });
+        toast({ title: "Colores Restaurados", description: "Los colores del tema han sido restaurados a los valores por defecto." });
+    } catch (e) {
+        toast({ title: "Error", description: "No se pudieron restaurar los colores.", variant: "destructive" });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   return (
@@ -228,6 +251,7 @@ export default function AppearanceSettingsPage() {
               placeholder="https://ejemplo.com/logo.png" 
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
+              disabled={isSubmitting}
             />
             <p className="text-xs text-muted-foreground">Pega la URL de una imagen alojada externamente. La subida de archivos no está soportada.</p>
           </div>
@@ -238,12 +262,19 @@ export default function AppearanceSettingsPage() {
               placeholder="Nombre de tu Brigada" 
               value={logoText}
               onChange={(e) => setLogoText(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button onClick={handleSaveLogo}><Save className="mr-2 h-4 w-4" /> Guardar Cambios de Logo</Button>
-            <Button variant="outline" onClick={handleRestoreDefaultLogo}><RotateCcw className="mr-2 h-4 w-4" /> Restaurar Logo</Button>
+            <Button onClick={handleSaveLogo} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Guardar Cambios de Logo
+            </Button>
+            <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              Restaurar Logo
+            </Button>
         </CardFooter>
       </Card>
 
@@ -264,6 +295,7 @@ export default function AppearanceSettingsPage() {
                 value={primaryColorHex}
                 onChange={(e) => setPrimaryColorHex(e.target.value)}
                 className="h-10 p-1"
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-1">
@@ -274,6 +306,7 @@ export default function AppearanceSettingsPage() {
                 value={accentColorHex}
                 onChange={(e) => setAccentColorHex(e.target.value)}
                 className="h-10 p-1"
+                disabled={isSubmitting}
               />
             </div>
             <div className="space-y-1">
@@ -284,7 +317,7 @@ export default function AppearanceSettingsPage() {
                 value={backgroundColorHex}
                 onChange={(e) => setBackgroundColorHex(e.target.value)}
                 className="h-10 p-1"
-                disabled
+                disabled // Personalización de fondo más compleja, deshabilitada por ahora
               />
             </div>
           </div>
@@ -293,8 +326,12 @@ export default function AppearanceSettingsPage() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button onClick={handleApplyColors}>Aplicar Colores</Button>
-            <Button variant="outline" onClick={handleRestoreDefaultColors}>Restaurar Colores</Button>
+            <Button onClick={handleApplyColors} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Aplicar Colores"}
+            </Button>
+            <Button variant="outline" onClick={handleRestoreDefaultColors} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Restaurar Colores"}
+            </Button>
         </CardFooter>
       </Card>
     </div>
