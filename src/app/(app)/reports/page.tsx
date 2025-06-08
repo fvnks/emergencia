@@ -11,7 +11,7 @@ import {
   type ChartConfig
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend as RechartsLegend, Tooltip as RechartsTooltip } from "recharts";
-import { FileText, AlertTriangle, Filter, Download, CalendarIcon, Search } from "lucide-react";
+import { FileText, AlertTriangle, Filter, Download, CalendarIcon, Search, Loader2 } from "lucide-react"; // Added Loader2
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -487,3 +487,4 @@ export default function ReportsPage() {
     
 
     
+
