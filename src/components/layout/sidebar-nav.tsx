@@ -22,6 +22,7 @@ import {
   Fingerprint,
   BarChart3,
   ClipboardCheck as ChecklistIcon,
+  Warehouse, // Added Warehouse icon
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover:translate-y-[-1.5px]" },
   { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover:scale-105" },
   { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, animationClass: "group-hover:scale-110 group-hover:opacity-80" },
+  { href: "/settings/warehouses", label: "Gestionar Bodegas", icon: Warehouse, adminOnly: true, animationClass: "group-hover:scale-105" }, // Added new item
   { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover:rotate-45" },
 ];
 
