@@ -11,7 +11,7 @@ import {
   type ChartConfig
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend as RechartsLegend, Tooltip as RechartsTooltip } from "recharts";
-import { FileText, AlertTriangle, Filter, Download, CalendarIcon, Search, Loader2 } from "lucide-react"; // Added Loader2
+import { FileText, AlertTriangle, Filter, Download, CalendarIcon, Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,25 +24,25 @@ import type { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
-import { getAllVehicles, type Vehicle } from "@/services/vehicleService"; // Added imports
+import { getAllVehicles, type Vehicle } from "@/services/vehicleService";
+import { getAllEraEquipments, type EraEquipment } from "@/services/eraService"; // Importar servicio y tipo ERA
+import { ALL_ERA_STATUSES, type EraEquipmentStatus } from "@/components/equipment/era-types"; // Importar estados ERA
 
-// Constantes para tipos y estados usados en los filtros (pueden venir de types/services)
+// Constantes para tipos y estados usados en los filtros
 const ALL_VEHICLE_STATUSES_REPORTS: string[] = ['Operativo', 'En Mantención', 'Fuera de Servicio', 'En Ruta', 'En Emergencia'];
 const ALL_VEHICLE_TYPES_REPORTS: string[] = ['Bomba', 'Escala', 'Rescate', 'Ambulancia', 'HazMat', 'Forestal', 'Utilitario', 'Transporte Personal', 'Otro'];
-const ALL_ERA_STATUSES_REPORTS: string[] = ['Disponible', 'Operativo', 'En Mantención', 'Requiere Inspección', 'Fuera de Servicio'];
 const ALL_MAINTENANCE_STATUSES_REPORTS: string[] = ['Programada', 'Pendiente', 'En Progreso', 'Completada', 'Cancelada', 'Atrasada'];
 
 interface GenericChartDataItem {
   id?: number | string;
-  name?: string;
-  value?: number;
-  count?: number;
-  status?: string;
-  fill?: string;
-  [key: string]: any; // Para otros campos como 'mes', 'Tiempo Prom. (min)', etc.
+  name?: string; // Usado para labels de Eje X o Leyenda
+  value?: number; // Usado para valores de Eje Y o Pie
+  count?: number; // Alternativa a value, específicamente para conteos
+  status?: string; // Usado para labels de Pie y Leyenda
+  fill?: string; // Color para el segmento del gráfico
+  [key: string]: any; 
 }
 
-// Configuración de colores para los gráficos
 const vehicleAvailabilityChartConfig = {
   Operativo: { label: "Operativos", color: "hsl(var(--chart-1))" },
   "En Mantención": { label: "En Mantención", color: "hsl(var(--chart-2))" },
@@ -52,11 +52,13 @@ const vehicleAvailabilityChartConfig = {
 } satisfies ChartConfig;
 
 const eraAvailabilityChartConfig = {
-  Disponibles: { label: "Disponibles", color: "hsl(var(--chart-1))" },
-  "Operativos (Asignados)": { label: "Operativos", color: "hsl(var(--chart-2))" },
+  Disponible: { label: "Disponibles", color: "hsl(var(--chart-1))" },
+  Operativo: { label: "Operativos (Asignados)", color: "hsl(var(--chart-2))" },
   "En Mantención": { label: "En Mantención", color: "hsl(var(--chart-3))" },
   "Requiere Inspección": { label: "Requiere Inspección", color: "hsl(var(--chart-4))" },
+  "Fuera de Servicio": { label: "Fuera de Servicio", color: "hsl(var(--chart-5))" },
 } satisfies ChartConfig;
+
 
 const incidentResponseChartConfig = {
   tiempo: { label: "Tiempo Prom. (min)", color: "hsl(var(--primary))" },
@@ -91,8 +93,12 @@ export default function ReportsPage() {
     const fetchReportData = async () => {
       setLoadingReportData(true);
       try {
-        const allVehicles = await getAllVehicles();
+        const [allVehicles, allEras] = await Promise.all([
+          getAllVehicles(),
+          getAllEraEquipments()
+        ]);
         
+        // Procesamiento de Vehículos
         const parsedVehicleIds = specificVehicleIdsInput
           .split(',')
           .map(id => parseInt(id.trim(), 10))
@@ -100,62 +106,72 @@ export default function ReportsPage() {
 
         const filteredVehicles = allVehicles.filter(vehicle => {
           let passes = true;
-
-          if (parsedVehicleIds.length > 0 && !parsedVehicleIds.includes(vehicle.id_vehiculo)) {
-            passes = false;
-          }
-          if (vehicleTypeFilter !== "all" && vehicle.tipo_vehiculo !== vehicleTypeFilter) {
-            passes = false;
-          }
-          if (vehicleStatusFilter !== "all" && vehicle.estado_vehiculo !== vehicleStatusFilter) {
-            passes = false;
-          }
-
+          if (parsedVehicleIds.length > 0 && !parsedVehicleIds.includes(vehicle.id_vehiculo)) passes = false;
+          if (vehicleTypeFilter !== "all" && vehicle.tipo_vehiculo !== vehicleTypeFilter) passes = false;
+          if (vehicleStatusFilter !== "all" && vehicle.estado_vehiculo !== vehicleStatusFilter) passes = false;
           if (dateRange?.from) {
-            const vehicleDate = parseISO(vehicle.fecha_actualizacion || vehicle.fecha_creacion);
-            if (!isValid(vehicleDate)) {
-              passes = false;
-            } else {
-              const fromDate = startOfDay(dateRange.from);
-              if (isBefore(vehicleDate, fromDate)) passes = false;
-              if (dateRange.to) {
-                const toDate = endOfDay(dateRange.to);
-                if (isAfter(vehicleDate, toDate)) passes = false;
-              }
+            const vehicleDateStr = vehicle.fecha_actualizacion || vehicle.fecha_creacion;
+            if (!vehicleDateStr) { passes = false; }
+            else {
+                const vehicleDate = parseISO(vehicleDateStr);
+                if (!isValid(vehicleDate)) { passes = false; }
+                else {
+                    const fromDate = startOfDay(dateRange.from);
+                    if (isBefore(vehicleDate, fromDate)) passes = false;
+                    if (dateRange.to) {
+                        const toDate = endOfDay(dateRange.to);
+                        if (isAfter(vehicleDate, toDate)) passes = false;
+                    }
+                }
             }
           }
           return passes;
         });
 
-        const statusCounts: Record<string, number> = {};
-        ALL_VEHICLE_STATUSES_REPORTS.forEach(status => statusCounts[status] = 0); // Initialize all statuses
-
+        const vehicleStatusCounts: Record<string, number> = {};
+        ALL_VEHICLE_STATUSES_REPORTS.forEach(status => vehicleStatusCounts[status] = 0);
         filteredVehicles.forEach(vehicle => {
-          if (vehicle.estado_vehiculo && statusCounts.hasOwnProperty(vehicle.estado_vehiculo)) {
-            statusCounts[vehicle.estado_vehiculo]++;
-          } else if (vehicle.estado_vehiculo) {
-             // Handle unexpected statuses, perhaps group them under 'Otro' or log
-             console.warn(`Vehículo con estado inesperado: ${vehicle.estado_vehiculo}`);
-             // if (!statusCounts['Otro']) statusCounts['Otro'] = 0;
-             // statusCounts['Otro']++;
+          if (vehicle.estado_vehiculo && vehicleStatusCounts.hasOwnProperty(vehicle.estado_vehiculo)) {
+            vehicleStatusCounts[vehicle.estado_vehiculo]++;
           }
         });
-        
-        const chartData = Object.entries(statusCounts)
+        const vehicleChartData = Object.entries(vehicleStatusCounts)
           .map(([status, count]) => {
             const configEntry = vehicleAvailabilityChartConfig[status as keyof typeof vehicleAvailabilityChartConfig];
-            return {
-              status: configEntry?.label || status,
-              count: count,
-              fill: configEntry?.color || "#8884d8", // Default color
-            };
-          })
-          .filter(item => item.count > 0); // Only include statuses with vehicles
+            return { status: configEntry?.label || status, count: count, fill: configEntry?.color || "#8884d8" };
+          }).filter(item => item.count > 0);
+        setVehicleReportData(vehicleChartData);
 
-        setVehicleReportData(chartData);
+        // Procesamiento de Equipos ERA
+        const parsedEraIds = specificEraIdsInput
+          .split(',')
+          .map(id => parseInt(id.trim(), 10))
+          .filter(id => !isNaN(id));
+        
+        const filteredEras = allEras.filter(era => {
+          let passes = true;
+          if (parsedEraIds.length > 0 && !parsedEraIds.includes(era.id_era)) passes = false;
+          if (eraStatusFilter !== "all" && era.estado_era !== eraStatusFilter) passes = false;
+          // Podríamos añadir filtro de fecha para ERAs si tuviera sentido (ej. fecha_proxima_inspeccion)
+          return passes;
+        });
+
+        const eraStatusCounts: Record<string, number> = {};
+        ALL_ERA_STATUSES.forEach(status => eraStatusCounts[status] = 0); 
+        filteredEras.forEach(era => {
+            if (era.estado_era && eraStatusCounts.hasOwnProperty(era.estado_era)) {
+                eraStatusCounts[era.estado_era]++;
+            }
+        });
+        const eraChartData = Object.entries(eraStatusCounts)
+          .map(([status, count]) => {
+            const configEntry = eraAvailabilityChartConfig[status as keyof typeof eraAvailabilityChartConfig];
+            return { status: configEntry?.label || status, count: count, fill: configEntry?.color || "#82ca9d" };
+          }).filter(item => item.count > 0);
+        setEraAvailabilityData(eraChartData);
+
 
         // Placeholder for other chart data
-        setEraAvailabilityData([]);
         setIncidentResponseData([]);
         setMaintenanceComplianceData([]);
 
@@ -167,28 +183,27 @@ export default function ReportsPage() {
           variant: "destructive",
         });
         setVehicleReportData([]);
+        setEraAvailabilityData([]);
       } finally {
         setLoadingReportData(false);
       }
     };
     
     fetchReportData();
-  }, [dateRange, vehicleTypeFilter, vehicleStatusFilter, specificVehicleIdsInput, toast]);
+  }, [dateRange, vehicleTypeFilter, vehicleStatusFilter, specificVehicleIdsInput, eraStatusFilter, specificEraIdsInput, toast]);
 
 
   const handleApplyFilters = () => {
-    // The useEffect already re-fetches data when filter states change.
-    // This button can be used to explicitly trigger a toast or if we later
-    // move fetching outside useEffect.
     const specificVehicleIds = specificVehicleIdsInput.split(',').map(id => id.trim()).filter(id => id !== "");
-    // ... (rest of the specific ID parsing)
+    const specificEraIds = specificEraIdsInput.split(',').map(id => id.trim()).filter(id => id !== "");
 
     let filterSummary = "Filtros aplicados y datos recargados (si es necesario).\n";
-     if (dateRange?.from) filterSummary += ` - Rango Fechas: ${format(dateRange.from, "dd/MM/yy")} ${dateRange.to ? `- ${format(dateRange.to, "dd/MM/yy")}` : ''}\n`;
+     if (dateRange?.from) filterSummary += ` - Rango Fechas (Vehículos): ${format(dateRange.from, "dd/MM/yy")} ${dateRange.to ? `- ${format(dateRange.to, "dd/MM/yy")}` : ''}\n`;
     if (vehicleTypeFilter !== "all") filterSummary += ` - Tipo Vehículo: ${vehicleTypeFilter}\n`;
     if (vehicleStatusFilter !== "all") filterSummary += ` - Estado Vehículo: ${vehicleStatusFilter}\n`;
     if (specificVehicleIds.length > 0) filterSummary += ` - IDs Vehículos: ${specificVehicleIds.join(', ')}\n`;
-    // ... (rest of the summary for other filters)
+    if (eraStatusFilter !== "all") filterSummary += ` - Estado ERA: ${eraStatusFilter}\n`;
+    if (specificEraIds.length > 0) filterSummary += ` - IDs ERA: ${specificEraIds.join(', ')}\n`;
     
     toast({
       title: "Filtros Aplicados",
@@ -202,7 +217,7 @@ export default function ReportsPage() {
       toast({ title: "Sin Datos", description: "No hay datos para exportar con los filtros actuales.", variant: "destructive" });
       return;
     }
-    const headers = Object.keys(data[0]).filter(key => key !== 'fill').join(','); // Exclude 'fill' from CSV
+    const headers = Object.keys(data[0]).filter(key => key !== 'fill').join(','); 
     const csvRows = data.map(row => 
       Object.entries(row)
         .filter(([key]) => key !== 'fill')
@@ -236,13 +251,17 @@ export default function ReportsPage() {
     }
   };
 
-  const handleExport = (formatType: 'CSV' | 'PDF') => {
+  const handleExport = (formatType: 'CSV' | 'PDF', chartType: 'vehicles' | 'eras') => {
     if (formatType === 'CSV') {
-      downloadCsv(vehicleReportData, 'informe_disponibilidad_vehiculos.csv');
+      if (chartType === 'vehicles') {
+        downloadCsv(vehicleReportData, 'informe_disponibilidad_vehiculos.csv');
+      } else if (chartType === 'eras') {
+        downloadCsv(eraAvailabilityData, 'informe_disponibilidad_eras.csv');
+      }
     } else if (formatType === 'PDF') {
       toast({
         title: `Exportación a ${formatType} (Simulada)`,
-        description: `La funcionalidad de exportación a ${formatType} requiere implementación adicional.`,
+        description: `La funcionalidad de exportación a ${formatType} para ${chartType} requiere implementación adicional.`,
       });
     }
   };
@@ -305,12 +324,12 @@ export default function ReportsPage() {
                 </Select>
             </div>
             <div>
-                <Label htmlFor="era-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de ERA (No implementado)</Label>
-                <Select value={eraStatusFilter} onValueChange={setEraStatusFilter} disabled>
+                <Label htmlFor="era-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de ERA</Label>
+                <Select value={eraStatusFilter} onValueChange={setEraStatusFilter}>
                     <SelectTrigger id="era-status-filter" className="h-10"><SelectValue placeholder="Todos los Estados" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos los Estados de ERA</SelectItem>
-                        {ALL_ERA_STATUSES_REPORTS.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                        {ALL_ERA_STATUSES.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -331,8 +350,8 @@ export default function ReportsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4">
             <div>
-                <Label htmlFor="specific-era-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Equipos ERA Específicos (IDs, No impl.)</Label>
-                <Input id="specific-era-ids" placeholder="Ej: 101, 105" value={specificEraIdsInput} onChange={(e) => setSpecificEraIdsInput(e.target.value)} className="h-10" disabled/>
+                <Label htmlFor="specific-era-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Equipos ERA Específicos (IDs)</Label>
+                <Input id="specific-era-ids" placeholder="Ej: 101, 105" value={specificEraIdsInput} onChange={(e) => setSpecificEraIdsInput(e.target.value)} className="h-10"/>
             </div>
             <div>
                 <Label htmlFor="specific-inventory-item-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Ítems Inventario Específicos (IDs, No impl.)</Label>
@@ -340,9 +359,9 @@ export default function ReportsPage() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button onClick={handleApplyFilters} className="w-full sm:w-auto" disabled><Filter className="mr-2 h-4 w-4" /> Aplicar Otros Filtros (Simulado)</Button>
-            <Button variant="outline" onClick={() => handleExport('CSV')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar Vehículos (CSV)</Button>
-            <Button variant="outline" onClick={() => handleExport('PDF')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar a PDF (Simulado)</Button>
+            <Button onClick={handleApplyFilters} className="w-full sm:w-auto"><Filter className="mr-2 h-4 w-4" /> Refrescar Datos con Filtros</Button>
+            <Button variant="outline" onClick={() => handleExport('CSV', 'vehicles')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar Vehículos (CSV)</Button>
+            <Button variant="outline" onClick={() => handleExport('CSV', 'eras')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar ERAs (CSV)</Button>
           </div>
         </CardContent>
       </Card>
@@ -366,7 +385,7 @@ export default function ReportsPage() {
                         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return ( percent > 0.03 ? // Show label if percent is > 3%
+                        return ( percent > 0.03 ? 
                           <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10px" fontWeight="bold">
                             {`${(percent * 100).toFixed(0)}%`}
                           </text> : null
@@ -387,11 +406,13 @@ export default function ReportsPage() {
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Disponibilidad de Equipos ERA</CardTitle>
-            <CardDescription>Estado de los equipos de respiración autónoma (requiere datos reales).</CardDescription>
+            <CardDescription>Estado de los equipos de respiración autónoma.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={eraAvailabilityChartConfig} className="h-[300px] w-full">
-             {eraAvailabilityData.length > 0 ? (
+             {loadingReportData ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mr-2" />Cargando datos...</div>
+              ) : eraAvailabilityData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="status"/>} />
@@ -400,8 +421,8 @@ export default function ReportsPage() {
                         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return ( percent > 0.02 ?
-                          <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10px">
+                        return ( percent > 0.03 ?
+                          <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10px" fontWeight="bold">
                             {`${(percent * 100).toFixed(0)}%`}
                           </text> : null
                         );
@@ -412,7 +433,7 @@ export default function ReportsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar. (Funcionalidad pendiente)</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar con los filtros actuales.</div>
               )}
             </ChartContainer>
           </CardContent>
@@ -469,14 +490,14 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
       </div>
-       <div className="mt-8 p-4 border-l-4 border-blue-400 bg-blue-50 rounded-md">
+       <div className="mt-8 p-4 border-l-4 border-blue-400 bg-blue-50 rounded-md dark:bg-slate-800 dark:border-blue-500">
         <div className="flex">
           <div className="flex-shrink-0">
-            <FileText className="h-5 w-5 text-blue-500" aria-hidden="true" />
+            <FileText className="h-5 w-5 text-blue-500 dark:text-blue-400" aria-hidden="true" />
           </div>
           <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              <strong>Nota:</strong> Solo el gráfico "Disponibilidad de Vehículos" está conectado a datos (simulados/locales). Los demás gráficos y filtros avanzados requieren integración completa con backend para obtener datos reales, procesar filtros complejos y generar exportaciones. La exportación CSV para vehículos es funcional con los datos mostrados.
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              <strong>Nota:</strong> Los gráficos de "Disponibilidad de Vehículos" y "Disponibilidad de Equipos ERA" están conectados a datos (simulados/locales). Los demás gráficos y filtros avanzados requieren integración completa con backend. La exportación CSV es funcional para los gráficos con datos.
             </p>
           </div>
         </div>
@@ -487,4 +508,5 @@ export default function ReportsPage() {
     
 
     
+
 
