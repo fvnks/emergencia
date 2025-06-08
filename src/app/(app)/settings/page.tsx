@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { KeyRound, Database, ShieldAlert } from "lucide-react"; // Removed Users, Warehouse, Fingerprint
-// import Link from "next/link"; // No longer needed
+import { KeyRound, Database, ShieldAlert, Fingerprint, Users, Warehouse, Palette } from "lucide-react"; 
+import Link from "next/link";
 import { useState } from "react";
-import { performSystemBackup } from "@/ai/flows/backup-system-flow"; // Import the Genkit flow
+import { performSystemBackup } from "@/ai/flows/backup-system-flow";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -30,9 +30,7 @@ export default function SettingsPage() {
       toast({ title: "Error", description: "La contraseña debe tener al menos 6 caracteres.", variant: "destructive" });
       return;
     }
-    // Simulate password change
     console.log("Simulando cambio de contraseña...");
-    // Aquí iría la lógica real para cambiar la contraseña, ej: await changeUserPassword(currentPassword, newPassword);
     toast({ title: "Éxito", description: "Contraseña cambiada con éxito (simulado)." });
     setCurrentPassword('');
     setNewPassword('');
@@ -47,7 +45,7 @@ export default function SettingsPage() {
     });
 
     try {
-      const result = await performSystemBackup({}); // Call the Genkit flow
+      const result = await performSystemBackup({});
       if (result.status === 'success') {
         toast({
           title: "Respaldo Completado",
@@ -72,8 +70,35 @@ export default function SettingsPage() {
     }
   };
 
+  const adminSettingsCards = [
+    { 
+      href: "/settings/users", 
+      icon: Users, 
+      title: "Gestionar Usuarios", 
+      description: "Administrar cuentas de usuario y sus roles (ahora en Personal)." 
+    },
+    { 
+      href: "/settings/roles-permissions", 
+      icon: Fingerprint, 
+      title: "Roles y Permisos", 
+      description: "Definir roles y asignar permisos específicos a módulos." 
+    },
+    { 
+      href: "/settings/warehouses", 
+      icon: Warehouse, 
+      title: "Gestionar Bodegas", 
+      description: "Administrar bodegas y centros de almacenamiento." 
+    },
+    {
+      href: "/settings/appearance",
+      icon: Palette,
+      title: "Apariencia del Panel",
+      description: "Personalizar logo, colores y tema del sistema."
+    },
+  ];
+
   return (
-    <div className="space-y-8 max-w-3xl mx-auto">
+    <div className="space-y-8 max-w-4xl mx-auto">
       <div>
         <h1 className="text-3xl font-headline font-bold">Configuración</h1>
         <p className="text-muted-foreground">Gestiona tu cuenta y la configuración del sistema.</p>
@@ -104,26 +129,47 @@ export default function SettingsPage() {
       </Card>
 
       {user?.role === 'admin' && (
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center"><ShieldAlert className="mr-2 h-5 w-5 text-destructive" /> Configuración de Administrador</CardTitle>
-            <CardDescription>Gestiona las configuraciones generales del sistema. Estas acciones son críticas y deben manejarse con cuidado.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full sm:w-auto justify-start"
-                  onClick={handleBackupSystemData}
-                  disabled={isBackupLoading}
-                >
-                    <Database className="mr-2 h-4 w-4" /> 
-                    {isBackupLoading ? "Respaldando..." : "Respaldo Datos del Sistema"}
-                </Button>
+        <>
+          <Card className="shadow-md">
+            <CardHeader>
+              <CardTitle className="flex items-center"><ShieldAlert className="mr-2 h-5 w-5 text-destructive" /> Herramientas Administrativas</CardTitle>
+              <CardDescription>Opciones críticas del sistema. Usar con precaución.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                onClick={handleBackupSystemData}
+                disabled={isBackupLoading}
+                className="w-full sm:w-auto"
+              >
+                  <Database className="mr-2 h-4 w-4" /> 
+                  {isBackupLoading ? "Respaldando..." : "Respaldo de Datos del Sistema"}
+              </Button>
+               <p className="text-xs text-muted-foreground mt-3">Opciones adicionales como registros del sistema, configuración de módulos e importación/exportación de datos podrían aparecer aquí.</p>
+            </CardContent>
+          </Card>
+
+          <div className="mt-8">
+            <h2 className="text-2xl font-headline font-semibold mb-4">Configuraciones Avanzadas</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {adminSettingsCards.map((setting) => (
+                <Link href={setting.href} key={setting.title} passHref>
+                  <Card className="h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+                    <CardHeader className="flex flex-row items-center gap-3">
+                      <setting.icon className="h-8 w-8 text-primary" />
+                      <div>
+                        <CardTitle className="text-lg">{setting.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">{setting.description}</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground">Opciones administrativas adicionales como registros del sistema, configuración de módulos e importación/exportación de datos aparecerían aquí.</p>
-          </CardContent>
-        </Card>
+          </div>
+        </>
       )}
     </div>
   );

@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-// import Image from "next/image"; // No longer needed for this version
 import { usePathname } from "next/navigation";
 import {
   SidebarMenu,
@@ -22,7 +21,8 @@ import {
   Fingerprint,
   BarChart3,
   ClipboardCheck as ChecklistIcon,
-  Warehouse, // Added Warehouse icon
+  Warehouse,
+  Palette, // Importado Palette
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ interface NavItem {
   icon: LucideIcon;
   animationClass?: string;
   adminOnly?: boolean;
+  settingsSubItem?: boolean; // Para identificar sub-items de configuración
 }
 
 const navItems: NavItem[] = [
@@ -45,9 +46,11 @@ const navItems: NavItem[] = [
   { href: "/reports", label: "Informes", icon: BarChart3, animationClass: "group-hover:scale-105" },
   { href: "/checklists", label: "Checklists", icon: ChecklistIcon, animationClass: "group-hover:translate-y-[-1.5px]" },
   { href: "/personnel", label: "Personal", icon: Users, animationClass: "group-hover:scale-105" },
-  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, animationClass: "group-hover:scale-110 group-hover:opacity-80" },
-  { href: "/settings/warehouses", label: "Gestionar Bodegas", icon: Warehouse, adminOnly: true, animationClass: "group-hover:scale-105" }, // Added new item
+  // Items de Configuración agrupados
   { href: "/settings", label: "Configuración", icon: SettingsIcon, animationClass: "group-hover:rotate-45" },
+  { href: "/settings/roles-permissions", label: "Roles y Permisos", icon: Fingerprint, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-110 group-hover:opacity-80" },
+  { href: "/settings/warehouses", label: "Gestionar Bodegas", icon: Warehouse, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-105" },
+  { href: "/settings/appearance", label: "Apariencia", icon: Palette, adminOnly: true, settingsSubItem: true, animationClass: "group-hover:scale-105" },
 ];
 
 export function SidebarNav() {
@@ -61,24 +64,30 @@ export function SidebarNav() {
     return true;
   });
 
+  const mainMenuItems = filteredNavItems.filter(item => !item.settingsSubItem);
+  const settingsSubMenuItems = filteredNavItems.filter(item => item.settingsSubItem && item.href !== "/settings");
+
+  const isSettingsActive = pathname.startsWith("/settings");
+
   return (
     <>
       <div className="px-4 pt-2 pb-1 text-[15px] font-semibold text-[hsl(var(--muted-foreground))] group-data-[collapsible=icon]:hidden">
         MENU
       </div>
       <SidebarMenu>
-        {filteredNavItems.map((item) => {
+        {mainMenuItems.map((item) => {
           const IconComponent = item.icon;
           const iconClasses = cn(
             'transition-transform duration-200 ease-in-out',
             item.animationClass
           );
+          const isActive = item.href === "/settings" ? isSettingsActive : pathname.startsWith(item.href);
 
           return (
             <SidebarMenuItem key={item.href}>
               <Link href={item.href} passHref legacyBehavior>
                 <SidebarMenuButton
-                  isActive={pathname.startsWith(item.href)}
+                  isActive={isActive}
                   className="justify-start w-full"
                   tooltip={{children: item.label, className: "bg-popover text-popover-foreground border-border"}}
                 >
@@ -86,6 +95,30 @@ export function SidebarNav() {
                   <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                 </SidebarMenuButton>
               </Link>
+              {/* Render Submenu para Configuración */}
+              {item.href === "/settings" && isSettingsActive && settingsSubMenuItems.length > 0 && (
+                <ul className="pl-7 pt-1 space-y-1 group-data-[collapsible=icon]:hidden">
+                  {settingsSubMenuItems.map(subItem => {
+                    const SubIconComponent = subItem.icon;
+                    return (
+                      <li key={subItem.href}>
+                        <Link href={subItem.href} passHref legacyBehavior>
+                          <SidebarMenuButton
+                             variant="ghost" // Subitems con estilo más sutil
+                             size="sm"
+                             isActive={pathname.startsWith(subItem.href)}
+                             className="justify-start w-full text-sm h-8"
+                             tooltip={{children: subItem.label, className: "bg-popover text-popover-foreground border-border"}}
+                          >
+                            <SubIconComponent className={cn('h-3.5 w-3.5', subItem.animationClass)} />
+                            <span>{subItem.label}</span>
+                          </SidebarMenuButton>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </SidebarMenuItem>
           );
         })}
