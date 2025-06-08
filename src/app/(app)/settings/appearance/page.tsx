@@ -110,10 +110,14 @@ export default function AppearanceSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={handleSaveLogo} disabled={isSubmitting}>
+            <button
+              onClick={handleSaveLogo}
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white hover:bg-blue-700 rounded-md px-3 py-1.5 text-sm font-medium inline-flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+            >
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
               Guardar Logo
-            </Button>
+            </button>
             <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Restaurar Logo
@@ -123,6 +127,3 @@ export default function AppearanceSettingsPage() {
     </div>
   );
 }
-    
-    
-    
