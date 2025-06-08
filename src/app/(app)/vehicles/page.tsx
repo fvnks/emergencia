@@ -149,7 +149,10 @@ export default function VehiclesPage() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 p-4 mb-6 bg-card border rounded-lg shadow-sm">
         <h1 className="text-2xl font-headline font-bold">Gestión de Vehículos</h1>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Button 
+          onClick={() => setIsAddDialogOpen(true)}
+          className="bg-blue-600 text-black hover:bg-blue-700"
+        >
           <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
         </Button>
       </div>
@@ -211,7 +214,10 @@ export default function VehiclesPage() {
           </CardHeader>
           {vehicles.length === 0 && (
             <CardContent>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button 
+                onClick={() => setIsAddDialogOpen(true)}
+                className="bg-blue-600 text-black hover:bg-blue-700"
+              >
                   <PlusCircle className="mr-2 h-5 w-5" /> Agregar Nuevo Vehículo
               </Button>
             </CardContent>
@@ -389,3 +395,5 @@ export default function VehiclesPage() {
     </div>
   );
 }
+
+    
