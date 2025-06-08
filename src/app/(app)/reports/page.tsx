@@ -18,12 +18,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useState, useEffect, useMemo } from "react";
-import { format, parseISO, isWithinInterval, isValid } from 'date-fns';
+import { format, parseISO, isWithinInterval, isValid, startOfDay, endOfDay, isAfter, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DateRange } from "react-day-picker";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
+import { getAllVehicles, type Vehicle } from "@/services/vehicleService"; // Added imports
 
 // Constantes para tipos y estados usados en los filtros (pueden venir de types/services)
 const ALL_VEHICLE_STATUSES_REPORTS: string[] = ['Operativo', 'En Mantención', 'Fuera de Servicio', 'En Ruta', 'En Emergencia'];
@@ -79,68 +80,121 @@ export default function ReportsPage() {
   const [specificEraIdsInput, setSpecificEraIdsInput] = useState<string>("");
   const [specificInventoryItemIdsInput, setSpecificInventoryItemIdsInput] = useState<string>("");
 
-  // Estados para los datos de los gráficos, inicializados como vacíos
   const [vehicleReportData, setVehicleReportData] = useState<GenericChartDataItem[]>([]);
   const [eraAvailabilityData, setEraAvailabilityData] = useState<GenericChartDataItem[]>([]);
   const [incidentResponseData, setIncidentResponseData] = useState<GenericChartDataItem[]>([]);
   const [maintenanceComplianceData, setMaintenanceComplianceData] = useState<GenericChartDataItem[]>([]);
+  const [loadingReportData, setLoadingReportData] = useState(false);
 
-  // Efecto para cargar datos (reemplazar con llamadas a API reales)
+
   useEffect(() => {
-    // Aquí irían las llamadas a los servicios para obtener datos reales y aplicar filtros del backend.
-    // Por ahora, los gráficos permanecerán vacíos hasta que se integren datos reales.
-    // Ejemplo conceptual:
-    // const fetchReportData = async () => {
-    //   const vehicleFilters = { dateRange, type: vehicleTypeFilter, status: vehicleStatusFilter, ids: specificVehicleIdsInput };
-    //   const eraFilters = { status: eraStatusFilter, ids: specificEraIdsInput };
-    //   const maintFilters = { status: maintenanceStatusFilter };
-    //   // const inventoryFilters = { ids: specificInventoryItemIdsInput }; // Si se necesitara para un gráfico
+    const fetchReportData = async () => {
+      setLoadingReportData(true);
+      try {
+        const allVehicles = await getAllVehicles();
+        
+        const parsedVehicleIds = specificVehicleIdsInput
+          .split(',')
+          .map(id => parseInt(id.trim(), 10))
+          .filter(id => !isNaN(id));
 
-    //   // const [vehicleData, eraData, incidentData, maintData] = await Promise.all([
-    //   //   getVehicleReport(vehicleFilters),
-    //   //   getEraReport(eraFilters),
-    //   //   getIncidentReport({dateRange}),
-    //   //   getMaintenanceReport(maintFilters)
-    //   // ]);
-    //   // setVehicleReportData(processVehicleDataForChart(vehicleData)); // Función para procesar
-    //   // setEraAvailabilityData(processEraDataForChart(eraData));
-    //   // setIncidentResponseData(processIncidentDataForChart(incidentData));
-    //   // setMaintenanceComplianceData(processMaintDataForChart(maintData));
-    // };
-    // fetchReportData();
+        const filteredVehicles = allVehicles.filter(vehicle => {
+          let passes = true;
+
+          if (parsedVehicleIds.length > 0 && !parsedVehicleIds.includes(vehicle.id_vehiculo)) {
+            passes = false;
+          }
+          if (vehicleTypeFilter !== "all" && vehicle.tipo_vehiculo !== vehicleTypeFilter) {
+            passes = false;
+          }
+          if (vehicleStatusFilter !== "all" && vehicle.estado_vehiculo !== vehicleStatusFilter) {
+            passes = false;
+          }
+
+          if (dateRange?.from) {
+            const vehicleDate = parseISO(vehicle.fecha_actualizacion || vehicle.fecha_creacion);
+            if (!isValid(vehicleDate)) {
+              passes = false;
+            } else {
+              const fromDate = startOfDay(dateRange.from);
+              if (isBefore(vehicleDate, fromDate)) passes = false;
+              if (dateRange.to) {
+                const toDate = endOfDay(dateRange.to);
+                if (isAfter(vehicleDate, toDate)) passes = false;
+              }
+            }
+          }
+          return passes;
+        });
+
+        const statusCounts: Record<string, number> = {};
+        ALL_VEHICLE_STATUSES_REPORTS.forEach(status => statusCounts[status] = 0); // Initialize all statuses
+
+        filteredVehicles.forEach(vehicle => {
+          if (vehicle.estado_vehiculo && statusCounts.hasOwnProperty(vehicle.estado_vehiculo)) {
+            statusCounts[vehicle.estado_vehiculo]++;
+          } else if (vehicle.estado_vehiculo) {
+             // Handle unexpected statuses, perhaps group them under 'Otro' or log
+             console.warn(`Vehículo con estado inesperado: ${vehicle.estado_vehiculo}`);
+             // if (!statusCounts['Otro']) statusCounts['Otro'] = 0;
+             // statusCounts['Otro']++;
+          }
+        });
+        
+        const chartData = Object.entries(statusCounts)
+          .map(([status, count]) => {
+            const configEntry = vehicleAvailabilityChartConfig[status as keyof typeof vehicleAvailabilityChartConfig];
+            return {
+              status: configEntry?.label || status,
+              count: count,
+              fill: configEntry?.color || "#8884d8", // Default color
+            };
+          })
+          .filter(item => item.count > 0); // Only include statuses with vehicles
+
+        setVehicleReportData(chartData);
+
+        // Placeholder for other chart data
+        setEraAvailabilityData([]);
+        setIncidentResponseData([]);
+        setMaintenanceComplianceData([]);
+
+      } catch (error) {
+        console.error("Error fetching report data:", error);
+        toast({
+          title: "Error al Cargar Datos",
+          description: error instanceof Error ? error.message : "No se pudieron cargar los datos para los informes.",
+          variant: "destructive",
+        });
+        setVehicleReportData([]);
+      } finally {
+        setLoadingReportData(false);
+      }
+    };
     
-    // Como no hay datos reales, los filtros no afectarán los gráficos vacíos.
-    // El gráfico de vehículos (el único que era dinámico con datos simulados) también estará vacío.
-    setVehicleReportData([]); // Asegura que el gráfico de vehículos se vacíe
-
-  }, [dateRange, vehicleTypeFilter, vehicleStatusFilter, specificVehicleIdsInput, eraStatusFilter, maintenanceStatusFilter, specificEraIdsInput, specificInventoryItemIdsInput]);
+    fetchReportData();
+  }, [dateRange, vehicleTypeFilter, vehicleStatusFilter, specificVehicleIdsInput, toast]);
 
 
   const handleApplyFilters = () => {
+    // The useEffect already re-fetches data when filter states change.
+    // This button can be used to explicitly trigger a toast or if we later
+    // move fetching outside useEffect.
     const specificVehicleIds = specificVehicleIdsInput.split(',').map(id => id.trim()).filter(id => id !== "");
-    const specificEraIds = specificEraIdsInput.split(',').map(id => id.trim()).filter(id => id !== "");
-    const specificInventoryIds = specificInventoryItemIdsInput.split(',').map(id => id.trim()).filter(id => id !== "");
+    // ... (rest of the specific ID parsing)
 
-    let filterSummary = "Filtros Aplicados (Simulación - Conexión a Backend Requerida):\n";
-    if (dateRange?.from) filterSummary += ` - Rango Fechas: ${format(dateRange.from, "dd/MM/yy")} ${dateRange.to ? `- ${format(dateRange.to, "dd/MM/yy")}` : ''}\n`;
+    let filterSummary = "Filtros aplicados y datos recargados (si es necesario).\n";
+     if (dateRange?.from) filterSummary += ` - Rango Fechas: ${format(dateRange.from, "dd/MM/yy")} ${dateRange.to ? `- ${format(dateRange.to, "dd/MM/yy")}` : ''}\n`;
     if (vehicleTypeFilter !== "all") filterSummary += ` - Tipo Vehículo: ${vehicleTypeFilter}\n`;
     if (vehicleStatusFilter !== "all") filterSummary += ` - Estado Vehículo: ${vehicleStatusFilter}\n`;
     if (specificVehicleIds.length > 0) filterSummary += ` - IDs Vehículos: ${specificVehicleIds.join(', ')}\n`;
-    if (eraStatusFilter !== "all") filterSummary += ` - Estado ERA: ${eraStatusFilter}\n`;
-    if (specificEraIds.length > 0) filterSummary += ` - IDs ERA: ${specificEraIds.join(', ')}\n`;
-    if (maintenanceStatusFilter !== "all") filterSummary += ` - Estado Mantención: ${maintenanceStatusFilter}\n`;
-    if (specificInventoryIds.length > 0) filterSummary += ` - IDs Inventario: ${specificInventoryIds.join(', ')}\n`;
+    // ... (rest of the summary for other filters)
     
-    if (filterSummary === "Filtros Aplicados (Simulación - Conexión a Backend Requerida):\n") {
-      filterSummary = "No se han aplicado filtros específicos. Mostrando todos los datos (requiere backend).";
-    }
-
     toast({
-      title: "Filtros Seleccionados",
+      title: "Filtros Aplicados",
       description: <pre className="whitespace-pre-wrap text-xs">{filterSummary}</pre>,
       duration: 7000,
     });
-    // Aquí se llamaría a la función para recargar los datos con los filtros aplicados.
   };
 
   const downloadCsv = (data: any[], filename: string) => {
@@ -148,21 +202,21 @@ export default function ReportsPage() {
       toast({ title: "Sin Datos", description: "No hay datos para exportar con los filtros actuales.", variant: "destructive" });
       return;
     }
-    // Asumiendo que todos los objetos en 'data' tienen las mismas claves para las cabeceras
-    const headers = Object.keys(data[0]).join(',');
+    const headers = Object.keys(data[0]).filter(key => key !== 'fill').join(','); // Exclude 'fill' from CSV
     const csvRows = data.map(row => 
-      Object.values(row).map(value => {
-        const strValue = String(value);
-        // Escapar comas y comillas dobles en los valores
-        if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
-          return `"${strValue.replace(/"/g, '""')}"`;
-        }
-        return strValue;
-      }).join(',')
+      Object.entries(row)
+        .filter(([key]) => key !== 'fill')
+        .map(([, value]) => {
+          const strValue = String(value);
+          if (strValue.includes(',') || strValue.includes('"') || strValue.includes('\n')) {
+            return `"${strValue.replace(/"/g, '""')}"`;
+          }
+          return strValue;
+        }).join(',')
     );
     const csvString = `${headers}\n${csvRows.join('\n')}`;
     
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-t8;' });
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
@@ -175,7 +229,7 @@ export default function ReportsPage() {
       URL.revokeObjectURL(url);
       toast({
         title: "Exportación CSV Iniciada",
-        description: `Se está generando el archivo ${filename}. (Conexión a backend para datos reales necesaria)`,
+        description: `Se está generando el archivo ${filename}.`,
       });
     } else {
         toast({ title: "Error de Exportación", description: "Tu navegador no soporta la descarga de archivos de esta manera.", variant: "destructive" });
@@ -184,14 +238,11 @@ export default function ReportsPage() {
 
   const handleExport = (formatType: 'CSV' | 'PDF') => {
     if (formatType === 'CSV') {
-      // Idealmente, aquí se pasaría data real filtrada desde el backend.
-      // Como no hay datos, se puede exportar un CSV vacío con cabeceras o un mensaje.
-      // Para el ejemplo, si vehicleReportData está vacío, downloadCsv mostrará el toast de "Sin datos".
-      downloadCsv(vehicleReportData, 'informe_vehiculos.csv');
+      downloadCsv(vehicleReportData, 'informe_disponibilidad_vehiculos.csv');
     } else if (formatType === 'PDF') {
       toast({
         title: `Exportación a ${formatType} (Simulada)`,
-        description: `La funcionalidad de exportación a ${formatType} requiere implementación de backend.`,
+        description: `La funcionalidad de exportación a ${formatType} requiere implementación adicional.`,
       });
     }
   };
@@ -205,18 +256,18 @@ export default function ReportsPage() {
         </h1>
       </div>
       <p className="text-muted-foreground">
-        Visualización del estado y rendimiento de los recursos. Esta sección requiere integración con backend para mostrar datos reales y funcionalidad completa de filtrado/exportación.
+        Visualización del estado y rendimiento de los recursos. Otros gráficos requieren integración con backend.
       </p>
 
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center"><Filter className="mr-2 h-5 w-5 text-primary" /> Filtros de Informes</CardTitle>
-          <CardDescription>Seleccione criterios para generar informes específicos (funcionalidad de backend pendiente).</CardDescription>
+          <CardDescription>Seleccione criterios para generar informes específicos.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
             <div>
-              <Label htmlFor="date-range" className="text-sm font-medium text-muted-foreground mb-1 block">Rango de Fechas</Label>
+              <Label htmlFor="date-range" className="text-sm font-medium text-muted-foreground mb-1 block">Rango de Fechas (Vehículos)</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -254,8 +305,8 @@ export default function ReportsPage() {
                 </Select>
             </div>
             <div>
-                <Label htmlFor="era-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de ERA</Label>
-                <Select value={eraStatusFilter} onValueChange={setEraStatusFilter}>
+                <Label htmlFor="era-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de ERA (No implementado)</Label>
+                <Select value={eraStatusFilter} onValueChange={setEraStatusFilter} disabled>
                     <SelectTrigger id="era-status-filter" className="h-10"><SelectValue placeholder="Todos los Estados" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos los Estados de ERA</SelectItem>
@@ -264,8 +315,8 @@ export default function ReportsPage() {
                 </Select>
             </div>
             <div>
-                <Label htmlFor="maintenance-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de Mantención</Label>
-                <Select value={maintenanceStatusFilter} onValueChange={setMaintenanceStatusFilter}>
+                <Label htmlFor="maintenance-status-filter" className="text-sm font-medium text-muted-foreground mb-1 block">Estado de Mantención (No implementado)</Label>
+                <Select value={maintenanceStatusFilter} onValueChange={setMaintenanceStatusFilter} disabled>
                     <SelectTrigger id="maintenance-status-filter" className="h-10"><SelectValue placeholder="Todos los Estados" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos los Estados de Mantención</SelectItem>
@@ -280,16 +331,16 @@ export default function ReportsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end mt-4">
             <div>
-                <Label htmlFor="specific-era-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Equipos ERA Específicos (IDs)</Label>
-                <Input id="specific-era-ids" placeholder="Ej: 101, 105" value={specificEraIdsInput} onChange={(e) => setSpecificEraIdsInput(e.target.value)} className="h-10"/>
+                <Label htmlFor="specific-era-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Equipos ERA Específicos (IDs, No impl.)</Label>
+                <Input id="specific-era-ids" placeholder="Ej: 101, 105" value={specificEraIdsInput} onChange={(e) => setSpecificEraIdsInput(e.target.value)} className="h-10" disabled/>
             </div>
             <div>
-                <Label htmlFor="specific-inventory-item-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Ítems Inventario Específicos (IDs)</Label>
-                <Input id="specific-inventory-item-ids" placeholder="Ej: 20, 25, 33" value={specificInventoryItemIdsInput} onChange={(e) => setSpecificInventoryItemIdsInput(e.target.value)} className="h-10"/>
+                <Label htmlFor="specific-inventory-item-ids" className="text-sm font-medium text-muted-foreground mb-1 block">Ítems Inventario Específicos (IDs, No impl.)</Label>
+                <Input id="specific-inventory-item-ids" placeholder="Ej: 20, 25, 33" value={specificInventoryItemIdsInput} onChange={(e) => setSpecificInventoryItemIdsInput(e.target.value)} className="h-10" disabled/>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 pt-6">
-            <Button onClick={handleApplyFilters} className="w-full sm:w-auto"><Filter className="mr-2 h-4 w-4" /> Aplicar Filtros (Simulado)</Button>
+            <Button onClick={handleApplyFilters} className="w-full sm:w-auto" disabled><Filter className="mr-2 h-4 w-4" /> Aplicar Otros Filtros (Simulado)</Button>
             <Button variant="outline" onClick={() => handleExport('CSV')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar Vehículos (CSV)</Button>
             <Button variant="outline" onClick={() => handleExport('PDF')} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Exportar a PDF (Simulado)</Button>
           </div>
@@ -300,11 +351,13 @@ export default function ReportsPage() {
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle>Disponibilidad de Vehículos</CardTitle>
-            <CardDescription>Distribución del estado de la flota vehicular (requiere datos reales).</CardDescription>
+            <CardDescription>Distribución del estado de la flota vehicular.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={vehicleAvailabilityChartConfig} className="h-[300px] w-full">
-              {vehicleReportData.length > 0 ? (
+              {loadingReportData ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin mr-2" />Cargando datos...</div>
+              ) : vehicleReportData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <ChartTooltip content={<ChartTooltipContent hideLabel nameKey="status" />} />
@@ -313,8 +366,8 @@ export default function ReportsPage() {
                         const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return ( percent > 0.02 ? 
-                          <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10px">
+                        return ( percent > 0.03 ? // Show label if percent is > 3%
+                          <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="10px" fontWeight="bold">
                             {`${(percent * 100).toFixed(0)}%`}
                           </text> : null
                         );
@@ -325,7 +378,7 @@ export default function ReportsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar.</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar con los filtros actuales.</div>
               )}
             </ChartContainer>
           </CardContent>
@@ -359,7 +412,7 @@ export default function ReportsPage() {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar.</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar. (Funcionalidad pendiente)</div>
               )}
             </ChartContainer>
           </CardContent>
@@ -384,7 +437,7 @@ export default function ReportsPage() {
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar.</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar. (Funcionalidad pendiente)</div>
               )}
             </ChartContainer>
           </CardContent>
@@ -410,7 +463,7 @@ export default function ReportsPage() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar.</div>
+                <div className="flex items-center justify-center h-full text-muted-foreground">Sin datos para mostrar. (Funcionalidad pendiente)</div>
               )}
             </ChartContainer>
           </CardContent>
@@ -423,7 +476,7 @@ export default function ReportsPage() {
           </div>
           <div className="ml-3">
             <p className="text-sm text-blue-700">
-              <strong>Nota:</strong> Esta página de informes es una plantilla. Para funcionalidad completa, se requiere integrar con un backend para obtener datos reales, procesar filtros y generar exportaciones complejas de Excel/PDF. La exportación CSV para vehículos es una simulación en cliente.
+              <strong>Nota:</strong> Solo el gráfico "Disponibilidad de Vehículos" está conectado a datos (simulados/locales). Los demás gráficos y filtros avanzados requieren integración completa con backend para obtener datos reales, procesar filtros complejos y generar exportaciones. La exportación CSV para vehículos es funcional con los datos mostrados.
             </p>
           </div>
         </div>
