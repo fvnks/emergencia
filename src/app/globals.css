@@ -93,7 +93,7 @@ body {
     --ring: 210 92% 59%; /* Primary color for focus rings */
 
     /* Sidebar Dark Theme */
-    --sidebar-background: hsl(var(--card));
+    --sidebar-background: 210 25% 20%; /* Darker slate blue, lighter than card and main bg for better distinction */
     --sidebar-foreground: hsl(var(--foreground));
     --sidebar-border: hsl(var(--border));
     --sidebar-floating-panel-border: hsl(var(--border));
