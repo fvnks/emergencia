@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, ImageIcon, PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
+import { ArrowLeft, ImageIcon, Palette, PaletteIcon, Save, RotateCcw, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 const LOCALSTORAGE_PRIMARY_COLOR_KEY = "customPrimaryColorHSL";
@@ -22,8 +22,8 @@ const LOCALSTORAGE_ACCENT_COLOR_KEY = "customAccentColorHSL";
 const LOCALSTORAGE_LOGO_URL_KEY = "customLogoUrl";
 const LOCALSTORAGE_LOGO_TEXT_KEY = "customLogoText";
 
-const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%"; // Example: Blue
-const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%"; // Example: Teal
+const DEFAULT_PRIMARY_HSL_STRING = "210 92% 59%";
+const DEFAULT_ACCENT_HSL_STRING = "174 72% 56%";
 const DEFAULT_LOGO_TEXT = "Gestor Brigada";
 
 // Helper: Convert HEX to HSL string "H S% L%"
@@ -137,7 +137,7 @@ export default function AppearanceSettingsPage() {
     if (storedPrimaryHsl) {
         const hex = hslToHex(storedPrimaryHsl);
         if (hex) setPrimaryColorHex(hex);
-        else localStorage.removeItem(LOCALSTORAGE_PRIMARY_COLOR_KEY); // Clean up invalid entry
+        else localStorage.removeItem(LOCALSTORAGE_PRIMARY_COLOR_KEY);
     } else {
         const defaultHex = hslToHex(DEFAULT_PRIMARY_HSL_STRING);
         if (defaultHex) setPrimaryColorHex(defaultHex);
@@ -146,7 +146,7 @@ export default function AppearanceSettingsPage() {
     if (storedAccentHsl) {
         const hex = hslToHex(storedAccentHsl);
         if (hex) setAccentColorHex(hex);
-        else localStorage.removeItem(LOCALSTORAGE_ACCENT_COLOR_KEY); // Clean up invalid entry
+        else localStorage.removeItem(LOCALSTORAGE_ACCENT_COLOR_KEY);
     } else {
         const defaultHex = hslToHex(DEFAULT_ACCENT_HSL_STRING);
         if (defaultHex) setAccentColorHex(defaultHex);
@@ -187,7 +187,7 @@ export default function AppearanceSettingsPage() {
     try {
       localStorage.removeItem(LOCALSTORAGE_PRIMARY_COLOR_KEY);
       localStorage.removeItem(LOCALSTORAGE_ACCENT_COLOR_KEY);
-      applyCustomColorsToDOM(null, null); // Remove inline styles to revert to CSS defaults
+      applyCustomColorsToDOM(null, null);
       
       const defaultPrimaryHex = hslToHex(DEFAULT_PRIMARY_HSL_STRING);
       const defaultAccentHex = hslToHex(DEFAULT_ACCENT_HSL_STRING);
@@ -277,10 +277,14 @@ export default function AppearanceSettingsPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
-            <Button onClick={handleSaveLogo} disabled={isSubmitting}>
+            <button 
+              onClick={handleSaveLogo} 
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white hover:bg-blue-700 rounded-md px-3 py-1.5 text-sm font-medium inline-flex items-center justify-center disabled:opacity-50 disabled:pointer-events-none"
+            >
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4"/>}
-              Guardar Cambios de Logo
-            </Button>
+              Guardar Logo
+            </button>
             <Button variant="outline" onClick={handleRestoreDefaultLogo} disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
               Restaurar Logo por Defecto
